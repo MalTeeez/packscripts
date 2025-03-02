@@ -167,7 +167,7 @@ async function parse_mod_id(file) {
 function update_list(files, old_list) {
     const std_object = { 
         file_path: "",
-        tags: ["SIDE.CLIENT, SIDE.SERVER"],
+        tags: ["SIDE.CLIENT", "SIDE.SERVER"],
         source: "",
         notes: "",
         wanted_by: [],

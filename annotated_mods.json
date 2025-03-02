@@ -1,17 +1,17 @@
 {
     "unimixins": {
-        "file_path": "../.minecraft/mods/+unimixins-all-1.7.10-0.1.17.jar",
+        "file_path": "../.minecraft/mods/+unimixins-all-1.7.10-0.1.20.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/LegacyModdingMC/unimixins/releases/tag/0.1.17",
+        "source": "https://github.com/LegacyModdingMC/UniMixins/releases/tag/0.1.20",
         "notes": "",
         "wanted_by": ["zume"],
         "wants": [],
         "enabled": true
     },
     "asjpatcher": {
-        "file_path": "../.minecraft/mods/1.7.10-ASJCore-1.3.0.1.jar",
+        "file_path": "../.minecraft/mods/1.7.10-ASJCore-1.4.2.2.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://modrinth.com/mod/asjcore/version/1.3.0.1",
+        "source": "https://modrinth.com/mod/asjcore/version/1.4.2.2",
         "notes": "",
         "wanted_by": ["alfheim"],
         "wants": [],
@@ -36,27 +36,27 @@
         "enabled": true
     },
     "ae2fc": {
-        "file_path": "../.minecraft/mods/ae2fc-1.3.8-gtnh-pre.jar",
+        "file_path": "../.minecraft/mods/ae2fc-1.4.32-gtnh.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/AE2FluidCraft-Rework/releases/tag/1.3.8-gtnh-pre",
+        "source": "https://github.com/GTNewHorizons/AE2FluidCraft-Rework/releases/tag/1.4.32-gtnh",
         "notes": "",
         "wanted_by": [],
         "wants": ["appliedenergistics2"],
         "enabled": true
     },
     "ae2stuff": {
-        "file_path": "../.minecraft/mods/ae2stuff-0.8.2-GTNH.jar",
+        "file_path": "../.minecraft/mods/ae2stuff-0.9.4-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/ae2stuff/releases/tag/0.8.2-GTNH",
+        "source": "https://github.com/GTNewHorizons/ae2stuff/releases/tag/0.9.4-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": ["appliedenergistics2"],
         "enabled": true
     },
     "alfheim": {
-        "file_path": "../.minecraft/mods/Alfheim-54.jar",
+        "file_path": "../.minecraft/mods/Alfheim-60.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://modrinth.com/mod/alfheim/version/54",
+        "source": "https://modrinth.com/mod/alfheim/version/60",
         "notes": "",
         "wanted_by": [],
         "wants": ["asjpatcher"],
@@ -72,9 +72,9 @@
         "enabled": true
     },
     "angelica": {
-        "file_path": "../.minecraft/mods/angelica-1.0.0-beta8.jar",
+        "file_path": "../.minecraft/mods/angelica-1.0.0-beta35.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Angelica/releases/tag/1.0.0-beta8",
+        "source": "https://github.com/GTNewHorizons/Angelica/releases/tag/1.0.0-beta35",
         "notes": "",
         "wanted_by": [],
         "wants": ["unimixins", "gtnhlib"],
@@ -90,20 +90,20 @@
         "enabled": true
     },
     "appliedenergistics2": {
-        "file_path": "../.minecraft/mods/appliedenergistics2-rv3-beta-407-GTNH-pre.jar",
+        "file_path": "../.minecraft/mods/appliedenergistics2-rv3-beta-548-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Applied-Energistics-2-Unofficial/releases/tag/rv3-beta-407-GTNH-pre",
+        "source": "https://github.com/GTNewHorizons/Applied-Energistics-2-Unofficial/releases/tag/rv3-beta-548-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "archaicfix": {
-        "file_path": "../.minecraft/mods/archaicfix-0.7.2.jar",
+        "file_path": "../.minecraft/mods/archaicfix-0.7.4.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/embeddedt/ArchaicFix/releases/tag/0.7.2",
+        "source": "https://github.com/embeddedt/ArchaicFix/releases/tag/0.7.4",
         "notes": "",
-        "wanted_by": [],    
+        "wanted_by": [],
         "wants": [],
         "enabled": true
     },
@@ -117,18 +117,18 @@
         "enabled": true
     },
     "Avaritia": {
-        "file_path": "../.minecraft/mods/Avaritia-1.49.jar",
+        "file_path": "../.minecraft/mods/Avaritia-1.61.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Avaritia/releases/tag/1.49",
+        "source": "https://github.com/GTNewHorizons/Avaritia/releases/tag/1.61",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "avaritiaddons": {
-        "file_path": "../.minecraft/mods/Avaritiaddons-1.7.1-GTNH.jar",
+        "file_path": "../.minecraft/mods/Avaritiaddons-1.8.4-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Avaritiaddons/releases/tag/1.7.1-GTNH",
+        "source": "https://github.com/GTNewHorizons/Avaritiaddons/releases/tag/1.8.4-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": ["Avaritia"],
@@ -153,18 +153,18 @@
         "enabled": true
     },
     "beebetteratbees": {
-        "file_path": "../.minecraft/mods/beebetteratbees-0.4.0-GTNH.jar",
+        "file_path": "../.minecraft/mods/beebetteratbees-0.4.2-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/BeeBetterAtBees-GTNH/releases/tag/0.4.0-GTNH",
+        "source": "https://github.com/GTNewHorizons/BeeBetterAtBees-GTNH/releases/tag/0.4.2-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": ["NotEnoughItems", "Forestry"],
         "enabled": true
     },
     "BetterAchievements": {
-        "file_path": "../.minecraft/mods/BetterAchievements-1.7.10-0.1.0.jar",
+        "file_path": "../.minecraft/mods/BetterAchievements-0.3.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/BetterAchievements/releases/tag/0.1.1",
+        "source": "https://github.com/GTNewHorizons/BetterAchievements/releases/tag/0.3.0",
         "notes": "",
         "wanted_by": [],
         "wants": [],
@@ -180,9 +180,9 @@
         "enabled": true
     },
     "betterp2p": {
-        "file_path": "../.minecraft/mods/betterp2p-1.2.0.jar",
+        "file_path": "../.minecraft/mods/betterp2p-1.3.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/BetterP2P/releases/tag/1.2.0",
+        "source": "https://github.com/GTNewHorizons/BetterP2P/releases/tag/1.3.0",
         "notes": "",
         "wanted_by": [],
         "wants": ["appliedenergistics2"],
@@ -207,9 +207,9 @@
         "enabled": true
     },
     "BinnieCore": {
-        "file_path": "../.minecraft/mods/binnie-mods-2.3.3.jar",
+        "file_path": "../.minecraft/mods/binnie-mods-2.4.8.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Binnie/releases/tag/2.3.3",
+        "source": "https://github.com/GTNewHorizons/Binnie/releases/tag/2.4.8",
         "notes": "",
         "wanted_by": [],
         "wants": ["Forestry"],
@@ -225,18 +225,18 @@
         "enabled": true
     },
     "BloodArsenal": {
-        "file_path": "../.minecraft/mods/BloodArsenal-1.3.1.jar",
+        "file_path": "../.minecraft/mods/BloodArsenal-1.3.6.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/BloodArsenal/releases/tag/1.3.1",
+        "source": "https://github.com/GTNewHorizons/BloodArsenal/releases/tag/1.3.6",
         "notes": "",
         "wanted_by": [],
         "wants": ["AWWayofTime"],
         "enabled": true
     },
     "AWWayofTime": {
-        "file_path": "../.minecraft/mods/BloodMagic-1.5.1.jar",
+        "file_path": "../.minecraft/mods/BloodMagic-1.7.5.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/BloodMagic/releases/tag/1.5.1",
+        "source": "https://github.com/GTNewHorizons/BloodMagic/releases/tag/1.7.5",
         "notes": "",
         "wanted_by": [],
         "wants": [],
@@ -252,36 +252,36 @@
         "enabled": true
     },
     "Botania": {
-        "file_path": "../.minecraft/mods/Botania-1.9.22-GTNH-master.2+c7b124f12f.jar",
+        "file_path": "../.minecraft/mods/Botania-1.12.5-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Botania/releases",
+        "source": "https://github.com/GTNewHorizons/Botania/releases/tag/1.12.5-GTNH",
         "notes": "Replace resources/assets/botania/sounds/doit.ogg with our sound (startup sound).",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "BrandonsCore": {
-        "file_path": "../.minecraft/mods/BrandonsCore-1.1.0-GTNH.jar",
+        "file_path": "../.minecraft/mods/BrandonsCore-1.2.0-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/BrandonsCore/releases/tag/1.1.0-GTNH",
+        "source": "https://github.com/GTNewHorizons/BrandonsCore/releases/tag/1.2.0-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "BuildCraft|Core": {
-        "file_path": "../.minecraft/mods/buildcraft-7.1.38.jar",
+        "file_path": "../.minecraft/mods/buildcraft-7.1.42.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/BuildCraft/releases/tag/7.1.38",
+        "source": "https://github.com/GTNewHorizons/BuildCraft/releases/tag/7.1.42",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "BuildCraft|Compat": {
-        "file_path": "../.minecraft/mods/buildcraft-compat-7.1.16.jar",
+        "file_path": "../.minecraft/mods/buildcraft-compat-7.1.17.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/BuildCraftCompat/releases/tag/7.1.16",
+        "source": "https://github.com/GTNewHorizons/BuildCraftCompat/releases/tag/7.1.17",
         "notes": "",
         "wanted_by": [],
         "wants": ["BuildCraft|Core"],
@@ -315,27 +315,27 @@
         "enabled": true
     },
     "ChickenChunks": {
-        "file_path": "../.minecraft/mods/ChickenChunks-1.3.4.22.dirty.jar",
+        "file_path": "../.minecraft/mods/ChickenChunks-1.3.4.27.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/LITW-Refined/ChickenChunks/releases",
+        "source": "https://github.com/LITW-Refined/ChickenChunks/releases/tag/1.3.4.27",
         "notes": "Secondary local version with a possible nother fix exists.",
         "wanted_by": [],
         "wants": ["CodeChickenCore"],
         "enabled": true
     },
     "chisel": {
-        "file_path": "../.minecraft/mods/chisel-2.14.1-GTNH.jar",
+        "file_path": "../.minecraft/mods/chisel-2.16.2-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Chisel/releases/tag/2.14.1-GTNH",
+        "source": "https://github.com/GTNewHorizons/Chisel/releases/tag/2.16.2-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": ["CTMLib"],
         "enabled": true
     },
     "chiseltones": {
-        "file_path": "../.minecraft/mods/chiseltones-1.7.10-1.0.4-GTNH.jar",
+        "file_path": "../.minecraft/mods/chiseltones-1.2.0-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/ChiselTones/releases/tag/1.0.4-GTNH",
+        "source": "https://github.com/GTNewHorizons/ChiselTones/releases/tag/1.2.0-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": ["chisel", "ztones"],
@@ -351,9 +351,9 @@
         "enabled": true
     },
     "CodeChickenCore": {
-        "file_path": "../.minecraft/mods/CodeChickenCore-1.2.1.jar",
+        "file_path": "../.minecraft/mods/CodeChickenCore-1.4.1.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/CodeChickenCore/releases/tag/1.2.1",
+        "source": "https://github.com/GTNewHorizons/CodeChickenCore/releases/tag/1.3.11",
         "notes": "",
         "wanted_by": [],
         "wants": [],
@@ -378,27 +378,27 @@
         "enabled": true
     },
     "cosmeticarmorreworked": {
-        "file_path": "../.minecraft/mods/CosmeticArmorReworked-1.7.10-v6b.jar",
+        "file_path": "../.minecraft/mods/CosmeticArmorReworked-1.7.10-v7.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://www.curseforge.com/minecraft/mc-mods/cosmetic-armor-reworked/files/2283982",
+        "source": "https://www.curseforge.com/minecraft/mc-mods/cosmetic-armor-reworked/files/3763564",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "MineTweaker3": {
-        "file_path": "../.minecraft/mods/CraftTweaker-3.2.13.jar",
+        "file_path": "../.minecraft/mods/CraftTweaker-3.4.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/CraftTweaker/releases/tag/3.2.13",
+        "source": "https://github.com/GTNewHorizons/CraftTweaker/releases/tag/3.4.0",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "CTMLib": {
-        "file_path": "../.minecraft/mods/CTMLib-1.7.10-1.4.4.jar",
+        "file_path": "../.minecraft/mods/CTMLib-1.4.5.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/CTMLib/releases/tag/1.4.4",
+        "source": "https://github.com/GTNewHorizons/CTMLib/releases/tag/1.4.5",
         "notes": "",
         "wanted_by": [],
         "wants": [],
@@ -423,9 +423,9 @@
         "enabled": true
     },
     "DraconicEvolution": {
-        "file_path": "../.minecraft/mods/Draconic-Evolution-1.2.1-GTNH-master.2+7c19c57177.jar",
+        "file_path": "../.minecraft/mods/Draconic-Evolution-1.2.1-GTNH-U25r.3+add1ed49ec.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER", "CUSTOM"],
-        "source": "https://github.com/MalTeeez/Draconic-Evolution",
+        "source": "https://github.com/MalTeeez/Draconic-Evolution/commit/add1ed4",
         "notes": "",
         "wanted_by": [],
         "wants": ["BrandonsCore"],
@@ -477,27 +477,27 @@
         "enabled": true
     },
     "endercore": {
-        "file_path": "../.minecraft/mods/endercore-0.2.17.jar",
+        "file_path": "../.minecraft/mods/endercore-0.4.6.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/EnderCore/releases/tag/0.2.17",
+        "source": "https://github.com/GTNewHorizons/EnderCore/releases/tag/0.4.6",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "EnderIO": {
-        "file_path": "../.minecraft/mods/EnderIO-2.4.24.jar",
+        "file_path": "../.minecraft/mods/EnderIO-2.9.4.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/EnderIO/releases/tag/2.4.24",
+        "source": "https://github.com/GTNewHorizons/EnderIO/releases/tag/2.9.4",
         "notes": "",
         "wanted_by": [],
         "wants": ["endercore"],
         "enabled": true
     },
     "EnderStorage": {
-        "file_path": "../.minecraft/mods/EnderStorage-1.7.10-1.4.7.37-universal.jar",
+        "file_path": "../.minecraft/mods/EnderStorage-1.7.2.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://www.curseforge.com/minecraft/mc-mods/ender-storage/files/2262092",
+        "source": "https://github.com/GTNewHorizons/EnderStorage/releases/tag/1.7.2",
         "notes": "",
         "wanted_by": [],
         "wants": ["CodeChickenCore"],
@@ -522,9 +522,9 @@
         "enabled": true
     },
     "extracells": {
-        "file_path": "../.minecraft/mods/ExtraCells-1.7.10-2.5.6.jar",
+        "file_path": "../.minecraft/mods/ExtraCells-2.5.35.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/ExtraCells2/releases/tag/2.5.6",
+        "source": "https://github.com/GTNewHorizons/ExtraCells2/releases/tag/2.5.35",
         "notes": "",
         "wanted_by": [],
         "wants": ["appliedenergistics2"],
@@ -567,22 +567,22 @@
         "enabled": true
     },
     "falsepatternlib": {
-        "file_path": "../.minecraft/mods/falsepatternlib-mc1.7.10-1.0.1.jar",
+        "file_path": "../.minecraft/mods/falsepatternlib-mc1.7.10-1.5.9.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/FalsePattern/FalsePatternLib/releases/tag/1.0.1",
+        "source": "https://github.com/FalsePattern/FalsePatternLib/releases/tag/1.5.9",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "falsetweaks": {
-        "file_path": "../.minecraft/mods/falsetweaks-mc1.7.10-2.8.1.jar",
+        "file_path": "../.minecraft/mods/falsetweaks-mc1.7.10-3.9.0.jar.disabled",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/FalsePattern/FalseTweaks/releases/tag/2.8.1",
-        "notes": "",
+        "source": "https://github.com/FalsePattern/FalseTweaks/releases/tag/3.9.0",
+        "notes": "Leads to rendering bugs and then crashes with angelica.",
         "wanted_by": [],
         "wants": ["falsepatternlib"],
-        "enabled": true
+        "enabled": false
     },
     "fastleafdecay": {
         "file_path": "../.minecraft/mods/FastLeafDecay-1.7.10-1.4.jar",
@@ -603,36 +603,36 @@
         "enabled": true
     },
     "ForbiddenMagic": {
-        "file_path": "../.minecraft/mods/Forbidden Magic-1.7.10-0.575-gtnh-2.jar",
+        "file_path": "../.minecraft/mods/Forbidden.Magic-0.8.0-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/ForbiddenMagic/releases",
+        "source": "https://github.com/GTNewHorizons/ForbiddenMagic/releases/tag/0.8.0-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": ["Thaumcraft"],
         "enabled": true
     },
     "Forestry": {
-        "file_path": "../.minecraft/mods/Forestry-4.7.0.jar",
+        "file_path": "../.minecraft/mods/Forestry-4.10.3.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/ForestryMC/releases/tag/4.7.0",
+        "source": "https://github.com/GTNewHorizons/ForestryMC/releases/tag/4.10.3",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "ForgeRelocation": {
-        "file_path": "../.minecraft/mods/ForgeRelocation-1.7.10-0.0.3.jar",
+        "file_path": "../.minecraft/mods/ForgeRelocation-0.3.1.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/ForgeRelocation/releases/tag/0.0.3",
+        "source": "https://github.com/GTNewHorizons/ForgeRelocation/releases/tag/0.3.1",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "RelocationFMP": {
-        "file_path": "../.minecraft/mods/ForgeRelocationFMP-1.7.10-0.0.4.jar",
+        "file_path": "../.minecraft/mods/ForgeRelocationFMP-0.2.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/ForgeRelocationFMP/releases/tag/0.0.4",
+        "source": "https://github.com/GTNewHorizons/ForgeRelocationFMP/releases/tag/0.2.0",
         "notes": "",
         "wanted_by": [],
         "wants": ["ForgeRelocation", "ForgeMultipart"],
@@ -648,45 +648,27 @@
         "enabled": true
     },
     "gadomancy": {
-        "file_path": "../.minecraft/mods/gadomancy-1.3.3-pre.jar",
+        "file_path": "../.minecraft/mods/gadomancy-1.4.2.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Gadomancy/releases/tag/1.3.3-pre",
+        "source": "https://github.com/GTNewHorizons/Gadomancy/releases/tag/1.4.2",
         "notes": "",
         "wanted_by": [],
         "wants": ["Thaumcraft"],
         "enabled": true
     },
-    "GalacticraftMars": {
-        "file_path": "../.minecraft/mods/Galacticraft-Planets-1.7-3.0.12.504.jar",
-        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://www.curseforge.com/minecraft/mc-mods/galacticraft-legacy/files",
-        "notes": "GTNH Version is not compatible.",
-        "wanted_by": [],
-        "wants": ["GalacticraftCore", "MicdoodleCore"],
-        "enabled": true
-    },
-    "GalacticraftCore": {
-        "file_path": "../.minecraft/mods/GalacticraftCore-1.7-3.0.12.504.jar",
-        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://www.curseforge.com/minecraft/mc-mods/galacticraft-legacy/files",
-        "notes": "GTNH Version is not compatible.",
-        "wanted_by": [],
-        "wants": ["MicdoodleCore"],
-        "enabled": true
-    },
     "gtnhlib": {
-        "file_path": "../.minecraft/mods/gtnhlib-0.5.12.jar",
+        "file_path": "../.minecraft/mods/gtnhlib-0.6.11.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/GTNHLib/releases/tag/0.5.12",
+        "source": "https://github.com/GTNewHorizons/GTNHLib/releases/tag/0.6.11",
         "notes": "",
         "wanted_by": [],
         "wants": ["unimixins"],
         "enabled": true
     },
     "guideapi": {
-        "file_path": "../.minecraft/mods/guideapi-1.7.10-1.0.2.jar",
+        "file_path": "../.minecraft/mods/guideapi-1.1.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Guide-API/releases/tag/1.0.2",
+        "source": "https://github.com/GTNewHorizons/Guide-API/releases/tag/1.1.0",
         "notes": "",
         "wanted_by": [],
         "wants": [],
@@ -702,18 +684,18 @@
         "enabled": true
     },
     "HardcoreEnderExpansion": {
-        "file_path": "../.minecraft/mods/HardcoreEnderExpansion-1.10.1-GTNH.jar",
+        "file_path": "../.minecraft/mods/HardcoreEnderExpansion-1.12.1-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Hardcore-Ender-Expansion/releases/tag/1.10.1-GTNH",
+        "source": "https://github.com/GTNewHorizons/Hardcore-Ender-Expansion/releases/tag/1.12.1-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "hodgepodge": {
-        "file_path": "../.minecraft/mods/hodgepodge-2.5.21-pre.jar",
+        "file_path": "../.minecraft/mods/hodgepodge-2.5.90.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Hodgepodge/releases/tag/2.5.21-pre",
+        "source": "https://github.com/GTNewHorizons/Hodgepodge/releases/tag/2.5.90",
         "notes": "",
         "wanted_by": [],
         "wants": ["unimixins", "gtnhlib"],
@@ -729,7 +711,7 @@
         "enabled": true
     },
     "idekmixintweaks": {
-        "file_path": "../.minecraft/mods/IDEK-Mixin-Tile-Accel-Fix.jar",
+        "file_path": "../.minecraft/mods/IdekMixinTweaks-1.7.10-UNKNOWN-ab1a647+nomixin.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/EyeDeck/IDEK-Mixin-Tweaks/releases/tag/Release",
         "notes": "",
@@ -747,9 +729,9 @@
         "enabled": true
     },
     "inventorytweaks": {
-        "file_path": "../.minecraft/mods/inventorytweaks-1.6.1.jar",
+        "file_path": "../.minecraft/mods/inventorytweaks-1.7.1.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://www.curseforge.com/minecraft/mc-mods/inventory-tweaks/files/2315240",
+        "source": "https://github.com/GTNewHorizons/inventory-tweaks/releases/tag/1.7.1",
         "notes": "",
         "wanted_by": [],
         "wants": [],
@@ -765,9 +747,9 @@
         "enabled": true
     },
     "IronChest": {
-        "file_path": "../.minecraft/mods/IronChest-6.0.74.jar",
+        "file_path": "../.minecraft/mods/IronChest-6.1.1.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/ironchest/releases/tag/6.0.74",
+        "source": "https://github.com/GTNewHorizons/ironchest/releases/tag/6.1.1",
         "notes": "",
         "wanted_by": [],
         "wants": [],
@@ -783,9 +765,9 @@
         "enabled": true
     },
     "laggoggles": {
-        "file_path": "../.minecraft/mods/laggoggles-mc1.7.10-4.15.0.jar",
+        "file_path": "../.minecraft/mods/laggoggles-mc1.7.10-4.16.1.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/FalsePattern/LagGogglesLegacy/releases/tag/4.15.0",
+        "source": "https://github.com/FalsePattern/LagGogglesLegacy/releases/tag/4.16.1",
         "notes": "",
         "wanted_by": [],
         "wants": ["unimixins", "falsepatternlib"],
@@ -801,36 +783,36 @@
         "enabled": true
     },
     "lwjgl3ify": {
-        "file_path": "../.minecraft/mods/lwjgl3ify-2.1.3.jar",
+        "file_path": "../.minecraft/mods/lwjgl3ify-2.1.9.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/lwjgl3ify/releases/tag/2.1.3",
+        "source": "https://github.com/GTNewHorizons/lwjgl3ify/releases/tag/2.1.9",
         "notes": "",
         "wanted_by": [],
         "wants": ["unimixins"],
         "enabled": true
     },
     "MagicBees": {
-        "file_path": "../.minecraft/mods/magicbees-2.7.14-GTNH.jar",
+        "file_path": "../.minecraft/mods/magicbees-2.9.1-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/MagicBees/releases/tag/2.7.14-GTNH",
+        "source": "https://github.com/GTNewHorizons/MagicBees/releases/tag/2.9.1-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": ["Forestry"],
         "enabled": true
     },
     "Mantle": {
-        "file_path": "../.minecraft/mods/Mantle-0.3.7.jar",
+        "file_path": "../.minecraft/mods/Mantle-0.5.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Mantle/releases/tag/0.3.7",
+        "source": "https://github.com/GTNewHorizons/Mantle/releases/tag/0.5.0",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "mo": {
-        "file_path": "../.minecraft/mods/MatterOverdrive-1.7.10-0.4.4.jar",
+        "file_path": "../.minecraft/mods/MatterOverdrive-1.7.10-0.4.5.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://www.curseforge.com/minecraft/mc-mods/matter-overdrive-community-edition/files/all?page=1&pageSize=20&version=1.7.10",
+        "source": "https://www.curseforge.com/minecraft/mc-mods/matter-overdrive-community-edition/files/5263649",
         "notes": "Can't find 0.4.4 online.",
         "wanted_by": [],
         "wants": [],
@@ -840,24 +822,6 @@
         "file_path": "../.minecraft/mods/mcjtylib-1.8.1.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://www.curseforge.com/minecraft/mc-mods/mcjtylib/files/2272449",
-        "notes": "",
-        "wanted_by": [],
-        "wants": [],
-        "enabled": true
-    },
-    "Mekanism-Community-Edition": {
-        "file_path": "../.minecraft/mods/Mekanism-Community-Edition-1.7.10-9.10.37-ALL.jar",
-        "tags": ["SIDE.CLIENT", "SIDE.SERVER", "CUSTOM"],
-        "source": "https://github.com/MalTeeez/Mekanism-Community-Edition",
-        "notes": "Custom ULT25 version.",
-        "wanted_by": [],
-        "wants": [],
-        "enabled": true
-    },
-    "MicdoodleCore": {
-        "file_path": "../.minecraft/mods/MicdoodleCore-1.7.10-3.0.15-GTNH.jar",
-        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/MicdoodleCore/releases/tag/3.0.15-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": [],
@@ -900,9 +864,9 @@
         "enabled": true
     },
     "modtweaker2": {
-        "file_path": "../.minecraft/mods/ModTweaker2-0.9.10.jar",
+        "file_path": "../.minecraft/mods/ModTweaker2-0.11.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/ModTweaker/releases/tag/0.9.10",
+        "source": "https://github.com/GTNewHorizons/ModTweaker/releases/tag/0.11.0",
         "notes": "",
         "wanted_by": [],
         "wants": ["MineTweaker3"],
@@ -927,18 +891,18 @@
         "enabled": true
     },
     "MouseTweaks": {
-        "file_path": "../.minecraft/mods/MouseTweaks-2.4.17-GTNH.jar",
+        "file_path": "../.minecraft/mods/MouseTweaks-2.4.20-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/MouseTweaks/releases/tag/2.4.17-GTNH",
+        "source": "https://github.com/GTNewHorizons/MouseTweaks/releases/tag/2.4.20-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "NEIAddons": {
-        "file_path": "../.minecraft/mods/NEIAddons-1.15.0.jar",
+        "file_path": "../.minecraft/mods/NEIAddons-1.16.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/neiaddons/releases/tag/1.15.0",
+        "source": "https://github.com/GTNewHorizons/neiaddons/releases/tag/1.16.0",
         "notes": "",
         "wanted_by": [],
         "wants": ["NotEnoughItems"],
@@ -954,27 +918,27 @@
         "enabled": true
     },
     "netherportalfix": {
-        "file_path": "../.minecraft/mods/netherportalfix-1.2.0.jar",
+        "file_path": "../.minecraft/mods/netherportalfix-1.3.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/NetherPortalFix/releases/tag/1.2.0",
+        "source": "https://github.com/GTNewHorizons/NetherPortalFix/releases/tag/1.3.0",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "neenergistics": {
-        "file_path": "../.minecraft/mods/NotEnoughEnergistics-1.5.1.jar",
+        "file_path": "../.minecraft/mods/NotEnoughEnergistics-1.7.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/NotEnoughEnergistics/releases/tag/1.5.1",
+        "source": "https://github.com/GTNewHorizons/NotEnoughEnergistics/releases/tag/1.7.0",
         "notes": "",
         "wanted_by": [],
         "wants": ["NotEnoughItems", "appliedenergistics2"],
         "enabled": true
     },
     "NotEnoughItems": {
-        "file_path": "../.minecraft/mods/NotEnoughItems-2.6.10-GTNH-pre.jar",
+        "file_path": "../.minecraft/mods/NotEnoughItems-2.6.54-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/NotEnoughItems/releases/tag/2.6.10-GTNH-pre",
+        "source": "https://github.com/GTNewHorizons/NotEnoughItems/releases/tag/2.6.54-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": ["CodeChickenCore"],
@@ -999,54 +963,54 @@
         "enabled": true
     },
     "OpenBlocks": {
-        "file_path": "../.minecraft/mods/OpenBlocks-1.9.1-GTNH.jar",
+        "file_path": "../.minecraft/mods/OpenBlocks-1.11.3-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/OpenBlocks/releases/tag/1.9.1-GTNH",
+        "source": "https://github.com/GTNewHorizons/OpenBlocks/releases/tag/1.11.3-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": ["OpenMods"],
         "enabled": true
     },
     "OpenComputers": {
-        "file_path": "../.minecraft/mods/OpenComputers-1.10.7-GTNH.jar",
+        "file_path": "../.minecraft/mods/OpenComputers-1.11.10-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/OpenComputers/releases/tag/1.10.7-GTNH",
+        "source": "https://github.com/GTNewHorizons/OpenComputers/releases/tag/1.11.10-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "OpenMods": {
-        "file_path": "../.minecraft/mods/OpenModsLibs-1.7.10-0.10.6.jar",
+        "file_path": "../.minecraft/mods/OpenModsLibs-0.10.9.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/OpenModsLib/releases/tag/0.10.6",
+        "source": "https://github.com/GTNewHorizons/OpenModsLib/releases/tag/0.10.9",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "openmodularturrets": {
-        "file_path": "../.minecraft/mods/OpenModularTurrets-2.3.1.jar",
+        "file_path": "../.minecraft/mods/OpenModularTurrets-2.4.3.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/OpenModularTurrets/releases/tag/2.3.1",
+        "source": "https://github.com/GTNewHorizons/OpenModularTurrets/releases/tag/2.4.3",
         "notes": "",
         "wanted_by": [],
         "wants": ["COFHCore"],
         "enabled": true
     },
     "Opis": {
-        "file_path": "../.minecraft/mods/Opis-1.4.2-mapless.jar",
+        "file_path": "../.minecraft/mods/Opis-1.4.5-mapless.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Opis/releases/tag/1.4.2-mapless",
+        "source": "https://github.com/GTNewHorizons/Opis/releases/tag/1.4.5-mapless",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "overloadedarmorbar": {
-        "file_path": "../.minecraft/mods/overloadedarmorbar-1.7.10-1.0.1.jar",
+        "file_path": "../.minecraft/mods/overloadedarmorbar-1.1.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/OverloadedArmorBar/releases/tag/1.0.1",
+        "source": "https://github.com/GTNewHorizons/OverloadedArmorBar/releases/tag/1.1.0",
         "notes": "",
         "wanted_by": [],
         "wants": [],
@@ -1080,9 +1044,9 @@
         "enabled": true
     },
     "ProjRed|Core": {
-        "file_path": "../.minecraft/mods/ProjRed-4.9.5-GTNH.jar",
+        "file_path": "../.minecraft/mods/ProjRed-4.11.1-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/ProjectRed/releases/tag/4.9.5-GTNH",
+        "source": "https://github.com/GTNewHorizons/ProjectRed/releases/tag/4.11.1-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": [],
@@ -1152,9 +1116,9 @@
         "enabled": true
     },
     "serverutilities": {
-        "file_path": "../.minecraft/mods/ServerUtilities-2.0.33.jar",
+        "file_path": "../.minecraft/mods/ServerUtilities-2.1.29.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/ServerUtilities/releases/tag/2.0.33",
+        "source": "https://github.com/GTNewHorizons/ServerUtilities/releases/tag/2.1.29",
         "notes": "",
         "wanted_by": [],
         "wants": ["gtnhlib"],
@@ -1206,9 +1170,9 @@
         "enabled": true
     },
     "SpecialMobs": {
-        "file_path": "../.minecraft/mods/SpecialMobs-3.5.0.jar",
+        "file_path": "../.minecraft/mods/SpecialMobs-3.6.2.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/SpecialMobs/releases/tag/3.5.0",
+        "source": "https://github.com/GTNewHorizons/SpecialMobs/releases/tag/3.6.2",
         "notes": "",
         "wanted_by": [],
         "wants": [],
@@ -1224,9 +1188,9 @@
         "enabled": true
     },
     "TaintedMagic": {
-        "file_path": "../.minecraft/mods/Tainted-Magic-7.6.8-GTNH.jar",
+        "file_path": "../.minecraft/mods/Tainted-Magic-7.6.15-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Tainted-Magic/releases/tag/7.6.8-GTNH",
+        "source": "https://github.com/GTNewHorizons/Tainted-Magic/releases/tag/7.6.15-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": ["Thaumcraft"],
@@ -1278,9 +1242,9 @@
         "enabled": true
     },
     "tc4tweak": {
-        "file_path": "../.minecraft/mods/Thaumcraft4Tweaks-1.5.6.jar",
+        "file_path": "../.minecraft/mods/Thaumcraft4Tweaks-1.5.29-beta.4.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://www.curseforge.com/minecraft/mc-mods/tc4tweaks/files/4481884",
+        "source": "https://www.curseforge.com/minecraft/mc-mods/tc4tweaks/files/6229038",
         "notes": "",
         "wanted_by": [],
         "wants": ["Thaumcraft"],
@@ -1296,45 +1260,45 @@
         "enabled": true
     },
     "thaumicboots": {
-        "file_path": "../.minecraft/mods/thaumicboots-1.2.1.jar",
+        "file_path": "../.minecraft/mods/thaumicboots-1.4.4.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/ThaumicBoots/releases/tag/1.2.1",
+        "source": "https://github.com/GTNewHorizons/ThaumicBoots/releases/tag/1.4.4",
         "notes": "",
         "wanted_by": [],
         "wants": ["Thaumcraft"],
         "enabled": true
     },
     "thaumicenergistics": {
-        "file_path": "../.minecraft/mods/thaumicenergistics-1.6.4-GTNH.jar",
+        "file_path": "../.minecraft/mods/thaumicenergistics-1.7.6-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/ThaumicEnergistics/releases/tag/1.6.4-GTNH",
+        "source": "https://github.com/GTNewHorizons/ThaumicEnergistics/releases/tag/1.7.6-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": ["Thaumcraft"],
         "enabled": true
     },
     "ThaumicHorizons": {
-        "file_path": "../.minecraft/mods/ThaumicHorizons-1.5.1.jar",
+        "file_path": "../.minecraft/mods/ThaumicHorizons-1.7.1.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/ThaumicHorizons/releases/tag/1.5.1",
+        "source": "https://github.com/GTNewHorizons/ThaumicHorizons/releases/tag/1.7.1",
         "notes": "",
         "wanted_by": [],
         "wants": ["Thaumcraft"],
         "enabled": true
     },
     "thaumicinsurgence": {
-        "file_path": "../.minecraft/mods/thaumicinsurgence-0.3.1.jar",
+        "file_path": "../.minecraft/mods/thaumicinsurgence-0.4.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/thaumicinsurgence/releases/tag/0.3.1",
+        "source": "https://github.com/GTNewHorizons/thaumicinsurgence/releases/tag/0.4.0",
         "notes": "",
         "wanted_by": [],
         "wants": ["Thaumcraft"],
         "enabled": true
     },
     "ThaumicTinkerer": {
-        "file_path": "../.minecraft/mods/ThaumicTinkerer-2.9.2.jar",
+        "file_path": "../.minecraft/mods/ThaumicTinkerer-2.11.2.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/ThaumicTinkerer/releases/tag/2.9.2",
+        "source": "https://github.com/GTNewHorizons/ThaumicTinkerer/releases/tag/2.11.2",
         "notes": "",
         "wanted_by": [],
         "wants": ["Thaumcraft"],
@@ -1377,18 +1341,18 @@
         "enabled": true
     },
     "tinkersdefense": {
-        "file_path": "../.minecraft/mods/tinkersdefense-1.3.7.jar",
+        "file_path": "../.minecraft/mods/tinkersdefense-1.3.1.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://www.curseforge.com/minecraft/mc-mods/compendium/files/2325729",
+        "source": "https://github.com/GTNewHorizons/Tinkers-Defense/releases/tag/1.3.1",
         "notes": "",
         "wanted_by": [],
-        "wants": ["TConstruct"],
+        "wants": ["TConstruct", "battlegear2"],
         "enabled": true
     },
     "TMechworks": {
-        "file_path": "../.minecraft/mods/TMechworks-0.3.1.jar",
+        "file_path": "../.minecraft/mods/TMechworks-0.4.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/TinkersMechworks/releases/tag/0.3.1",
+        "source": "https://github.com/GTNewHorizons/TinkersMechworks/releases/tag/0.4.0",
         "notes": "",
         "wanted_by": [],
         "wants": ["TConstruct"],
@@ -1413,9 +1377,9 @@
         "enabled": true
     },
     "universalsingularities": {
-        "file_path": "../.minecraft/mods/Universal-Singularities-8.7.0.jar",
+        "file_path": "../.minecraft/mods/Universal-Singularities-8.10.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Universal-Singularities/releases/tag/8.7.0",
+        "source": "https://github.com/GTNewHorizons/Universal-Singularities/releases/tag/8.10.0",
         "notes": "",
         "wanted_by": [],
         "wants": ["Avaritia"],
@@ -1440,27 +1404,27 @@
         "enabled": true
     },
     "wailaplugins": {
-        "file_path": "../.minecraft/mods/WAILAPlugins-0.4.0.jar",
+        "file_path": "../.minecraft/mods/WAILAPlugins-0.6.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/WAILAPlugins/releases/tag/0.4.0",
+        "source": "https://github.com/GTNewHorizons/WAILAPlugins/releases/tag/0.6.0",
         "notes": "",
         "wanted_by": [],
         "wants": ["Waila"],
         "enabled": true
     },
     "wanionlib": {
-        "file_path": "../.minecraft/mods/WanionLib-1.8.4.jar",
+        "file_path": "../.minecraft/mods/WanionLib-1.9.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/WanionLib/releases/tag/1.8.4",
+        "source": "https://github.com/GTNewHorizons/WanionLib/releases/tag/1.9.0",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "WarpTheory": {
-        "file_path": "../.minecraft/mods/WarpTheory-1.3.5-GTNH.jar",
+        "file_path": "../.minecraft/mods/WarpTheory-1.4.3-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/WarpTheory/releases/tag/1.3.5-GTNH",
+        "source": "https://github.com/GTNewHorizons/WarpTheory/releases/tag/1.4.3-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": ["Thaumcraft"],
@@ -1476,27 +1440,27 @@
         "enabled": true
     },
     "WR-CBE|Core": {
-        "file_path": "../.minecraft/mods/WR-CBE-1.7.10-1.4.8.jar",
+        "file_path": "../.minecraft/mods/WR-CBE-1.7.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/WirelessRedstone-CBE/releases/tag/1.4.8",
+        "source": "https://github.com/GTNewHorizons/WirelessRedstone-CBE/releases/tag/1.7.0",
         "notes": "",
         "wanted_by": [],
         "wants": ["CodeChickenCore"],
         "enabled": true
     },
     "Ztones": {
-        "file_path": "../.minecraft/mods/Ztones-1.7.10-2.2.1.jar",
+        "file_path": "../.minecraft/mods/Ztones-1.7.10-2.2.2.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/Ztones-Unofficial/releases",
-        "notes": "",
+        "notes": "Can't find 2.2.2 version built somewhere, so jar is from GTNH pack.",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "custommainmenu": {
-        "file_path": "../.minecraft/mods/[CLIENT]custommainmenu-1.10.3.jar",
+        "file_path": "../.minecraft/mods/[CLIENT]custommainmenu-1.11.3.jar",
         "tags": ["SIDE.CLIENT"],
-        "source": "https://github.com/GTNewHorizons/Custom-Main-Menu/releases/tag/1.10.3",
+        "source": "https://github.com/GTNewHorizons/Custom-Main-Menu/releases/tag/1.11.3",
         "notes": "",
         "wanted_by": [],
         "wants": ["ResourceLoader"],
@@ -1521,12 +1485,12 @@
         "enabled": true
     },
     "mobsinfo": {
-        "file_path": "../.minecraft/mods/[CLIENT]mobsinfo-0.2.0.jar",
+        "file_path": "../.minecraft/mods/[CLIENT]mobsinfo-0.5.1-GTNH.jar",
         "tags": ["SIDE.CLIENT"],
-        "source": "https://modrinth.com/mod/mobsinfo/version/0.2.0",
+        "source": "https://github.com/GTNewHorizons/Mobs-Info/releases/tag/0.5.1-GTNH",
         "notes": "",
         "wanted_by": [],
-        "wants": ["NotEnoughItems"],
+        "wants": ["NotEnoughItems", "forgelin"],
         "enabled": true
     },
     "modernsplash": {
@@ -1539,9 +1503,9 @@
         "enabled": true
     },
     "neodymium": {
-        "file_path": "../.minecraft/mods/[CLIENT]neodymium-1.7.10-0.2.5+nomixin.jar",
+        "file_path": "../.minecraft/mods/[CLIENT]neodymium-mc1.7.10-0.4.3-unofficial.jar",
         "tags": ["SIDE.CLIENT"],
-        "source": "https://github.com/FalsePattern/NeodymiumUnofficial/releases",
+        "source": "https://github.com/FalsePattern/NeodymiumUnofficial/releases/tag/0.4.3-unofficial",
         "notes": "Most parts disabled due to Angelica doing the same.",
         "wanted_by": [],
         "wants": [],
@@ -1602,9 +1566,9 @@
         "enabled": false
     },
     "CodeChickenLib": {
-        "file_path": "../.minecraft/mods/1.7.10/CodeChickenLib-1.2.1.jar",
+        "file_path": "../.minecraft/mods/1.7.10/CodeChickenLib-1.3.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/CodeChickenLib/releases/tag/1.2.1",
+        "source": "https://github.com/GTNewHorizons/CodeChickenLib/releases/tag/1.3.0",
         "notes": "",
         "wanted_by": [],
         "wants": [],
@@ -1620,27 +1584,27 @@
         "enabled": false
     },
     "ForgeMultipart": {
-        "file_path": "../.minecraft/mods/1.7.10/ForgeMultipart-1.4.8.jar",
+        "file_path": "../.minecraft/mods/1.7.10/ForgeMultipart-1.6.2.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/ForgeMultipart/releases/tag/1.4.8",
+        "source": "https://github.com/GTNewHorizons/ForgeMultipart/releases/tag/1.6.2",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "MrTJPCoreMod": {
-        "file_path": "../.minecraft/mods/1.7.10/MrTJPCore-1.1.6.jar",
+        "file_path": "../.minecraft/mods/1.7.10/MrTJPCore-1.3.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/MrTJPCore/releases/tag/1.1.6",
+        "source": "https://github.com/GTNewHorizons/MrTJPCore/releases/tag/1.3.0",
         "notes": "",
         "wanted_by": [],
         "wants": [],
         "enabled": true
     },
     "bspkrsCore": {
-        "file_path": "../.minecraft/mods/1.7.10/[1.7.10]bspkrsCore-universal-6.15.jar",
+        "file_path": "../.minecraft/mods/1.7.10/[1.7.10]bspkrsCore-universal-6.16.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://www.curseforge.com/minecraft/mc-mods/bspkrscore/files/2218819",
+        "source": "https://www.curseforge.com/minecraft/mc-mods/bspkrscore/files/2227503",
         "notes": "Older version, autodownloaded by mods.",
         "wanted_by": [],
         "wants": [],
@@ -1654,5 +1618,50 @@
         "wanted_by": [],
         "wants": [],
         "enabled": true
+    },
+    "forgelin": {
+        "file_path": "../.minecraft/mods/forgelin-2.0.0-GTNH.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "https://github.com/GTNewHorizons/Forgelin/releases/tag/2.0.0-GTNH",
+        "notes": "",
+        "wanted_by": [],
+        "wants": [],
+        "enabled": true
+    },
+    "Mekanism": {
+        "file_path": "../.minecraft/mods/Mekanism-Community-Edition-1.7.10-9.10.42-ALL-U25.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER", "CUSTOM"],
+        "source": "https://github.com/MalTeeez/Mekanism-Community-Edition",
+        "notes": "",
+        "wanted_by": [],
+        "wants": [],
+        "enabled": true
+    },
+    "GalacticraftCore": {
+        "file_path": "../.minecraft/mods/Galacticraft-1.7-3.0.12.504.jar",
+        "tags": ["SIDE.CLIENT, SIDE.SERVER"],
+        "source": "https://www.curseforge.com/minecraft/mc-mods/galacticraft-legacy/files/4501439",
+        "notes": "Contains GalacticraftCore, Galacticraft-Planets and MicdoodleCore",
+        "wanted_by": [],
+        "wants": [],
+        "enabled": true
+    },
+    "battlegear2": {
+        "file_path": "../.minecraft/mods/battlegear2-1.4.2.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "https://github.com/GTNewHorizons/Battlegear2/releases/tag/1.4.2",
+        "notes": "",
+        "wanted_by": [],
+        "wants": [],
+        "enabled": true
+    },
+    "megatrace": {
+        "file_path": "../.minecraft/mods/megatrace-mc1.7.10-0.0.1-tracy0.10.jar.disabled",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "",
+        "notes": "",
+        "wanted_by": [],
+        "wants": [],
+        "enabled": false
     }
 }
