@@ -558,7 +558,7 @@
         "enabled": true
     },
     "exuportalfix": {
-        "file_path": "../.minecraft/mods/exuportalfix-7f4f425.jar",
+        "file_path": "../.minecraft/mods/exuportalfix-b4748d1.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER", "CUSTOM"],
         "source": "https://github.com/MalTeeez/ExtraUtilities-Portal-Fix",
         "notes": "",
@@ -936,9 +936,9 @@
         "enabled": true
     },
     "NotEnoughItems": {
-        "file_path": "../.minecraft/mods/NotEnoughItems-2.6.54-GTNH.jar",
+        "file_path": "../.minecraft/mods/NotEnoughItems-2.7.29-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/NotEnoughItems/releases/tag/2.6.54-GTNH",
+        "source": "https://github.com/GTNewHorizons/NotEnoughItems/releases/tag/2.7.29-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": ["CodeChickenCore"],
@@ -1629,7 +1629,7 @@
         "enabled": true
     },
     "Mekanism": {
-        "file_path": "../.minecraft/mods/Mekanism-Community-Edition-1.7.10-9.10.42-ALL-U25.jar",
+        "file_path": "../.minecraft/mods/Mekanism-Community-Edition-1.7.10-9.10.42-U25.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER", "CUSTOM"],
         "source": "https://github.com/MalTeeez/Mekanism-Community-Edition",
         "notes": "",
@@ -1663,5 +1663,23 @@
         "wanted_by": [],
         "wants": [],
         "enabled": false
+    },
+    "OilTweak": {
+        "file_path": "../.minecraft/mods/BuildCraftOilTweak-1.1.1.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "https://github.com/GTNewHorizons/BuildCraftOilTweak",
+        "notes": "",
+        "wanted_by": [],
+        "wants": ["BuildCraft|Core"],
+        "enabled": true
+    },
+    "floatingitems": {
+        "file_path": "../.minecraft/mods/FloatingItems-1.7.10-0.1.0.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "https://www.curseforge.com/minecraft/mc-mods/floatingitems/files/3536677",
+        "notes": "",
+        "wanted_by": [],
+        "wants": [],
+        "enabled": true
     }
 }
