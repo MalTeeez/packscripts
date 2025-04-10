@@ -13,5 +13,12 @@
     "fast-glob": "^3.3.3",
     "yauzl": "^3.2.0"
   },
-  "type": "module"
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
 }

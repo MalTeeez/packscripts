@@ -72,9 +72,9 @@
         "enabled": true
     },
     "angelica": {
-        "file_path": "../.minecraft/mods/angelica-1.0.0-beta35.jar",
+        "file_path": "../.minecraft/mods/angelica-1.0.0-beta40.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Angelica/releases/tag/1.0.0-beta35",
+        "source": "https://github.com/GTNewHorizons/Angelica/releases/tag/1.0.0-beta40",
         "notes": "",
         "wanted_by": [],
         "wants": ["unimixins", "gtnhlib"],
@@ -1629,7 +1629,7 @@
         "enabled": true
     },
     "Mekanism": {
-        "file_path": "../.minecraft/mods/Mekanism-Community-Edition-1.7.10-9.10.42-U25.jar",
+        "file_path": "../.minecraft/mods/Mekanism-Community-Edition-1.7.10-9.10.42.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER", "CUSTOM"],
         "source": "https://github.com/MalTeeez/Mekanism-Community-Edition",
         "notes": "",
