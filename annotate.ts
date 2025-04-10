@@ -2,6 +2,7 @@
 import fg from "fast-glob";
 import yauzl from "yauzl";
 
+//#region helpers
 interface file_object {
     "file_path": string;
     "tags": string[] | undefined;
@@ -46,12 +47,22 @@ export function divide_to_full_groups(base: number, divisor: number) {
     return groups
 }
 
+//#region annotate
+async function annotate() {
+    const annotated_file = "./annotated_mods.json"
+
+    const files = await scan_mods_folder("../.minecraft/mods/");
+    const old_list = await read_from_file(annotated_file)
+
+    await save_to_file(annotated_file, update_list(files, old_list));
+}
+
 /** 
  * Scan a folder of mods
  * @param {string} directory The path to this directory, with a trailing slash
- * @returns {Promise<Array<[string, string | undefined]>>}
+ * @returns {Promise<Array<[string, string]>>}
  */
-async function scan_mods_folder(directory: string): Promise<Array<[string, string | undefined]>> {
+async function scan_mods_folder(directory: string): Promise<Array<[string, string]>> {
     const files = fg.sync(directory + "**/*", { onlyFiles: true, deep: 4, globstar: true });
 
     const extension_pattern = /\/mods\/(.+\.(?:jar(?:\.disabled)?))$/m;
@@ -76,11 +87,17 @@ async function scan_mods_folder(directory: string): Promise<Array<[string, strin
  * @param {string} file_path Path of the file to save in
  * @param {*} data Data to save. Must be parseable by JSON.stringify
  */
-async function save_to_file(file_path: string, data: any) {
+async function save_to_file(file_path: string, data: Map<string, file_object>) {
     const file = Bun.file(file_path)
     try {
         if (await file.exists()) {
-            file.write(JSON.stringify(Object.fromEntries(data)))
+            // Sort and convert to object
+            const map_obj: { [key: string]: any } = {}
+            data.keys().toArray().sort().forEach((key) => {
+                map_obj[key] = data.get(key)
+            })
+
+            await file.write(JSON.stringify(map_obj))
         }
     } catch (err) {
         console.error(err);
@@ -91,16 +108,17 @@ async function save_to_file(file_path: string, data: any) {
  * Read a javascript object from a file and parse it with json
  * @param {string} file_path Path of the file to read
  */
-async function read_from_file(file_path: string) {
+async function read_from_file(file_path: string): Promise<Object> {
     const file = Bun.file(file_path)
-    
     if (await file.exists()) {
         try {
             return JSON.parse(await file.text());
         } catch (err) {
             console.error(err);
+            return {}
         }
     } else {
+        console.error("File ", file, " does not exist.")
         return {}
     }
 }
@@ -142,7 +160,7 @@ function extract_file_from_zip(zipFilePath: string, fileName: string): Promise<s
                 }
             });
             zipfile.on("end", () => {
-                reject(new Error("File not found in zip archive for file "+ zipFilePath));
+                reject(new Error("File not found in zip archive for file " + zipFilePath));
             });
         });
     });
@@ -211,11 +229,10 @@ async function parse_mod_id(file: [string, string]) {
 }
 
 /**
- * @param {Array<*>} files
  * @param {{ [s: string]: any; } | ArrayLike<any>} old_list
  */
-function update_list(files: any[], old_list: { [s: string]: unknown; } | ArrayLike<unknown> | Promise<any>) {
-    const std_object: file_object = { 
+function update_list(files: [string, string][], old_list: Object) {
+    const std_object: file_object = {
         file_path: "",
         tags: ["SIDE.CLIENT", "SIDE.SERVER"],
         source: "",
@@ -225,11 +242,10 @@ function update_list(files: any[], old_list: { [s: string]: unknown; } | ArrayLi
         enabled: true
     }
     // Create maps from parameters
-    const new_list = new Map(Object.entries(old_list));
+    let new_list: Map<string, file_object> = new Map(Object.entries(old_list));
     for (const file of files) {
-        let file_obj: file_object;
-        if (new_list.has(file[1])) {
-            file_obj = new_list.get(file[1])
+        let file_obj = new_list.get(file[1])
+        if (file_obj != undefined) {
             // Update path
             file_obj["file_path"] = file[0]
             file_obj.enabled = !file[0].includes(".jar.disabled")
@@ -240,78 +256,129 @@ function update_list(files: any[], old_list: { [s: string]: unknown; } | ArrayLi
                 }
             }
         } else {
-            file_obj = clone(std_object) 
+            file_obj = clone(std_object)
             file_obj.file_path = file[0]
             file_obj.enabled = !file[0].includes(".jar.disabled")
-            
+
             new_list.set(file[1], file_obj)
         }
     }
+    // Update list with backtraced deps
+    trace_deps(new_list)
+
     return new_list;
 }
 
-
-async function annotate() {
-    const annotated_file = "./annotated_mods.json"
-
-    const files = await scan_mods_folder("../.minecraft/mods/");
-    const old_list = read_from_file(annotated_file)
-    
-    save_to_file(annotated_file, update_list(files, old_list));
+/**
+ * Figure out what mods a mod is wanted by
+ */
+function trace_deps(mod_list: Map<string, file_object>) {
+    for (const [mod_id, mod] of mod_list) {
+        if (mod.wants != undefined && mod.wants.length > 0) {
+            for (const dep_id of mod.wants) {
+                const dep = mod_list.get(dep_id)
+                if (dep) {
+                    // Check if wanted_by list contains the current mod that wants this mod
+                    if (dep.wanted_by != undefined && !dep.wanted_by.includes(mod_id)) {
+                        dep.wanted_by.push(mod_id)
+                        console.log("Added missing dependent ", mod_id, " to ", dep_id)
+                    } else if (dep.wanted_by == undefined) {
+                        dep.wanted_by = [mod_id]
+                        console.log("Added missing dependent ", mod_id, " to ", dep_id)
+                    }
+                }
+            }
+        }
+    }
 }
 
 
+
+
+//#region binary
 async function binary_search_disable(target_fraction: string) {
     const annotated_file = "./annotated_mods.json"
-    const mod_map: Map<string, file_object> = new Map(Object.entries(read_from_file(annotated_file)));
+    const file_contents = await read_from_file(annotated_file)
+    const mod_map: Map<string, file_object> = new Map(Object.entries(file_contents));
     const mod_list = Array.from(mod_map.keys())
 
     const [section, scope] = target_fraction.split("/").map(Number)
 
     if (section != undefined && scope != undefined) {
         const groups = divide_to_full_groups(mod_list.length, scope)
-    
-    let change_limit: number = groups[section] || 0;
-    let start_idx: number = groups.reduce((previousValue: number, currentValue: number, currentIndex: number) => currentIndex < section ? previousValue + currentIndex : previousValue, 0);
-    let change_count: number = 0;
 
-    while (change_count < change_limit) {
-        // Are we above the the maximum number of mods?
-        if (start_idx + change_count > mod_list.length) {
-            start_idx = start_idx + change_count - mod_list.length;
+        let change_limit: number = groups[section] || 0;
+        // Sum of groups up to this one (section)
+        let start_idx: number = groups.reduce((previousValue: number, currentValue: number, currentIndex: number) => currentIndex < section ? previousValue + currentIndex : previousValue, 0);
+        let change_count: number = 0;
+
+        while (change_count < change_limit) {
+            // Are we above the the maximum number of mods?
+            if (start_idx + change_count > mod_list.length) {
+                start_idx = start_idx + change_count - mod_list.length;
+            }
+
+            const mod_id = mod_list[start_idx + change_count]
+            if (mod_id != undefined) {
+                change_count += await disable_mod_deep(mod_id, mod_map)
+            } else {
+                console.error("Mod list OOB")
+            }
         }
-        
-        const mod_id = mod_list[start_idx + change_count]
-        if (mod_id != undefined) {
-            change_count += disable_mod_deep(mod_id, mod_map)
+
+        if (change_count > 0) {
+            save_to_file(annotated_file, mod_map)
+            console.log("Changed ", change_count, " mods.")
         } else {
-            console.error("Mod list OOB")
+            console.log("No changes made.")
         }
-    }
     }
 }
 
-function disable_mod_deep(mod_id: string, mod_map: Map<string, file_object>): number {
+async function rename_file(old_path: string, new_path: string) {
+    const old_file = Bun.file(old_path)
+    if (await old_file.exists()) {
+        const new_file = Bun.file(new_path)
+        await Bun.write(new_file, old_file)
+        await old_file.delete()
+    } else {
+        console.log("File ", old_path, " does not exist, but we tried to rename it.")
+    }
+}
+
+async function disable_mod_deep(mod_id: string, mod_map: Map<string, file_object>): Promise<number> {
     let change_count = 0;
 
     const mod = mod_map.get(mod_id);
     if (mod) {
+        // Disable dependents
         if (mod.wanted_by) {
             for (const dependency of mod.wanted_by) {
-                change_count += disable_mod_deep(dependency, mod_map)
+                change_count += await disable_mod_deep(dependency, mod_map)
             }
         }
+        // Disable self
+        mod.enabled = !mod.enabled
+        if (mod.enabled) {
+            // Mod was disabled before (as is the name now), remove .disabled suffix
+            await rename_file(mod.file_path, mod.file_path.replace(/\.disabled$/m, ""))
+        } else {
+            // Mod was enabled before (as is the name now), add .disabled suffix
+            await rename_file(mod.file_path, mod.file_path + ".disabled")
+        }
+        change_count++;
     }
 
     return change_count;
 }
 
 
+
 //#region Entrypoint
 async function main() {
     const args = process.argv.slice(2);
     const mode = args[0]?.toLowerCase();
-    
+
     try {
         switch (mode) {
             case 'annotate':
@@ -326,7 +393,7 @@ async function main() {
             case 'binary':
                 const opts = args[1];
                 if (opts != undefined) {
-                    binary_search_disable(opts)
+                    await binary_search_disable(opts)
                 } else {
                     console.error("Missing target fraction for mode binary, i.e. [1/4].")
                 }
@@ -339,7 +406,6 @@ async function main() {
                 console.log('  binary [target fraction]   - Perform a deep-disable for a binary section');
                 process.exit(1);
         }
-        process.exit(0);
     } catch (error: any) {
         console.error('Error:', error.message);
         process.exit(1);
