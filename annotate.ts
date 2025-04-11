@@ -327,6 +327,7 @@ async function binary_search_disable(target_fraction: string) {
 
         let change_limit: number = groups[section] || 0;
         // Sum of groups up to this one (section)
+        //TODO: Does nothing for 32/32
         let start_idx: number = groups.reduce((previousValue: number, currentValue: number, currentIndex: number) => currentIndex < section ? previousValue + currentIndex : previousValue, 0);
         let change_count: number = 0;
         let skip_count: number = 0;
@@ -349,6 +350,7 @@ async function binary_search_disable(target_fraction: string) {
                     change_count += changed_mods;
                 }
             } else {
+                //TODO: OOB for i.e. 32/31
                 console.error("Mod list OOB")
             }
         }
