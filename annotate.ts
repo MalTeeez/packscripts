@@ -54,7 +54,7 @@ async function annotate() {
     const files = await scan_mods_folder("../.minecraft/mods/");
     const old_list = await read_from_file(annotated_file)
 
-    await save_to_file(annotated_file, update_list(files, old_list));
+    await save_map_to_file(annotated_file, update_list(files, old_list));
 }
 
 /** 
@@ -83,22 +83,32 @@ async function scan_mods_folder(directory: string): Promise<Array<[string, strin
 }
 
 /**
- * Save a javascript object to a file
+ * Save a javascript map object to a file
  * @param {string} file_path Path of the file to save in
  * @param {*} data Data to save. Must be parseable by JSON.stringify
  */
-async function save_to_file(file_path: string, data: Map<string, file_object>) {
-    const file = Bun.file(file_path)
+async function save_map_to_file(file_path: string, data: Map<string, file_object>) {
     try {
-        if (await file.exists()) {
-            // Sort and convert to object
-            const map_obj: { [key: string]: any } = {}
-            data.keys().toArray().sort().forEach((key) => {
-                map_obj[key] = data.get(key)
-            })
+        // Sort and convert to object
+        const map_obj: { [key: string]: any } = {}
+        data.keys().toArray().sort().forEach((key) => {
+            map_obj[key] = data.get(key)
+        })
 
-            await file.write(JSON.stringify(map_obj))
-        }
+        await Bun.write(file_path, JSON.stringify(map_obj))
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+/**
+ * Save a javascript array object to a file
+ * @param {string} file_path Path of the file to save in
+ * @param {*} data Data to save. Must be parseable by JSON.stringify
+ */
+async function save_list_to_file(file_path: string, data: Array<string>) {
+    try {
+        await Bun.write(file_path, JSON.stringify(data))
     } catch (err) {
         console.error(err);
     }
@@ -293,14 +303,22 @@ function trace_deps(mod_list: Map<string, file_object>) {
 }
 
 
-
-
 //#region binary
 async function binary_search_disable(target_fraction: string) {
     const annotated_file = "./annotated_mods.json"
     const file_contents = await read_from_file(annotated_file)
     const mod_map: Map<string, file_object> = new Map(Object.entries(file_contents));
     const mod_list = Array.from(mod_map.keys())
+
+    // So we don't save again later
+    let undo = false;
+    if (target_fraction === "undo") {
+        const last_rev = await revision_hist_pop();
+        if (last_rev != undefined) {
+            target_fraction = last_rev;
+            undo = true;
+        }
+    }
 
     const [section, scope] = target_fraction.split("/").map(Number)
 
@@ -311,6 +329,8 @@ async function binary_search_disable(target_fraction: string) {
         // Sum of groups up to this one (section)
         let start_idx: number = groups.reduce((previousValue: number, currentValue: number, currentIndex: number) => currentIndex < section ? previousValue + currentIndex : previousValue, 0);
         let change_count: number = 0;
+        let skip_count: number = 0;
+        const changed_list: Array<string> = []
 
         while (change_count < change_limit) {
             // Are we above the the maximum number of mods?
@@ -318,21 +338,51 @@ async function binary_search_disable(target_fraction: string) {
                 start_idx = start_idx + change_count - mod_list.length;
             }
 
-            const mod_id = mod_list[start_idx + change_count]
+            const mod_id = mod_list[start_idx + change_count + skip_count]
             if (mod_id != undefined) {
-                change_count += await disable_mod_deep(mod_id, mod_map)
+                const changed_mods = await disable_mod_deep(mod_id, mod_map, changed_list);
+                if (changed_mods == 0) {
+                    // We might hit some mods multiple times, and therefore skip them, leading to no changes, 
+                    // and us infinitely re-testing the specific index. This increments on skipped mods
+                    skip_count++;
+                } else {
+                    change_count += changed_mods;
+                }
             } else {
                 console.error("Mod list OOB")
             }
         }
 
         if (change_count > 0) {
-            save_to_file(annotated_file, mod_map)
+            save_map_to_file(annotated_file, mod_map)
+            if (!undo) revision_hist_push(target_fraction)
             console.log("Changed ", change_count, " mods.")
         } else {
             console.log("No changes made.")
         }
+    } else {
+        console.error("Received faulty fraction.")
     }
+}
+
+async function revision_hist_push(rev: string) {
+    const file_path = "./.annotate_history.json"
+
+    const rev_list: Array<string> = Array.from(Object.values(await read_from_file(file_path)))
+    rev_list.push(rev)
+    console.log("Adding revision ", rev, " to history.")
+    await save_list_to_file(file_path, rev_list)
+}
+
+async function revision_hist_pop(): Promise<string | undefined> {
+    const file_path = "./.annotate_history.json"
+
+    const rev_list: Array<string> = Array.from(Object.values(await read_from_file(file_path)))
+    const rev = rev_list.pop()
+    if (rev) console.log("Removed revision ", rev, " from history.")
+    await save_list_to_file(file_path, rev_list)
+
+    return rev;
 }
 
 async function rename_file(old_path: string, new_path: string) {
@@ -346,26 +396,31 @@ async function rename_file(old_path: string, new_path: string) {
     }
 }
 
-async function disable_mod_deep(mod_id: string, mod_map: Map<string, file_object>): Promise<number> {
+async function disable_mod_deep(mod_id: string, mod_map: Map<string, file_object>, changed_list: Array<string>): Promise<number> {
     let change_count = 0;
 
     const mod = mod_map.get(mod_id);
-    if (mod) {
+    if (mod && !changed_list.includes(mod_id)) {
         // Disable dependents
         if (mod.wanted_by) {
             for (const dependency of mod.wanted_by) {
-                change_count += await disable_mod_deep(dependency, mod_map)
+                change_count += await disable_mod_deep(dependency, mod_map, changed_list)
             }
         }
         // Disable self
         mod.enabled = !mod.enabled
         if (mod.enabled) {
             // Mod was disabled before (as is the name now), remove .disabled suffix
-            await rename_file(mod.file_path, mod.file_path.replace(/\.disabled$/m, ""))
+            const new_path = mod.file_path.replace(/\.disabled$/m, "")
+            await rename_file(mod.file_path, new_path)
+            mod.file_path = new_path
         } else {
             // Mod was enabled before (as is the name now), add .disabled suffix
-            await rename_file(mod.file_path, mod.file_path + ".disabled")
+            const new_path = mod.file_path + ".disabled"
+            await rename_file(mod.file_path, new_path)
+            mod.file_path = new_path
         }
+        changed_list.push(mod_id)
         change_count++;
     }
 
@@ -401,9 +456,9 @@ async function main() {
             default:
                 console.log('Usage: node annotate.js [mode]');
                 console.log('Modes:');
-                console.log('  update                     - Update annotated mod list');
-                console.log('  list                       - List all indexed mods');
-                console.log('  binary [target fraction]   - Perform a deep-disable for a binary section');
+                console.log('  update                            - Update annotated mod list');
+                console.log('  list                              - List all indexed mods');
+                console.log('  binary [target fraction | undo]   - Perform a deep-disable for a binary section');
                 process.exit(1);
         }
     } catch (error: any) {

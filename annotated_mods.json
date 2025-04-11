@@ -204,7 +204,7 @@
         "notes": "",
         "wanted_by": [],
         "wants": ["DragonAPI"],
-        "enabled": false
+        "enabled": true
     },
     "CoFHCore": {
         "file_path": "../.minecraft/mods/CoFHCore-[1.7.10]3.1.4-329.jar",
@@ -274,7 +274,15 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://www.curseforge.com/minecraft/mc-mods/dragonapi/files/4722480",
         "notes": "",
-        "wanted_by": ["ChromatiCraft", "ElectriCraft", "ReactorCraft", "RotaryCraft", "Satisforestry", "VoidMonster"],
+        "wanted_by": [
+            "ChromatiCraft",
+            "ElectriCraft",
+            "ReactorCraft",
+            "RotaryCraft",
+            "Satisforestry",
+            "VoidMonster",
+            "ChromatiCraft "
+        ],
         "wants": [],
         "enabled": true
     },
@@ -1160,15 +1168,6 @@
         "wants": [],
         "enabled": true
     },
-    "falsetweaks": {
-        "file_path": "../.minecraft/mods/falsetweaks-mc1.7.10-3.9.0.jar.disabled",
-        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/FalsePattern/FalseTweaks/releases/tag/3.9.0",
-        "notes": "Leads to rendering bugs and then crashes with angelica.",
-        "wanted_by": [],
-        "wants": ["falsepatternlib"],
-        "enabled": false
-    },
     "fastleafdecay": {
         "file_path": "../.minecraft/mods/FastLeafDecay-1.7.10-1.4.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
@@ -1340,15 +1339,6 @@
         "wants": [],
         "enabled": true
     },
-    "megatrace": {
-        "file_path": "../.minecraft/mods/megatrace-mc1.7.10-0.0.1-tracy0.10.jar.disabled",
-        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "",
-        "notes": "",
-        "wanted_by": [],
-        "wants": [],
-        "enabled": false
-    },
     "mkb": {
         "file_path": "../.minecraft/mods/ModernKeyBinding-Forge-1.7.10-2.1.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
@@ -1510,15 +1500,6 @@
         "wanted_by": [],
         "wants": ["COFHCore", "enderio"],
         "enabled": true
-    },
-    "smoothfont": {
-        "file_path": "../.minecraft/mods/[CLIENT][DEPRECEATED]SmoothFont-1.7.10-1.15.3.jar.disabled",
-        "tags": ["SIDE.CLIENT"],
-        "source": "",
-        "notes": "Incompatible with Angelica.",
-        "wanted_by": [],
-        "wants": [],
-        "enabled": false
     },
     "spacore": {
         "file_path": "../.minecraft/mods/SpACore-1.7.10-01.05.12.jar",
