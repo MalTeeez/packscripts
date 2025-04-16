@@ -434,7 +434,7 @@ async function disable_mod_deep(mod_id: string, mod_map: Map<string, file_object
     return change_count;
 }
 
-
+//#region graph
 async function visualize_graph() {
     const annotated_file = "./annotated_mods.json"
     const file_contents = await read_from_file(annotated_file)
@@ -513,7 +513,7 @@ async function visualize_graph() {
                     'color': '#fff',
                     'text-valign': 'center',
                     'text-halign': 'center',
-                    'font-size': 12,
+                    'font-size': 11,
                     'width': 'mapData(degree, 1, 10, 30, 80)',
                     'height': 'mapData(degree, 1, 10, 30, 80)'
                 }
@@ -528,7 +528,7 @@ async function visualize_graph() {
                     'target-arrow-shape': 'triangle',
                     'curve-style': 'bezier',
                     'label': 'data(label)',
-                    'font-size': 7,
+                    'font-size': 6,
                     'text-rotation': 'autorotate',
                     'text-margin-y': -8
                 }
@@ -543,7 +543,7 @@ async function visualize_graph() {
                     'target-arrow-shape': 'tee',
                     'curve-style': 'bezier',
                     'label': 'data(label)',
-                    'font-size': 7,
+                    'font-size': 6,
                     'text-rotation': 'autorotate',
                     'text-margin-y': -8
                 }
@@ -597,6 +597,7 @@ async function main() {
                 console.log('  update                            - Update annotated mod list');
                 console.log('  list                              - List all indexed mods');
                 console.log('  binary [target fraction | undo]   - Perform a deep-disable for a binary section');
+                console.log('  graph                             - Build a html file, that visualizes dependencies');
                 process.exit(1);
         }
     } catch (error: any) {
