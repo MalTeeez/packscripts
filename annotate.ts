@@ -60,7 +60,7 @@ async function annotate() {
 /** 
  * Scan a folder of mods
  * @param {string} directory The path to this directory, with a trailing slash
- * @returns {Promise<Array<[string, string]>>}
+ * @returns {Promise<Array<[string, string]>>}  
  */
 async function scan_mods_folder(directory: string): Promise<Array<[string, string]>> {
     const files = fg.sync(directory + "**/*", { onlyFiles: true, deep: 4, globstar: true });
@@ -320,22 +320,28 @@ async function binary_search_disable(target_fraction: string) {
         }
     }
 
-    const [section, scope] = target_fraction.split("/").map(Number)
+    let [section, scope] = target_fraction.split("/").map(Number)
 
-    if (section != undefined && scope != undefined) {
+    if (section != undefined && scope != undefined && section <= scope && section > 0) {
         const groups = divide_to_full_groups(mod_list.length, scope)
 
-        let change_limit: number = groups[section] || 0;
+        // Start at 0 for mods indexed at 0
+        // Using a new variable for section here, since typescript apparently hates me mutating it before using at groups.reduce()
+        const safe_section = section - 1;
+        let change_limit: number = groups[safe_section] || 0;
         // Sum of groups up to this one (section)
-        //TODO: Does nothing for 32/32
-        let start_idx: number = groups.reduce((previousValue: number, currentValue: number, currentIndex: number) => currentIndex < section ? previousValue + currentIndex : previousValue, 0);
+        let start_idx: number = groups.reduce((previousValue: number, currentValue: number, currentIndex: number) =>
+            currentIndex < safe_section ? previousValue + currentValue : previousValue,
+            0);
         let change_count: number = 0;
         let skip_count: number = 0;
         const changed_list: Array<string> = []
 
         while (change_count < change_limit) {
             // Are we above the the maximum number of mods?
-            if (start_idx + change_count > mod_list.length) {
+            if (start_idx + change_count + skip_count >= mod_list.length) {
+                // Set to start (0), reset skip count since the starting base is different
+                skip_count = 0;
                 start_idx = start_idx + change_count - mod_list.length;
             }
 
@@ -350,7 +356,6 @@ async function binary_search_disable(target_fraction: string) {
                     change_count += changed_mods;
                 }
             } else {
-                //TODO: OOB for i.e. 32/31
                 console.error("Mod list OOB")
             }
         }
@@ -404,7 +409,7 @@ async function disable_mod_deep(mod_id: string, mod_map: Map<string, file_object
     const mod = mod_map.get(mod_id);
     if (mod && !changed_list.includes(mod_id)) {
         // Disable dependents
-        if (mod.wanted_by) {
+        if (mod.wanted_by && mod.wanted_by.length > 0) {
             for (const dependency of mod.wanted_by) {
                 change_count += await disable_mod_deep(dependency, mod_map, changed_list)
             }
@@ -430,6 +435,134 @@ async function disable_mod_deep(mod_id: string, mod_map: Map<string, file_object
 }
 
 
+async function visualize_graph() {
+    const annotated_file = "./annotated_mods.json"
+    const file_contents = await read_from_file(annotated_file)
+    const mod_map: Map<string, file_object> = new Map(Object.entries(file_contents));
+
+    // Build Cytoscape elements
+    const nodes = mod_map.entries().map(([id, val]) => ({
+        data: { id, label: id, degree: val.wanted_by ? val.wanted_by.length : 0 }
+    })).toArray()
+
+    const edges: Array<{ data: { source: string, target: string, label: string } }> = [];
+    for (const [mod_id, mod] of mod_map) {
+        if (mod.wants) {
+            for (const dep of mod.wants) {
+                if (mod_map.has(dep)) {
+                    edges.push({ data: { source: mod_id, target: dep, label: "wants" } });
+                }
+            }
+        }
+        // Derived connections go two-way, so we just use one
+        // if (mod.wanted_by) {
+        //     for (const dep of mod.wanted_by) {
+        //         if (mod_map.has(dep)) {
+        //             edges.push({ data: { source: dep, target: mod_id, label: "wanted_by" } });
+        //         }
+        //     }
+        // }
+    }
+
+    // Remove duplicate edges (optional)
+    const edgeSet = new Set();
+    const uniqueEdges = edges.filter(e => {
+        const key = `${e.data.source}->${e.data.target}`;
+        if (edgeSet.has(key)) return false;
+        edgeSet.add(key);
+        return true;
+    });
+
+    console.log(typeof nodes)
+    console.log(typeof uniqueEdges)
+
+    // HTML template for Cytoscape
+    const html = `
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Mod Dependency Graph</title>
+    <style>
+        body {
+            background-color: #152333;
+        }
+
+        #cy {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+    </style>
+    <script src="https://unpkg.com/cytoscape/dist/cytoscape.min.js"></script>
+</head>
+
+<body>
+    <div id="cy"></div>
+    <script>
+        const cy = cytoscape({
+            container: document.getElementById('cy'),
+            elements: ${ JSON.stringify([...nodes, ...uniqueEdges]) },
+            style: [
+            {
+                selector: 'node',
+                style: {
+                    'label': 'data(label)',
+                    'background-color': '#0074D9',
+                    'color': '#fff',
+                    'text-valign': 'center',
+                    'text-halign': 'center',
+                    'font-size': 12,
+                    'width': 'mapData(degree, 1, 10, 30, 80)',
+                    'height': 'mapData(degree, 1, 10, 30, 80)'
+                }
+            },
+            {
+                selector: 'edge[label="wants"]',
+                style: {
+                    'width': 2,
+                    'color': '#bbb',
+                    'line-color': '#00c853',
+                    'target-arrow-color': '#00c853',
+                    'target-arrow-shape': 'triangle',
+                    'curve-style': 'bezier',
+                    'label': 'data(label)',
+                    'font-size': 7,
+                    'text-rotation': 'autorotate',
+                    'text-margin-y': -8
+                }
+            },
+            {
+                selector: 'edge[label="wanted_by"]',
+                style: {
+                    'width': 2,
+                    'color': '#bbb',
+                    'line-color': '#ff9800',
+                    'target-arrow-color': '#ff9800',
+                    'target-arrow-shape': 'tee',
+                    'curve-style': 'bezier',
+                    'label': 'data(label)',
+                    'font-size': 7,
+                    'text-rotation': 'autorotate',
+                    'text-margin-y': -8
+                }
+            }
+        ],
+            layout: {
+            name: 'cose',
+            animate: true
+        },
+            wheelSensitivity: 0.1
+            });
+    </script>
+</body>
+
+</html>
+    `;
+
+    Bun.file('graph.html').write(html)
+}
 
 //#region Entrypoint
 async function main() {
@@ -454,6 +587,9 @@ async function main() {
                 } else {
                     console.error("Missing target fraction for mode binary, i.e. [1/4].")
                 }
+                break;
+            case 'graph':
+                await visualize_graph();
                 break;
             default:
                 console.log('Usage: node annotate.js [mode]');
