@@ -14,7 +14,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/advanced-botany/files/3862595",
         "notes": "",
         "wanted_by": [],
-        "wants": [],
+        "wants": ["Botania"],
         "enabled": true
     },
     "AnimationAPI": {
@@ -22,7 +22,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://www.curseforge.com/minecraft/mc-mods/animationapi/files/2221721",
         "notes": "",
-        "wanted_by": [],
+        "wanted_by": ["arsmagica2"],
         "wants": [],
         "enabled": true
     },
@@ -86,7 +86,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/big-reactors/files/2282591",
         "notes": "",
         "wanted_by": [],
-        "wants": [],
+        "wants": ["CoFHCore"],
         "enabled": true
     },
     "BinnieCore": {
@@ -95,7 +95,7 @@
         "source": "https://github.com/GTNewHorizons/Binnie/releases/tag/2.4.8",
         "notes": "",
         "wanted_by": [],
-        "wants": ["Forestry"],
+        "wants": ["Forestry", "gtnhlib"],
         "enabled": true
     },
     "BiomesOPlenty": {
@@ -130,7 +130,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/Botania/releases/tag/1.12.5-GTNH",
         "notes": "Replace resources/assets/botania/sounds/doit.ogg with our sound (startup sound).",
-        "wanted_by": ["TCBotaniaExoflame"],
+        "wanted_by": ["TCBotaniaExoflame", "AdvancedBotany", "alfheim"],
         "wants": [],
         "enabled": true
     },
@@ -211,7 +211,23 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://www.curseforge.com/minecraft/mc-mods/cofh-core/files/2388750",
         "notes": "",
-        "wanted_by": [],
+        "wanted_by": [
+            "MineFactoryReloaded",
+            "RedstoneArsenal",
+            "SolarExpansion",
+            "Techguns",
+            "ThermalDynamics",
+            "ThermalExpansion",
+            "ThermalFoundation",
+            "openmodularturrets",
+            "simplyjetpacks",
+            "ae2fc",
+            "arsmagica2",
+            "BigReactors",
+            "rftools",
+            "SonarCore",
+            "mo"
+        ],
         "wants": [],
         "enabled": true
     },
@@ -220,7 +236,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/CodeChickenCore/releases/tag/1.3.11",
         "notes": "",
-        "wanted_by": ["ChickenChunks", "EnderStorage", "NotEnoughItems", "WR-CBE|Core"],
+        "wanted_by": ["ChickenChunks", "EnderStorage", "NotEnoughItems", "WR-CBE|Core", "Thaumcraft"],
         "wants": [],
         "enabled": true
     },
@@ -274,15 +290,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://www.curseforge.com/minecraft/mc-mods/dragonapi/files/4722480",
         "notes": "",
-        "wanted_by": [
-            "ChromatiCraft",
-            "ElectriCraft",
-            "ReactorCraft",
-            "RotaryCraft",
-            "Satisforestry",
-            "VoidMonster",
-            "ChromatiCraft "
-        ],
+        "wanted_by": ["ChromatiCraft", "ElectriCraft", "ReactorCraft", "RotaryCraft", "Satisforestry", "VoidMonster", "ChromatiCraft "],
         "wants": [],
         "enabled": true
     },
@@ -372,7 +380,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/ForgeMultipart/releases/tag/1.6.2",
         "notes": "",
-        "wanted_by": ["RelocationFMP"],
+        "wanted_by": ["RelocationFMP", "Mekanism", "SonarCore"],
         "wants": [],
         "enabled": true
     },
@@ -382,7 +390,7 @@
         "source": "https://github.com/GTNewHorizons/ForgeRelocation/releases/tag/0.3.1",
         "notes": "",
         "wanted_by": ["RelocationFMP"],
-        "wants": [],
+        "wants": ["MrTJPCoreMod"],
         "enabled": true
     },
     "ForgottenRelics": {
@@ -454,7 +462,7 @@
         "source": "https://github.com/MalTeeez/Mekanism-Community-Edition",
         "notes": "",
         "wanted_by": ["DefenseTech"],
-        "wants": [],
+        "wants": ["ForgeMultipart"],
         "enabled": true
     },
     "MineFactoryReloaded": {
@@ -463,7 +471,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/minefactory-reloaded/files/2366149",
         "notes": "",
         "wanted_by": [],
-        "wants": [],
+        "wants": ["CoFHCore"],
         "enabled": true
     },
     "MineTweaker3": {
@@ -507,7 +515,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/MrTJPCore/releases/tag/1.3.0",
         "notes": "",
-        "wanted_by": [],
+        "wanted_by": ["ForgeRelocation"],
         "wants": [],
         "enabled": true
     },
@@ -616,7 +624,7 @@
         "source": "",
         "notes": "",
         "wanted_by": [],
-        "wants": [],
+        "wants": ["ThermalExpansion", "ThermalFoundation", "RedstoneArsenal"],
         "enabled": true
     },
     "ReactorCraft": {
@@ -633,8 +641,8 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://www.curseforge.com/minecraft/mc-mods/redstone-armory/files/2263890",
         "notes": "",
-        "wanted_by": [],
-        "wants": ["COFHCore"],
+        "wanted_by": ["RArm"],
+        "wants": ["CoFHCore"],
         "enabled": true
     },
     "RelocationFMP": {
@@ -679,7 +687,7 @@
         "source": "",
         "notes": "Can't find original link anymore.",
         "wanted_by": [],
-        "wants": ["COFHCore"],
+        "wants": ["CoFHCore"],
         "enabled": true
     },
     "SonarCore": {
@@ -688,7 +696,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/sonar-core/files/2306173",
         "notes": "",
         "wanted_by": [],
-        "wants": [],
+        "wants": ["CoFHCore", "Waila", "ForgeMultipart"],
         "enabled": true
     },
     "SpecialMobs": {
@@ -751,7 +759,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/techguns/files/2429662",
         "notes": "",
         "wanted_by": [],
-        "wants": ["chisel", "COFHCore"],
+        "wants": ["chisel", "CoFHCore"],
         "enabled": true
     },
     "Thaumcraft": {
@@ -778,7 +786,7 @@
             "tcnodetracker",
             "thaumcraftneiplugin"
         ],
-        "wants": [],
+        "wants": ["CodeChickenCore", "Baubles"],
         "enabled": true
     },
     "ThaumicHorizons": {
@@ -787,7 +795,7 @@
         "source": "https://github.com/GTNewHorizons/ThaumicHorizons/releases/tag/1.7.1",
         "notes": "",
         "wanted_by": [],
-        "wants": ["Thaumcraft"],
+        "wants": ["Thaumcraft", "Baubles"],
         "enabled": true
     },
     "ThaumicTinkerer": {
@@ -805,7 +813,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/thermal-dynamics/files/2388756",
         "notes": "",
         "wanted_by": [],
-        "wants": ["COFHCore"],
+        "wants": ["CoFHCore"],
         "enabled": true
     },
     "ThermalExpansion": {
@@ -813,8 +821,8 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://www.curseforge.com/minecraft/mc-mods/thermal-expansion/files/2388758",
         "notes": "",
-        "wanted_by": [],
-        "wants": ["COFHCore"],
+        "wanted_by": ["RArm", "openmodularturrets"],
+        "wants": ["CoFHCore"],
         "enabled": true
     },
     "ThermalFoundation": {
@@ -822,8 +830,8 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://www.curseforge.com/minecraft/mc-mods/thermal-foundation/files/2388752",
         "notes": "",
-        "wanted_by": [],
-        "wants": ["COFHCore"],
+        "wanted_by": ["RArm"],
+        "wants": ["CoFHCore"],
         "enabled": true
     },
     "TiCTooltips": {
@@ -841,7 +849,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/treecapitator/files/2218771",
         "notes": "",
         "wanted_by": [],
-        "wants": [],
+        "wants": ["bspkrsCore"],
         "enabled": true
     },
     "UniDict": {
@@ -876,7 +884,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER", "CUSTOM"],
         "source": "",
         "notes": "Custom ULT25 version. Local only for now, but based on https://github.com/GTNewHorizons/waila .",
-        "wanted_by": ["wailaplugins"],
+        "wanted_by": ["wailaplugins", "SonarCore"],
         "wants": [],
         "enabled": true
     },
@@ -913,7 +921,7 @@
         "source": "https://github.com/GTNewHorizons/AE2FluidCraft-Rework/releases/tag/1.4.32-gtnh",
         "notes": "",
         "wanted_by": [],
-        "wants": ["appliedenergistics2"],
+        "wants": ["appliedenergistics2", "CoFHCore"],
         "enabled": true
     },
     "ae2stuff": {
@@ -931,7 +939,7 @@
         "source": "https://modrinth.com/mod/alfheim/version/60",
         "notes": "",
         "wanted_by": [],
-        "wants": ["asjpatcher"],
+        "wants": ["asjpatcher", "Botania"],
         "enabled": true
     },
     "angelica": {
@@ -948,7 +956,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/Applied-Energistics-2-Unofficial/releases/tag/rv3-beta-548-GTNH",
         "notes": "",
-        "wanted_by": ["ae2fc", "ae2stuff", "betterp2p", "extracells", "neenergistics"],
+        "wanted_by": ["ae2fc", "ae2stuff", "betterp2p", "extracells", "neenergistics", "thaumicenergistics"],
         "wants": [],
         "enabled": true
     },
@@ -958,7 +966,7 @@
         "source": "https://github.com/embeddedt/ArchaicFix/releases/tag/0.7.4",
         "notes": "",
         "wanted_by": [],
-        "wants": [],
+        "wants": ["unimixins"],
         "enabled": true
     },
     "arsmagica2": {
@@ -967,7 +975,7 @@
         "source": "https://github.com/MalTeeez/ArsMagica2",
         "notes": "Custom ULT25 version.",
         "wanted_by": [],
-        "wants": ["PlayerAPI"],
+        "wants": ["PlayerAPI", "CoFHCore", "AnimationAPI"],
         "enabled": true
     },
     "asjpatcher": {
@@ -1021,7 +1029,7 @@
         "source": "https://github.com/GTNewHorizons/BetterP2P/releases/tag/1.3.0",
         "notes": "",
         "wanted_by": [],
-        "wants": ["appliedenergistics2"],
+        "wants": ["appliedenergistics2", "forgelin"],
         "enabled": true
     },
     "bspkrsCore": {
@@ -1029,7 +1037,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://www.curseforge.com/minecraft/mc-mods/bspkrscore/files/2227503",
         "notes": "Older version, autodownloaded by mods.",
-        "wanted_by": [],
+        "wanted_by": ["Treecapitator"],
         "wants": [],
         "enabled": true
     },
@@ -1200,7 +1208,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/Forgelin/releases/tag/2.0.0-GTNH",
         "notes": "",
-        "wanted_by": ["mobsinfo"],
+        "wanted_by": ["mobsinfo", "betterp2p"],
         "wants": [],
         "enabled": true
     },
@@ -1218,7 +1226,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/GTNHLib/releases/tag/0.6.11",
         "notes": "",
-        "wanted_by": ["angelica", "hodgepodge", "serverutilities"],
+        "wanted_by": ["angelica", "hodgepodge", "serverutilities", "BinnieCore"],
         "wants": ["unimixins"],
         "enabled": true
     },
@@ -1354,7 +1362,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/matter-overdrive-community-edition/files/5263649",
         "notes": "Can't find 0.4.4 online.",
         "wanted_by": [],
-        "wants": [],
+        "wants": ["CoFHCore"],
         "enabled": true
     },
     "mobsinfo": {
@@ -1435,7 +1443,7 @@
         "source": "https://github.com/GTNewHorizons/OpenModularTurrets/releases/tag/2.4.3",
         "notes": "",
         "wanted_by": [],
-        "wants": ["COFHCore"],
+        "wants": ["CoFHCore", "ThermalExpansion"],
         "enabled": true
     },
     "overloadedarmorbar": {
@@ -1480,7 +1488,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/rftools/files/2287287",
         "notes": "",
         "wanted_by": [],
-        "wants": [],
+        "wants": ["CoFHCore"],
         "enabled": true
     },
     "serverutilities": {
@@ -1498,7 +1506,7 @@
         "source": "https://github.com/Tonius/SimplyJetpacks/releases/tag/1.5.3",
         "notes": "No apparent prebuilt files found (Anymore).",
         "wanted_by": [],
-        "wants": ["COFHCore", "enderio"],
+        "wants": ["CoFHCore", "enderio"],
         "enabled": true
     },
     "spacore": {
@@ -1534,7 +1542,7 @@
         "source": "https://github.com/GTNewHorizons/TCNEIAdditions/releases/tag/1.3.2",
         "notes": "",
         "wanted_by": [],
-        "wants": ["Thaumcraft"],
+        "wants": ["Thaumcraft", "thaumcraftneiplugin", "unimixins"],
         "enabled": true
     },
     "tcnodetracker": {
@@ -1569,7 +1577,7 @@
         "tags": ["SIDE.CLIENT"],
         "source": "https://www.curseforge.com/minecraft/mc-mods/thaumcraft-nei-plugin/files/2241913",
         "notes": "",
-        "wanted_by": [],
+        "wanted_by": ["tcneiadditions"],
         "wants": ["Thaumcraft"],
         "enabled": true
     },
@@ -1597,7 +1605,7 @@
         "source": "https://github.com/GTNewHorizons/ThaumicEnergistics/releases/tag/1.7.6-GTNH",
         "notes": "",
         "wanted_by": [],
-        "wants": ["Thaumcraft"],
+        "wants": ["Thaumcraft", "appliedenergistics2"],
         "enabled": true
     },
     "thaumicinsurgence": {
@@ -1631,7 +1639,9 @@
             "hodgepodge",
             "idekmixintweaks",
             "laggoggles",
-            "lwjgl3ify"
+            "lwjgl3ify",
+            "archaicfix",
+            "tcneiadditions"
         ],
         "wants": [],
         "enabled": true

@@ -4,7 +4,7 @@
   "description": "",
   "main": "annotate.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "main": "bun run src/annotate.ts"
   },
   "keywords": [],
   "author": "",
