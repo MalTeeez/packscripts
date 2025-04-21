@@ -231,6 +231,15 @@
         "wants": [],
         "enabled": true
     },
+    "CoFHLib": {
+        "file_path": "../.minecraft/mods/CoFHLib-[1.7.10]1.2.1-185.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "",
+        "notes": "",
+        "wanted_by": ["SonarCore", "mo"],
+        "wants": [],
+        "enabled": true
+    },
     "CodeChickenCore": {
         "file_path": "../.minecraft/mods/CodeChickenCore-1.4.1.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
@@ -696,7 +705,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/sonar-core/files/2306173",
         "notes": "",
         "wanted_by": [],
-        "wants": ["CoFHCore", "Waila", "ForgeMultipart"],
+        "wants": ["CoFHCore", "Waila", "ForgeMultipart", "CoFHLib"],
         "enabled": true
     },
     "SpecialMobs": {
@@ -1362,7 +1371,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/matter-overdrive-community-edition/files/5263649",
         "notes": "Can't find 0.4.4 online.",
         "wanted_by": [],
-        "wants": ["CoFHCore"],
+        "wants": ["CoFHCore", "CoFHLib"],
         "enabled": true
     },
     "mobsinfo": {

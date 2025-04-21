@@ -4,3 +4,4 @@
 - Keep track of how likely update is to happen
 - Add mode to singulary disable / enable just one mod (and its deps)
 - Suggestion of independent mods to check if they are needed (for lib mods)
+- Automatic update checker for github releases, curseforge, modrinth (needs version tracking)

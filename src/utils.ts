@@ -52,7 +52,7 @@ export function divide_to_full_groups(base: number, divisor: number) {
  * @param {string} file_path Path of the file to save in
  * @param {*} data Data to save. Must be parseable by JSON.stringify
  */
-export async function save_map_to_file(file_path: string, data: Map<string, mod_object>) {
+export async function save_map_to_file(file_path: string, data: Map<string, { [key: string]: any }>) {
     try {
         // Sort and convert to object
         const map_obj: { [key: string]: any } = {}
