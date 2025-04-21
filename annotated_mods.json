@@ -130,8 +130,8 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/Botania/releases/tag/1.12.5-GTNH",
         "notes": "Replace resources/assets/botania/sounds/doit.ogg with our sound (startup sound).",
-        "wanted_by": ["TCBotaniaExoflame", "AdvancedBotany", "alfheim"],
-        "wants": [],
+        "wanted_by": ["TCBotaniaExoflame", "AdvancedBotany", "alfheim", "ForgottenRelics"],
+        "wants": ["gtnhlib"],
         "enabled": true
     },
     "BrandonsCore": {
@@ -318,7 +318,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/electricraft/files/4721198",
         "notes": "",
         "wanted_by": [],
-        "wants": ["DragonAPI"],
+        "wants": ["DragonAPI", "RotaryCraft"],
         "enabled": true
     },
     "EnderIO": {
@@ -408,7 +408,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/forgotten-relics/files/2786664",
         "notes": "",
         "wanted_by": [],
-        "wants": ["Thaumcraft"],
+        "wants": ["Thaumcraft", "Botania"],
         "enabled": true
     },
     "GalacticraftCore": {
@@ -426,7 +426,7 @@
         "source": "https://github.com/GTNewHorizons/Hardcore-Ender-Expansion/releases/tag/1.12.1-GTNH",
         "notes": "",
         "wanted_by": [],
-        "wants": [],
+        "wants": ["gtnhlib"],
         "enabled": true
     },
     "IC2": {
@@ -516,7 +516,7 @@
         "source": "https://github.com/GTNewHorizons/MouseTweaks/releases/tag/2.4.20-GTNH",
         "notes": "",
         "wanted_by": [],
-        "wants": [],
+        "wants": ["gtnhlib"],
         "enabled": true
     },
     "MrTJPCoreMod": {
@@ -633,7 +633,7 @@
         "source": "",
         "notes": "",
         "wanted_by": [],
-        "wants": ["ThermalExpansion", "ThermalFoundation", "RedstoneArsenal"],
+        "wants": ["ThermalExpansion", "ThermalFoundation", "RedstoneArsenal", "endercore"],
         "enabled": true
     },
     "ReactorCraft": {
@@ -642,7 +642,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/reactorcraft/files/4721203",
         "notes": "",
         "wanted_by": [],
-        "wants": ["DragonAPI"],
+        "wants": ["DragonAPI", "RotaryCraft"],
         "enabled": true
     },
     "RedstoneArsenal": {
@@ -677,7 +677,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://www.curseforge.com/minecraft/mc-mods/rotarycraft",
         "notes": "",
-        "wanted_by": [],
+        "wanted_by": ["ElectriCraft", "ReactorCraft"],
         "wants": ["DragonAPI"],
         "enabled": true
     },
@@ -1136,7 +1136,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/EnderCore/releases/tag/0.4.6",
         "notes": "",
-        "wanted_by": ["EnderIO"],
+        "wanted_by": ["EnderIO", "RArm"],
         "wants": [],
         "enabled": true
     },
@@ -1235,7 +1235,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/GTNHLib/releases/tag/0.6.11",
         "notes": "",
-        "wanted_by": ["angelica", "hodgepodge", "serverutilities", "BinnieCore"],
+        "wanted_by": ["angelica", "hodgepodge", "serverutilities", "BinnieCore", "Botania", "HardcoreEnderExpansion", "MouseTweaks"],
         "wants": ["unimixins"],
         "enabled": true
     },

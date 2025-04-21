@@ -61,6 +61,7 @@ export async function save_map_to_file(file_path: string, data: Map<string, { [k
         })
 
         await Bun.write(file_path, JSON.stringify(map_obj))
+        await run_prettier(file_path)
     } catch (err) {
         console.error(err);
     }
@@ -157,4 +158,19 @@ export function extract_file_from_zip(zipFilePath: string, fileName: string): Pr
  */
 export function clone(object: mod_object): mod_object {
     return Object.assign({}, object);
+}
+
+export async function run_prettier(file_path: string) {
+    try {
+        const proc = Bun.spawn(["bunx", "prettier", "--write", file_path]);
+        const output = await new Response(proc.stdout).text();
+        const error = await new Response(proc.stderr).text();
+        
+        if (error) {
+            console.error("Prettier error:", error);
+        }
+        return output;
+    } catch (err) {
+        console.error("Failed to run prettier:", err);
+    }
 }

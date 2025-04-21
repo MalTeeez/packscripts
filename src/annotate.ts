@@ -307,8 +307,11 @@ async function binary_search_disable(target_fraction: string) {
     let [section, scope] = target_fraction.split('/').map(Number);
 
     if (section != undefined && scope != undefined && section <= scope && section > 0) {
-        const groups = divide_to_full_groups(mod_list.length, scope);
+        // First disable all mods
+        await disable_all_mods();
 
+        // Then enable targeted fraction
+        const groups = divide_to_full_groups(mod_list.length, scope);
         // Start at 0 for mods indexed at 0
         // Using a new variable for section here, since typescript apparently hates me mutating it before using at groups.reduce()
         const safe_section = section - 1;
@@ -323,6 +326,7 @@ async function binary_search_disable(target_fraction: string) {
         let skip_count: number = 0;
         const changed_list: Array<string> = [];
 
+        //TODO: Fix OOB for 1/8 ?
         while (change_count < change_limit) {
             // Are we above the the maximum number of mods?
             if (start_idx + change_count + skip_count >= mod_list.length) {
@@ -333,7 +337,7 @@ async function binary_search_disable(target_fraction: string) {
 
             const mod_id = mod_list[start_idx + change_count + skip_count];
             if (mod_id != undefined) {
-                const changed_mods = await disable_mod_deep(mod_id, mod_map, changed_list);
+                const changed_mods = await enable_mod_deep(mod_id, mod_map, changed_list);
                 if (changed_mods == 0) {
                     // We might hit some mods multiple times, and therefore skip them, leading to no changes,
                     // and us infinitely re-testing the specific index. This increments on skipped mods
@@ -343,11 +347,13 @@ async function binary_search_disable(target_fraction: string) {
                 }
             } else {
                 console.error('Mod list OOB');
+                await save_map_to_file('./annotated_mods.json', mod_map)
+                process.exit(1)
             }
         }
 
+        save_map_to_file('./annotated_mods.json', mod_map);
         if (change_count > 0) {
-            save_map_to_file('./annotated_mods.json', mod_map);
             if (!undo) revision_hist_push(target_fraction);
             console.log('Changed ', change_count, ' mods.');
         } else {
@@ -405,6 +411,30 @@ async function rename_file(old_path: string, new_path: string) {
  * @param changed_list A list of mod ids, to keep track of which mods we have already updated
  * @returns The number of mods that were changed
  */
+async function toggle_mod_deep(mod_id: string, mod_map: Map<string, mod_object>, changed_list: Array<string>): Promise<number> {
+    let change_count = 0;
+
+    const mod = mod_map.get(mod_id);
+    if (mod != undefined) {
+        if (mod.enabled) {
+            // Disable self
+            change_count += await disable_mod_deep(mod_id, mod_map, changed_list);
+        } else {
+            // Enable self
+            change_count += await enable_mod_deep(mod_id, mod_map, changed_list);
+        }
+    }
+
+    return change_count;
+}
+
+/**
+ * Disable a mod, with its dependents
+ * @param mod_id The mod to disable
+ * @param mod_map A mod map, from read_saved_mods()
+ * @param changed_list A list of mod ids, to keep track of which mods we have already updated
+ * @returns The number of mods that were changed
+ */
 async function disable_mod_deep(mod_id: string, mod_map: Map<string, mod_object>, changed_list: Array<string>): Promise<number> {
     let change_count = 0;
 
@@ -417,22 +447,14 @@ async function disable_mod_deep(mod_id: string, mod_map: Map<string, mod_object>
             }
         }
         // Make sure we didnt already touch this mod before
-        if (!changed_list.includes(mod_id)) {
-            // Disable self
-            mod.enabled = !mod.enabled;
-            if (mod.enabled) {
-                console.log('Enabling mod ', mod_id);
-                // Mod was disabled before (as is the name now), remove .disabled suffix
-                const new_path = mod.file_path.replace(/\.disabled$/m, '');
-                await rename_file(mod.file_path, new_path);
-                mod.file_path = new_path;
-            } else {
-                console.log('Disabling mod ', mod_id);
-                // Mod was enabled before (as is the name now), add .disabled suffix
-                const new_path = mod.file_path + '.disabled';
-                await rename_file(mod.file_path, new_path);
-                mod.file_path = new_path;
-            }
+        if (!changed_list.includes(mod_id) && mod.enabled) {
+            console.log('Disabling mod ', mod_id);
+            // Mod was enabled before (as is the name now), add .disabled suffix
+            const new_path = mod.file_path + '.disabled';
+            await rename_file(mod.file_path, new_path);
+            mod.file_path = new_path;
+
+            mod.enabled = false;
             changed_list.push(mod_id);
             change_count++;
         }
@@ -442,7 +464,7 @@ async function disable_mod_deep(mod_id: string, mod_map: Map<string, mod_object>
 }
 
 /**
- * Enable a mod, with its dependencies
+ * Disable a mod, with its dependents
  * @param mod_id The mod to disable
  * @param mod_map A mod map, from read_saved_mods()
  * @param changed_list A list of mod ids, to keep track of which mods we have already updated
@@ -453,24 +475,23 @@ async function enable_mod_deep(mod_id: string, mod_map: Map<string, mod_object>,
 
     const mod = mod_map.get(mod_id);
     if (mod != undefined) {
-        // Disable dependents
+        // Enable dependencies
         if (mod.wants && mod.wants.length > 0) {
             for (const dependency of mod.wants) {
                 change_count += await enable_mod_deep(dependency, mod_map, changed_list);
             }
         }
         // Make sure we didnt already touch this mod before
-        if (!changed_list.includes(mod_id)) {
-            if (!mod.enabled) {
-                console.log('Enabling mod ', mod_id);
-                // Mod was disabled before (as is the name now), remove .disabled suffix
-                const new_path = mod.file_path.replace(/\.disabled$/m, '');
-                await rename_file(mod.file_path, new_path);
-                mod.file_path = new_path;
+        if (!changed_list.includes(mod_id) && !mod.enabled) {
+            console.log('Enabling mod ', mod_id);
+            // Mod was disabled before (as is the name now), remove .disabled suffix
+            const new_path = mod.file_path.replace(/\.disabled$/m, '');
+            await rename_file(mod.file_path, new_path);
+            mod.file_path = new_path;
 
-                changed_list.push(mod_id);
-                change_count++;
-            }
+            mod.enabled = true;
+            changed_list.push(mod_id);
+            change_count++;
         }
     }
 
@@ -607,24 +628,63 @@ async function visualize_graph() {
     Bun.file('graph.html').write(html);
 }
 
-//#toggle
-async function toggle_mod(mod_id: string, mod_map: Map<string, mod_object>) {
-    const change_list: string[] = [];
+//#region toggle, all modes
+async function toggle_mod(opts: string | undefined) {
+    const mod_map = await read_saved_mods('./annotated_mods.json');
+    if (opts != undefined) {
+        const mod = mod_map.get(opts);
+        if (mod != undefined) {
+            const change_list: string[] = [];
+            let changes = await toggle_mod_deep(opts, mod_map, change_list);
+            
+            if (changes > 0) {
+                await save_map_to_file('./annotated_mods.json', mod_map);
+                console.log('Changed ', changes, ' mods.');
+            } else {
+                console.log('No changes made.');
+            }
+        } else {
+            console.error('Mod with id ', opts, ' does not exist.');
+        }
+    } else {
+        console.error('Missing target mod (id) to toggle.');
+    }
+}
 
-    const mod = mod_map.get(mod_id);
-    if (mod && mod.enabled) {
-        await disable_mod_deep(mod_id, mod_map, change_list);
-    } else if (mod && !mod.enabled) {
-        await enable_mod_deep(mod_id, mod_map, change_list);
+async function enable_all_mods() {
+    const mod_map = await read_saved_mods('./annotated_mods.json');
+    const change_list: string[] = [];
+    let changes = 0;
+    
+    for (const [mod_id, mod_object] of mod_map) {
+        changes += await enable_mod_deep(mod_id, mod_map, change_list);
     }
 
-    if (change_list.length > 0) {
-        save_map_to_file('./annotated_mods.json', mod_map);
-        console.log('Changed ', change_list.length, ' mods.');
+    if (changes > 0) {
+        await save_map_to_file('./annotated_mods.json', mod_map);
+        console.log('Changed ', changes, ' mods.');
     } else {
         console.log('No changes made.');
     }
 }
+
+async function disable_all_mods() {
+    const mod_map = await read_saved_mods('./annotated_mods.json');
+    const change_list: string[] = [];
+    let changes = 0;
+
+    for (const [mod_id, mod_object] of mod_map) {
+        changes += await disable_mod_deep(mod_id, mod_map, change_list);
+    }
+
+    if (changes > 0) {
+        await save_map_to_file('./annotated_mods.json', mod_map);
+        console.log('Changed ', changes, ' mods.');
+    } else {
+        console.log('No changes made.');
+    }
+}
+
 
 //#region Entrypoint
 async function main() {
@@ -633,41 +693,27 @@ async function main() {
     const opts = args[1];
 
     try {
-        if (mode === 'annotate') {
+        if (mode === 'update') {
             await annotate();
             console.log('Mod list updated successfully!');
-
         } else if (mode === 'list') {
             for (const [file_path, mod_object] of await extract_modinfos(await scan_mods_folder('../.minecraft/mods/'))) {
                 console.log(`${mod_object.mod_id}: ${file_path}`);
             }
-
         } else if (mode === 'binary') {
             if (opts != undefined) {
                 await binary_search_disable(opts);
             } else {
                 console.error('Missing target fraction for mode binary, i.e. [1/4].');
             }
-
         } else if (mode === 'graph') {
             await visualize_graph();
-
         } else if (mode === 'toggle') {
-            const mod_map = await read_saved_mods('./annotated_mods.json');
-            if (opts != undefined) {
-                await toggle_mod(opts, mod_map);
-            } else {
-                console.error('Missing target mod (id) to toggle.');
-            }
-
+            await toggle_mod(opts)
         } else if (mode === 'enable_all') {
-            const mod_map = await read_saved_mods('./annotated_mods.json');
-            for (const [mod_id, mod_object] of mod_map) {
-                if (!mod_object.enabled) {
-                    await toggle_mod(mod_id, mod_map)
-                }
-            }
-
+            await enable_all_mods()
+        } else if (mode === 'disable_all') {
+            await disable_all_mods()
         } else {
             console.log('Usage: node annotate.js [mode]');
             console.log('Modes:');
@@ -675,8 +721,9 @@ async function main() {
             console.log('  list                              - List all indexed mods');
             console.log('  binary [target fraction | undo]   - Perform a deep-disable for a binary section');
             console.log('  graph                             - Build a html file, that visualizes dependencies');
-            console.log('  toggle                            - Disable / Enable a specific mod by its id');
-            process.exit(1);
+            console.log('  toggle [mod_id]                   - Disable / Enable a specific mod by its id');
+            console.log('  enable_all                        - Enable all mods');
+            console.log('  disable_all                       - Disable all mods');
         }
     } catch (error: any) {
         console.error('Error:', error.message);
