@@ -165,7 +165,8 @@ function parse_mod_id(
         // mod_id is still not found, so we try to extract it from its file name
         // oh god what have I created.
         // Basically, this first matches the folder path in front of the file. Then it filters out any non word chars in front of the name or a tag group, such as [CLIENT].
-        // Then to mark the start of the name, it looks for a alphanum character, and from thereout grabs everything (alphanum) OR (a single digit) OR (another part of the name, seperated by + OR - and (starting with 2 alphanum chars OR a i or a for single words))
+        // Then to mark the start of the name, it looks for a alphanum character, 
+        // and from thereout grabs everything (alphanum) OR (a single digit) OR (another part of the name, seperated by + OR - and (starting with 2 alphanum chars OR a i or a for single words))
         // This stops at a non fitting seperator, such as [,],-,_ or a digit
         const modid_match = file_path.match(
             /(?<path>^.*\/)(?<pre>(?:(?:\[[A-Z]+?\])|[\-\[\]\+\d\.])*)(?<middle>(?<first_char>[a-zA-Z])(?:[a-zA-Z]|\d{1}|[\+\-](?:[a-zA-Z]{2}|[aI]))+)(?<post>[\[\]\-_]*?\d?.*?)(?:\.jar)/m,
