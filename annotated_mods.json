@@ -49,8 +49,8 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://modrinth.com/mod/baubles-expanded/version/2.1.4",
         "notes": "",
-        "wanted_by": [],
-        "wants": ["Baubles"],
+        "wanted_by": ["Thaumcraft", "ThaumicHorizons", "ae2fc"],
+        "wants": [],
         "enabled": true
     },
     "BetterAchievements": {
@@ -84,9 +84,9 @@
         "file_path": "../.minecraft/mods/BigReactors-0.4.3A.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://www.curseforge.com/minecraft/mc-mods/big-reactors/files/2282591",
-        "notes": "",
+        "notes": "Thermal Foundation isn't an official dep, but will crash without (OreDict OOB).",
         "wanted_by": [],
-        "wants": ["CoFHCore"],
+        "wants": ["CoFHCore", "ThermalExpansion"],
         "enabled": true
     },
     "BinnieCore": {
@@ -158,7 +158,7 @@
         "source": "https://github.com/GTNewHorizons/BuildCraft/releases/tag/7.1.42",
         "notes": "",
         "wanted_by": ["BuildCraft|Compat", "OilTweak"],
-        "wants": [],
+        "wants": ["CoFHCore"],
         "enabled": true
     },
     "CTMLib": {
@@ -226,7 +226,8 @@
             "BigReactors",
             "rftools",
             "SonarCore",
-            "mo"
+            "mo",
+            "BuildCraft|Core"
         ],
         "wants": [],
         "enabled": true
@@ -245,7 +246,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/CodeChickenCore/releases/tag/1.3.11",
         "notes": "",
-        "wanted_by": ["ChickenChunks", "EnderStorage", "NotEnoughItems", "WR-CBE|Core", "Thaumcraft"],
+        "wanted_by": ["ChickenChunks", "EnderStorage", "NotEnoughItems", "WR-CBE|Core", "Thaumcraft", "MrTJPCoreMod"],
         "wants": [],
         "enabled": true
     },
@@ -273,7 +274,7 @@
         "source": "https://github.com/aidancbrady/DefenseTech",
         "notes": "No apparent prebuilt files found (Link on aidans website seems broken).",
         "wanted_by": [],
-        "wants": ["Mekanism"],
+        "wants": ["Mekanism", "endlessids"],
         "enabled": true
     },
     "Ding": {
@@ -480,7 +481,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/minefactory-reloaded/files/2366149",
         "notes": "",
         "wanted_by": [],
-        "wants": ["CoFHCore"],
+        "wants": ["CoFHCore", "ThermalExpansion"],
         "enabled": true
     },
     "MineTweaker3": {
@@ -525,7 +526,7 @@
         "source": "https://github.com/GTNewHorizons/MrTJPCore/releases/tag/1.3.0",
         "notes": "",
         "wanted_by": ["ForgeRelocation"],
-        "wants": [],
+        "wants": ["CodeChickenCore"],
         "enabled": true
     },
     "NEIAddons": {
@@ -795,7 +796,7 @@
             "tcnodetracker",
             "thaumcraftneiplugin"
         ],
-        "wants": ["CodeChickenCore", "Baubles"],
+        "wants": ["CodeChickenCore", "BaublesExpanded"],
         "enabled": true
     },
     "ThaumicHorizons": {
@@ -804,7 +805,7 @@
         "source": "https://github.com/GTNewHorizons/ThaumicHorizons/releases/tag/1.7.1",
         "notes": "",
         "wanted_by": [],
-        "wants": ["Thaumcraft", "Baubles"],
+        "wants": ["Thaumcraft", "BaublesExpanded"],
         "enabled": true
     },
     "ThaumicTinkerer": {
@@ -830,8 +831,8 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://www.curseforge.com/minecraft/mc-mods/thermal-expansion/files/2388758",
         "notes": "",
-        "wanted_by": ["RArm", "openmodularturrets"],
-        "wants": ["CoFHCore"],
+        "wanted_by": ["RArm", "openmodularturrets", "MineFactoryReloaded", "BigReactors"],
+        "wants": ["CoFHCore", "ThermalFoundation"],
         "enabled": true
     },
     "ThermalFoundation": {
@@ -839,7 +840,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://www.curseforge.com/minecraft/mc-mods/thermal-foundation/files/2388752",
         "notes": "",
-        "wanted_by": ["RArm"],
+        "wanted_by": ["RArm", "ThermalExpansion"],
         "wants": ["CoFHCore"],
         "enabled": true
     },
@@ -930,7 +931,7 @@
         "source": "https://github.com/GTNewHorizons/AE2FluidCraft-Rework/releases/tag/1.4.32-gtnh",
         "notes": "",
         "wanted_by": [],
-        "wants": ["appliedenergistics2", "CoFHCore"],
+        "wants": ["appliedenergistics2", "CoFHCore", "BaublesExpanded"],
         "enabled": true
     },
     "ae2stuff": {
@@ -966,7 +967,7 @@
         "source": "https://github.com/GTNewHorizons/Applied-Energistics-2-Unofficial/releases/tag/rv3-beta-548-GTNH",
         "notes": "",
         "wanted_by": ["ae2fc", "ae2stuff", "betterp2p", "extracells", "neenergistics", "thaumicenergistics"],
-        "wants": [],
+        "wants": ["gtnhlib"],
         "enabled": true
     },
     "archaicfix": {
@@ -1077,6 +1078,15 @@
         "wants": ["chisel", "ztones"],
         "enabled": true
     },
+    "chunkapi": {
+        "file_path": "../.minecraft/mods/chunkapi-mc1.7.10-0.6.1.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "",
+        "notes": "",
+        "wanted_by": ["endlessids"],
+        "wants": [],
+        "enabled": true
+    },
     "coretweaks": {
         "file_path": "../.minecraft/mods/CoreTweaks-1.7.10-0.3.3.2+nomixin.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
@@ -1140,6 +1150,15 @@
         "wants": [],
         "enabled": true
     },
+    "endlessids": {
+        "file_path": "../.minecraft/mods/endlessids-mc1.7.10-1.6.3.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "",
+        "notes": "",
+        "wanted_by": ["DefenseTech"],
+        "wants": ["unimixins", "falsepatternlib", "chunkapi"],
+        "enabled": true
+    },
     "erde": {
         "file_path": "../.minecraft/mods/EntityRenderDistanceExtender-1.0c.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
@@ -1155,7 +1174,7 @@
         "source": "https://github.com/GTNewHorizons/Eternal-Singularity/releases/tag/1.2.1",
         "notes": "",
         "wanted_by": [],
-        "wants": ["Avaritia"],
+        "wants": ["Avaritia", "wanionlib"],
         "enabled": true
     },
     "extracells": {
@@ -1181,7 +1200,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/FalsePattern/FalsePatternLib/releases/tag/1.5.9",
         "notes": "",
-        "wanted_by": ["falsetweaks", "laggoggles"],
+        "wanted_by": ["falsetweaks", "laggoggles", "endlessids"],
         "wants": [],
         "enabled": true
     },
@@ -1235,7 +1254,16 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/GTNHLib/releases/tag/0.6.11",
         "notes": "",
-        "wanted_by": ["angelica", "hodgepodge", "serverutilities", "BinnieCore", "Botania", "HardcoreEnderExpansion", "MouseTweaks"],
+        "wanted_by": [
+            "angelica",
+            "hodgepodge",
+            "serverutilities",
+            "BinnieCore",
+            "Botania",
+            "HardcoreEnderExpansion",
+            "MouseTweaks",
+            "appliedenergistics2"
+        ],
         "wants": ["unimixins"],
         "enabled": true
     },
@@ -1340,7 +1368,7 @@
     },
     "lwjgl3ify": {
         "file_path": "../.minecraft/mods/lwjgl3ify-2.1.9.jar",
-        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER", "REQUIRED_BASE"],
         "source": "https://github.com/GTNewHorizons/lwjgl3ify/releases/tag/2.1.9",
         "notes": "",
         "wanted_by": [],
@@ -1352,7 +1380,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://www.curseforge.com/minecraft/mc-mods/mcjtylib/files/2272449",
         "notes": "",
-        "wanted_by": [],
+        "wanted_by": ["rftools"],
         "wants": [],
         "enabled": true
     },
@@ -1497,7 +1525,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/rftools/files/2287287",
         "notes": "",
         "wanted_by": [],
-        "wants": ["CoFHCore"],
+        "wants": ["CoFHCore", "mcjtylib"],
         "enabled": true
     },
     "serverutilities": {
@@ -1650,7 +1678,8 @@
             "laggoggles",
             "lwjgl3ify",
             "archaicfix",
-            "tcneiadditions"
+            "tcneiadditions",
+            "endlessids"
         ],
         "wants": [],
         "enabled": true
@@ -1678,7 +1707,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/WanionLib/releases/tag/1.9.0",
         "notes": "",
-        "wanted_by": [],
+        "wanted_by": ["eternalsingularity"],
         "wants": [],
         "enabled": true
     },

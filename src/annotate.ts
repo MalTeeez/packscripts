@@ -39,6 +39,25 @@ async function read_saved_mods(annotated_file: string): Promise<Map<string, mod_
     return mod_map;
 }
 
+/**
+ * Enable mods with the REQUIRED_BASE flag, as a way to keep mods enabled.
+ * This function should be called after broad actions that disable mods.
+ * This function does not handle saving mod_map to file, 
+ * so the outer calling function must save afterwards.
+ */
+async function enable_base_mods(mod_map: Map<string, mod_object>) {
+    const changed_list: string[] = [];
+
+    // Get base required mods from tag
+    for (const [mod_id, mod_object] of mod_map) {
+        if (mod_object.tags && mod_object.tags.includes("REQUIRED_BASE") && !mod_object.enabled) {
+            console.log("\nRe-Enabling mod required by basegame", mod_id)
+            await enable_mod_deep(mod_id, mod_map, changed_list);
+        }
+    }
+}
+
+
 //#region annotate
 async function annotate() {
     const annotated_file = './annotated_mods.json';
@@ -266,7 +285,10 @@ function trace_deps(mod_list: Map<string, mod_object>, files: Map<string, { [key
                 if (
                     !dep.match(/((?:Minecraft)?Forge(?:@|$))/m) &&
                     mod_object.wants &&
-                    !mod_object.wants.find((val: string) => dep.toLowerCase().includes(val.toLowerCase()))
+                    !mod_object.wants.find((val: string) => 
+                        dep.toLowerCase().includes(val.toLowerCase()) || 
+                        val.toLowerCase().includes(dep.toLowerCase())
+                )
                 ) {
                     console.log('Mod ', mod_id, ' might be missing dep ', dep);
                 }
@@ -327,7 +349,6 @@ async function binary_search_disable(target_fraction: string) {
         let skip_count: number = 0;
         const changed_list: Array<string> = [];
 
-        //TODO: Fix OOB for 1/8 ?
         while (change_count < change_limit) {
             // Are we above the the maximum number of mods?
             if (start_idx + change_count + skip_count >= mod_list.length) {
@@ -353,10 +374,11 @@ async function binary_search_disable(target_fraction: string) {
             }
         }
 
+        await enable_base_mods(mod_map);
         await save_map_to_file('./annotated_mods.json', mod_map);
         if (change_count > 0) {
             if (!undo) await revision_hist_push(target_fraction);
-            console.log('Changed ', change_count, ' mods.');
+            console.log('Changed ', change_count, ' mods.\n');
         } else {
             console.log('No changes made.');
         }
@@ -637,10 +659,11 @@ async function toggle_mod(opts: string | undefined) {
         if (mod != undefined) {
             const change_list: string[] = [];
             let changes = await toggle_mod_deep(opts, mod_map, change_list);
-            
+            await enable_base_mods(mod_map);
+
             if (changes > 0) {
                 await save_map_to_file('./annotated_mods.json', mod_map);
-                console.log('Changed ', changes, ' mods.');
+                console.log('Changed ', changes, ' mods.\n');
             } else {
                 console.log('No changes made.');
             }
@@ -664,7 +687,7 @@ async function enable_all_mods(mod_map?: Map<string, mod_object>) {
 
     if (changes > 0) {
         await save_map_to_file('./annotated_mods.json', mod_map);
-        console.log('Changed ', changes, ' mods.');
+        console.log('Changed ', changes, ' mods.\n');
     } else {
         console.log('No changes made.');
     }
@@ -679,10 +702,11 @@ async function disable_all_mods(mod_map?: Map<string, mod_object>) {
     for (const [mod_id, mod_object] of mod_map) {
         changes += await disable_mod_deep(mod_id, mod_map, change_list);
     }
+    await enable_base_mods(mod_map);
 
     if (changes > 0) {
         await save_map_to_file('./annotated_mods.json', mod_map);
-        console.log('Changed ', changes, ' mods.');
+        console.log('Changed ', changes, ' mods.\n');
     } else {
         console.log('No changes made.');
     }
@@ -703,10 +727,9 @@ async function enable_atomic_deep(opts_mod_id: string, mod_map?: Map<string, mod
         changes += await enable_mod_deep(mod_id, mod_map, change_list);
     }
     
-
     if (changes > 0) {
         await save_map_to_file('./annotated_mods.json', mod_map);
-        console.log('Changed ', changes, ' mods.');
+        console.log('Changed ', changes, ' mods.\n');
     } else {
         console.log('No changes made.');
     }
@@ -726,10 +749,11 @@ async function disable_atomic_deep(opts_mod_id: string, mod_map?: Map<string, mo
     if (mod_id != undefined) {
         changes += await disable_mod_deep(mod_id, mod_map, change_list);
     }
+    await enable_base_mods(mod_map);
 
     if (changes > 0) {
         await save_map_to_file('./annotated_mods.json', mod_map);
-        console.log('Changed ', changes, ' mods.');
+        console.log('Changed ', changes, ' mods.\n');
     } else {
         console.log('No changes made.');
     }
