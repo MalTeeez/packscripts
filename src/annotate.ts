@@ -308,7 +308,7 @@ async function binary_search_disable(target_fraction: string) {
 
     if (section != undefined && scope != undefined && section <= scope && section > 0) {
         // First disable all mods
-        await disable_all_mods();
+        await disable_all_mods(mod_map);
 
         // Then enable targeted fraction
         const groups = divide_to_full_groups(mod_list.length, scope);
@@ -332,7 +332,7 @@ async function binary_search_disable(target_fraction: string) {
             if (start_idx + change_count + skip_count >= mod_list.length) {
                 // Set to start (0), reset skip count since the starting base is different
                 skip_count = 0;
-                start_idx = start_idx + change_count - mod_list.length;
+                start_idx = 0;
             }
 
             const mod_id = mod_list[start_idx + change_count + skip_count];
@@ -352,9 +352,9 @@ async function binary_search_disable(target_fraction: string) {
             }
         }
 
-        save_map_to_file('./annotated_mods.json', mod_map);
+        await save_map_to_file('./annotated_mods.json', mod_map);
         if (change_count > 0) {
-            if (!undo) revision_hist_push(target_fraction);
+            if (!undo) await revision_hist_push(target_fraction);
             console.log('Changed ', change_count, ' mods.');
         } else {
             console.log('No changes made.');
@@ -446,7 +446,7 @@ async function disable_mod_deep(mod_id: string, mod_map: Map<string, mod_object>
                 change_count += await disable_mod_deep(dependency, mod_map, changed_list);
             }
         }
-        // Make sure we didnt already touch this mod before
+        // Make sure we didnt already touch this mod before & its enabled
         if (!changed_list.includes(mod_id) && mod.enabled) {
             console.log('Disabling mod ', mod_id);
             // Mod was enabled before (as is the name now), add .disabled suffix
@@ -481,7 +481,7 @@ async function enable_mod_deep(mod_id: string, mod_map: Map<string, mod_object>,
                 change_count += await enable_mod_deep(dependency, mod_map, changed_list);
             }
         }
-        // Make sure we didnt already touch this mod before
+        // Make sure we didnt already touch this mod before & its disabled
         if (!changed_list.includes(mod_id) && !mod.enabled) {
             console.log('Enabling mod ', mod_id);
             // Mod was disabled before (as is the name now), remove .disabled suffix
@@ -651,8 +651,9 @@ async function toggle_mod(opts: string | undefined) {
     }
 }
 
-async function enable_all_mods() {
-    const mod_map = await read_saved_mods('./annotated_mods.json');
+async function enable_all_mods(mod_map?: Map<string, mod_object>) {
+    // Initialize map if not provided, since we can't use await in param
+    mod_map = mod_map == undefined ? await read_saved_mods('./annotated_mods.json') : mod_map;
     const change_list: string[] = [];
     let changes = 0;
     
@@ -668,12 +669,60 @@ async function enable_all_mods() {
     }
 }
 
-async function disable_all_mods() {
-    const mod_map = await read_saved_mods('./annotated_mods.json');
+async function disable_all_mods(mod_map?: Map<string, mod_object>) {
+    // Initialize map if not provided, since we can't use await in param
+    mod_map = mod_map == undefined ? await read_saved_mods('./annotated_mods.json') : mod_map;
     const change_list: string[] = [];
     let changes = 0;
 
     for (const [mod_id, mod_object] of mod_map) {
+        changes += await disable_mod_deep(mod_id, mod_map, change_list);
+    }
+
+    if (changes > 0) {
+        await save_map_to_file('./annotated_mods.json', mod_map);
+        console.log('Changed ', changes, ' mods.');
+    } else {
+        console.log('No changes made.');
+    }
+}
+
+async function enable_atomic_deep(opts_mod_id: string, mod_map?: Map<string, mod_object>) {
+    // Initialize map if not provided, since we can't use await in param
+    mod_map = mod_map == undefined ? await read_saved_mods('./annotated_mods.json') : mod_map;
+    const change_list: string[] = [];
+    let changes = 0;
+    
+    opts_mod_id = opts_mod_id.toLowerCase();
+    const mod_id = mod_map.keys().find((key: string) => 
+        key.toLowerCase() === opts_mod_id
+    );
+
+    if (mod_id != undefined) {
+        changes += await enable_mod_deep(mod_id, mod_map, change_list);
+    }
+    
+
+    if (changes > 0) {
+        await save_map_to_file('./annotated_mods.json', mod_map);
+        console.log('Changed ', changes, ' mods.');
+    } else {
+        console.log('No changes made.');
+    }
+}
+
+async function disable_atomic_deep(opts_mod_id: string, mod_map?: Map<string, mod_object>) {
+    // Initialize map if not provided, since we can't use await in param
+    mod_map = mod_map == undefined ? await read_saved_mods('./annotated_mods.json') : mod_map;
+    const change_list: string[] = [];
+    let changes = 0;
+
+    opts_mod_id = opts_mod_id.toLowerCase();
+    const mod_id = mod_map.keys().find((key: string) => 
+        key.toLowerCase() === opts_mod_id
+    );
+
+    if (mod_id != undefined) {
         changes += await disable_mod_deep(mod_id, mod_map, change_list);
     }
 
@@ -714,6 +763,18 @@ async function main() {
             await enable_all_mods()
         } else if (mode === 'disable_all') {
             await disable_all_mods()
+        } else if (mode === 'enable') {
+            if (opts != undefined) {
+                await enable_atomic_deep(opts)
+            } else {
+                console.error("Missing target mod (id) to enable.")
+            }
+        } else if (mode === 'disable') {
+            if (opts != undefined) {
+                await disable_atomic_deep(opts)
+            } else {
+                console.error("Missing target mod (id) to disable.")
+            }
         } else {
             console.log('Usage: node annotate.js [mode]');
             console.log('Modes:');
@@ -724,6 +785,8 @@ async function main() {
             console.log('  toggle [mod_id]                   - Disable / Enable a specific mod by its id');
             console.log('  enable_all                        - Enable all mods');
             console.log('  disable_all                       - Disable all mods');
+            console.log('  enable [mod_id]                   - Deep-Enable a specific mod by its id');
+            console.log('  disable [mod_id]                  - Deep-Disable a specific mod by its id');
         }
     } catch (error: any) {
         console.error('Error:', error.message);
