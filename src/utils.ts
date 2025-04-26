@@ -1,18 +1,17 @@
-import yauzl from "yauzl";
-
+import yauzl from 'yauzl';
 
 export interface mod_object {
-    "file_path": string;
-    "tags": string[] | undefined;
-    "source": string | undefined;
-    "notes": string | undefined;
-    "wanted_by": string[] | undefined;
-    "wants": string[] | undefined;
-    "enabled": boolean | undefined;
+    file_path: string;
+    tags: string[] | undefined;
+    source: string | undefined;
+    notes: string | undefined;
+    wanted_by: string[] | undefined;
+    wants: string[] | undefined;
+    enabled: boolean | undefined;
     [key: string]: string | string[] | boolean | undefined;
 }
 
-export type JsonObject = { [key: string]: JsonObject | Array<JsonObject> | string | undefined }
+export type JsonObject = { [key: string]: JsonObject | Array<JsonObject> | string | undefined };
 
 /**
  * @param {number} value
@@ -29,13 +28,13 @@ export function round_to_x_decimals(value: number, decimals: number) {
 }
 
 export function divide_to_full_groups(base: number, divisor: number) {
-    const groups: number[] = new Array()
+    const groups: number[] = new Array();
 
-    const base_size = Math.floor(base / divisor)
-    for (let i = divisor; i--;) {
-        groups.push(base_size)
+    const base_size = Math.floor(base / divisor);
+    for (let i = divisor; i--; ) {
+        groups.push(base_size);
     }
-    const leftover = base % divisor
+    const leftover = base % divisor;
     if (leftover) {
         // Add one to each group until leftover is distributed
         for (let i = 0; i < leftover; i++) {
@@ -44,7 +43,7 @@ export function divide_to_full_groups(base: number, divisor: number) {
         }
     }
 
-    return groups
+    return groups;
 }
 
 /**
@@ -55,13 +54,16 @@ export function divide_to_full_groups(base: number, divisor: number) {
 export async function save_map_to_file(file_path: string, data: Map<string, { [key: string]: any }>) {
     try {
         // Sort and convert to object
-        const map_obj: { [key: string]: any } = {}
-        data.keys().toArray().sort().forEach((key) => {
-            map_obj[key] = data.get(key)
-        })
+        const map_obj: { [key: string]: any } = {};
+        data.keys()
+            .toArray()
+            .sort()
+            .forEach((key) => {
+                map_obj[key] = data.get(key);
+            });
 
-        await Bun.write(file_path, JSON.stringify(map_obj))
-        await run_prettier(file_path)
+        await Bun.write(file_path, JSON.stringify(map_obj));
+        await run_prettier(file_path);
     } catch (err) {
         console.error(err);
     }
@@ -74,7 +76,7 @@ export async function save_map_to_file(file_path: string, data: Map<string, { [k
  */
 export async function save_list_to_file(file_path: string, data: Array<string>) {
     try {
-        await Bun.write(file_path, JSON.stringify(data))
+        await Bun.write(file_path, JSON.stringify(data));
     } catch (err) {
         console.error(err);
     }
@@ -94,17 +96,17 @@ export async function read_arr_from_file(file_path: string): Promise<Array<strin
  * @param {string} file_path Path of the file to read
  */
 export async function read_from_file(file_path: string): Promise<JsonObject> {
-    const file = Bun.file(file_path)
+    const file = Bun.file(file_path);
     if (await file.exists()) {
         try {
             return JSON.parse(await file.text());
         } catch (err) {
             console.error(err);
-            return {}
+            return {};
         }
     } else {
-        console.error("File ", file, " does not exist.")
-        return {}
+        console.error('File ', file, ' does not exist.');
+        return {};
     }
 }
 
@@ -119,7 +121,7 @@ export function extract_file_from_zip(zipFilePath: string, fileName: string): Pr
         yauzl.open(zipFilePath, { lazyEntries: true }, function (err, zipfile) {
             if (err) return reject(err);
             zipfile.readEntry();
-            zipfile.on("entry", function (entry) {
+            zipfile.on('entry', function (entry) {
                 if (/\/$/.test(entry.fileName)) {
                     // Directory file names end with '/'.
                     // Note that entries for directories themselves are optional.
@@ -130,22 +132,22 @@ export function extract_file_from_zip(zipFilePath: string, fileName: string): Pr
                     if (fileName === entry.fileName) {
                         zipfile.openReadStream(entry, function (err, readStream) {
                             if (err) return reject(err);
-                            const fileData: string[] = []
+                            const fileData: string[] = [];
                             readStream.on('data', (data) => {
-                                fileData.push(data)
-                            })
+                                fileData.push(data);
+                            });
                             readStream.on('end', () => {
-                                return resolve(fileData.join(''))
+                                return resolve(fileData.join(''));
                             });
                         });
                     } else {
                         // Not our file, try next
-                        zipfile.readEntry()
+                        zipfile.readEntry();
                     }
                 }
             });
-            zipfile.on("end", () => {
-                reject(new Error("File not found in zip archive for file " + zipFilePath));
+            zipfile.on('end', () => {
+                reject(new Error('File not found in zip archive for file ' + zipFilePath));
             });
         });
     });
@@ -162,15 +164,158 @@ export function clone(object: mod_object): mod_object {
 
 export async function run_prettier(file_path: string) {
     try {
-        const proc = Bun.spawn(["bunx", "prettier", "--write", file_path]);
+        const proc = Bun.spawn(['bunx', 'prettier', '--write', file_path]);
         const output = await new Response(proc.stdout).text();
         const error = await new Response(proc.stderr).text();
-        
+
         if (error) {
-            console.error("Prettier error:", error);
+            console.error('Prettier error:', error);
         }
         return output;
     } catch (err) {
-        console.error("Failed to run prettier:", err);
+        console.error('Failed to run prettier:', err);
     }
+}
+
+/**
+ * Convert a string that defines a version to an array of individual smaller versions, to compare with
+ * another version array. Can also handle letters, but will treat them as less significant than numbers.
+ */
+export function version_string_to_comparable(version_string: string) {
+    // Get all tokens (digits and letters together)
+    const version_tokens: number[] = [];
+
+    for (const match of version_string.matchAll(/(\d+|[a-zA-Z]+)/g)) {
+        const token = match[1];
+        if (token != undefined) {
+            if (!Number.isNaN(+token)) {
+                let number_token = +token;
+                // Get count of zeroes
+                const leading_zero_length = token.match(/^(0*)/m)?.[1]?.length;
+                if (leading_zero_length != undefined && leading_zero_length > 0) {
+                    number_token = round_to_x_decimals(number_token / 10 ** leading_zero_length, 4);
+                }
+                version_tokens.push(number_token);
+            } else {
+                for (const char of token) {
+                    let number_token = char.charCodeAt(0) / 128;
+                    version_tokens.push(round_to_x_decimals(number_token, 4));
+                }
+            }
+        }
+    }
+
+    return version_tokens;
+}
+
+/**
+ * Compare 2 version strings, for which one is bigger (newer).
+ * @param version_a The first version string to compare against.
+ * @param version_b The second version to compare to.
+ * @returns -1 if {other} is newer, 0 if both are the same, 1 if {base} is newer.
+ */
+export function compare_versions(base: string, other: string) {
+    const version_a = version_string_to_comparable(base);
+    const version_b = version_string_to_comparable(other);
+
+    let i = 0;
+    let j = 0;
+
+    while (i < version_a.length && j < version_b.length) {
+        if (version_a[i] == version_b[j]) {
+            i++;
+            j++;
+            //@ts-ignore Safe by bounds
+        } else if (version_a[i] > version_b[j]) {
+            return 1;
+        } else {
+            return -1;
+        }
+    }
+
+    // Are both the same?
+    if (i == version_a.length && j == version_b.length) return 0;
+    // Was b longer? (Still has items)
+    if (i == version_a.length) return -1;
+    // Was a longer? (still has items)
+    return 1;
+}
+
+/**
+ * Prints the values in an array in a column-like fashion.
+ * Accepts arrays as a tuple, of type [header text, array values].
+ */
+export function print_pretty(...args: [string, string[]][]) {
+    let lengths: number[] = Array(args.length).fill(0);
+    const lines: Array<string[]> = [];
+    let i = 0;
+    let max_size = 0;
+
+    // Calculate maximum lengths per col
+    for (const [header, array] of args) {
+        const full_arr = [...[header], ...array]
+        for (const text of full_arr) {
+            lengths[i] = Math.max(lengths[i] || 0, text.length);
+        }
+        lines.push(full_arr);
+        max_size = Math.max(max_size, array.length);
+        i++;
+    }
+    
+    // Header & Footer rows
+    i = 0;
+    let output = "┌─";
+    let footer = "└─";
+    for (const arr of lines) {
+        const header = arr[0] || "";
+        // Header is left-aligned, and uses the first entry in each column
+        output += header + "─".repeat((lengths[i] || header.length) - header.length);
+        // Footer is right-aligned and contains the number of items in its respective column
+        const footer_text = "(" + (arr.length - 1) + " item" + ((arr.length - 1) == 1 ? "" : "s") + ")";
+        footer += "─".repeat((lengths[i] || footer_text.length) - footer_text.length) + footer_text
+
+        if (i >= lengths.length - 1) {
+            output += "─┐\n";
+            footer += "─┘\n";
+        } else {
+            output += "─┬─";
+            footer += "─┴─";
+        }
+        i++;
+    }
+    
+    // Data rows
+    for (i = 1; i <= max_size; i++) {
+        let row = "| ";
+        let col_num = 0;
+        for (const arr of lines) {
+            const text = arr[i] || "";
+            // Align text left, numbers right
+            if (Number.isNaN(+text)) {
+                row += text + " ".repeat((lengths[col_num] || text.length) - text.length);
+            } else {
+                row += " ".repeat((lengths[col_num] || text.length) - text.length) + text;
+            }
+            
+            if (col_num < lengths.length - 1) row += " | ";
+            col_num++;
+        }
+        output += row + " |\n"
+    }
+
+    output += footer;
+    console.log(output)
+}
+
+/**
+ * Delay execution by a given time
+ * @param {number} t Time in millis
+ * @returns A promise to await
+ */
+export function delay(t: number | undefined) {
+    return /** @type {Promise<void>} */ new Promise<void>(function (resolve) {
+        setTimeout(function () {
+            resolve();
+        }, t);
+    });
 }

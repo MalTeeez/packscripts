@@ -10,6 +10,8 @@ import {
     save_list_to_file,
     type JsonObject,
     read_arr_from_file,
+    version_string_to_comparable,
+    print_pretty,
 } from './utils';
 
 //#region general
@@ -42,7 +44,7 @@ async function read_saved_mods(annotated_file: string): Promise<Map<string, mod_
 /**
  * Enable mods with the REQUIRED_BASE flag, as a way to keep mods enabled.
  * This function should be called after broad actions that disable mods.
- * This function does not handle saving mod_map to file, 
+ * This function does not handle saving mod_map to file,
  * so the outer calling function must save afterwards.
  */
 async function enable_base_mods(mod_map: Map<string, mod_object>) {
@@ -50,13 +52,12 @@ async function enable_base_mods(mod_map: Map<string, mod_object>) {
 
     // Get base required mods from tag
     for (const [mod_id, mod_object] of mod_map) {
-        if (mod_object.tags && mod_object.tags.includes("REQUIRED_BASE") && !mod_object.enabled) {
-            console.log("\nRe-Enabling mod required by basegame", mod_id)
+        if (mod_object.tags && mod_object.tags.includes('REQUIRED_BASE') && !mod_object.enabled) {
+            console.log('Re-Enabling mod required by basegame:', mod_id);
             await enable_mod_deep(mod_id, mod_map, changed_list);
         }
     }
 }
-
 
 //#region annotate
 async function annotate() {
@@ -122,11 +123,10 @@ async function extract_modinfos(files: Map<string, { [key: string]: any }>) {
                 return undefined;
             });
         file_object['info_json'] = info_json;
-        const [mod_id, wants] = parse_mod_id(info_json, file_path);
+        const [mod_id, wants, version] = parse_mod_id(info_json, file_path);
         file_object['mod_id'] = mod_id;
-        if (wants) {
-            file_object['wants'] = wants;
-        }
+        if (wants) file_object['wants'] = wants;
+        if (version) file_object['version'] = version;
     }
     return files;
 }
@@ -139,10 +139,14 @@ async function extract_modinfos(files: Map<string, { [key: string]: any }>) {
 function parse_mod_id(
     info_json: Array<JsonObject> | JsonObject | string | undefined,
     file_path: string,
-): [string | undefined, Array<string> | undefined] {
+): [string | undefined, Array<string> | undefined, number[] | undefined] {
     let mod_id: undefined | string = undefined;
     let wants: undefined | Array<string> = undefined;
+    let mod_version: undefined | number[];
 
+    const filename_match = file_path.match(
+        /(?<path>^.*\/)(?<pre>(?:(?:\[[A-Z]+?\])|[\-\[\]\+\d\.])*)(?<middle>(?<first_char>[a-zA-Z])(?:[a-zA-Z]|\d{1}|[\+\-](?:(?!mc|MC)[a-zA-Z]{2}|[aI]))+)[+\-_\.]*(?:mc|MC)?(?<post>\d?.*?)(?:\.jar(?:\.disabled)?)/m,
+    );
     // Get mod id (with fallbacks)
     if (typeof info_json === 'object') {
         if (
@@ -184,19 +188,22 @@ function parse_mod_id(
         // mod_id is still not found, so we try to extract it from its file name
         // oh god what have I created.
         // Basically, this first matches the folder path in front of the file. Then it filters out any non word chars in front of the name or a tag group, such as [CLIENT].
-        // Then to mark the start of the name, it looks for a alphanum character, 
+        // Then to mark the start of the name, it looks for a alphanum character,
         // and from thereout grabs everything (alphanum) OR (a single digit) OR (another part of the name, seperated by + OR - and (starting with 2 alphanum chars OR a i or a for single words))
         // This stops at a non fitting seperator, such as [,],-,_ or a digit
-        const modid_match = file_path.match(
-            /(?<path>^.*\/)(?<pre>(?:(?:\[[A-Z]+?\])|[\-\[\]\+\d\.])*)(?<middle>(?<first_char>[a-zA-Z])(?:[a-zA-Z]|\d{1}|[\+\-](?:[a-zA-Z]{2}|[aI]))+)(?<post>[\[\]\-_]*?\d?.*?)(?:\.jar)/m,
-        );
-        if (modid_match && modid_match.length > 1 && modid_match.groups?.middle) {
-            //console.info("\t ^^ Found id secondary through regex")
-            mod_id = modid_match.groups.middle;
+        if (filename_match && filename_match.length > 1) {
+            if (filename_match.groups?.middle) {
+                //console.info("\t ^^ Found id secondary through regex")
+                mod_id = filename_match.groups.middle;
+            }
         }
     }
     if (mod_id == undefined) {
         console.error('Failed to find any id from file ', file_path);
+    }
+
+    if (filename_match && filename_match.length > 1 && filename_match.groups?.post) {
+        mod_version = version_string_to_comparable(filename_match.groups.post);
     }
 
     // Get mod wants (just json)
@@ -228,7 +235,7 @@ function parse_mod_id(
         }
     }
 
-    return [mod_id, wants];
+    return [mod_id, wants, mod_version];
 }
 
 /**
@@ -285,10 +292,9 @@ function trace_deps(mod_list: Map<string, mod_object>, files: Map<string, { [key
                 if (
                     !dep.match(/((?:Minecraft)?Forge(?:@|$))/m) &&
                     mod_object.wants &&
-                    !mod_object.wants.find((val: string) => 
-                        dep.toLowerCase().includes(val.toLowerCase()) || 
-                        val.toLowerCase().includes(dep.toLowerCase())
-                )
+                    !mod_object.wants.find(
+                        (val: string) => dep.toLowerCase().includes(val.toLowerCase()) || val.toLowerCase().includes(dep.toLowerCase()),
+                    )
                 ) {
                     console.log('Mod ', mod_id, ' might be missing dep ', dep);
                 }
@@ -313,7 +319,48 @@ function trace_deps(mod_list: Map<string, mod_object>, files: Map<string, { [key
 }
 
 //#region binary
-async function binary_search_disable(target_fraction: string) {
+/**
+ * Gets a list of mods in a specific group section along with their dependencies
+ * @param {Map<string, mod_object>} mod_map - Map of all mods indexed by mod ID
+ * @param {Array<string>} mod_list - Ordered list of mod IDs
+ * @param {number[]} groups - Array of even group sizes that sum up to the total number of mods
+ * @param {number} section - Zero-based index of the group section to retrieve 
+ * @param {string} [dep_key="wanted_by"] - Key to use for dependency lookup ("wanted_by" or "wants")
+ * @returns {string[]} Array of mod IDs in the specified group section including dependencies
+ */
+function get_mods_in_group(mod_map: Map<string, mod_object>, mod_list: Array<string>, groups: number[], section: number, dep_key: string = "wants"): string[] {
+    const group_limit =  groups[section] || 0;
+    const group_start_index = groups.reduce(
+        (previousValue: number, currentValue: number, currentIndex: number) =>
+            currentIndex < section ? previousValue + currentValue : previousValue,
+        0,
+    );
+    // Slice mod_ids from mod_list 
+    const group_list = new Set(mod_list.slice(group_start_index, group_start_index + group_limit));
+
+    // Recursively collect dependencies
+    const get_deps = (mod_id: string) => {
+        const deps: string[] = [];
+        const mod = mod_map.get(mod_id);
+
+        if (mod != undefined && mod[dep_key] != undefined && Array.isArray(mod[dep_key])) {
+            for (const dep of mod[dep_key]) {
+                deps.push(...get_deps(dep))
+                deps.push(dep);
+            }
+        }
+
+        return deps;
+    }
+    // Add depencies for each mod in group
+    group_list.forEach((mod_id) => {
+        for (const dep of get_deps(mod_id)) group_list.add(dep)
+    });
+
+    return Array.from(group_list);
+}
+
+async function binary_search_disable(target_fraction: string, dry_run: boolean) {
     const mod_map = await read_saved_mods('./annotated_mods.json');
     const mod_list = Array.from(mod_map.keys());
 
@@ -330,57 +377,50 @@ async function binary_search_disable(target_fraction: string) {
     let [section, scope] = target_fraction.split('/').map(Number);
 
     if (section != undefined && scope != undefined && section <= scope && section > 0) {
-        // First disable all mods
-        await disable_all_mods(mod_map);
-
-        // Then enable targeted fraction
+        // Split our list into even groups
         const groups = divide_to_full_groups(mod_list.length, scope);
         // Start at 0 for mods indexed at 0
         // Using a new variable for section here, since typescript apparently hates me mutating it before using at groups.reduce()
         const safe_section = section - 1;
-        let change_limit: number = groups[safe_section] || 0;
-        // Sum of groups up to this one (section)
-        let start_idx: number = groups.reduce(
-            (previousValue: number, currentValue: number, currentIndex: number) =>
-                currentIndex < safe_section ? previousValue + currentValue : previousValue,
-            0,
-        );
-        let change_count: number = 0;
-        let skip_count: number = 0;
-        const changed_list: Array<string> = [];
-
-        while (change_count < change_limit) {
-            // Are we above the the maximum number of mods?
-            if (start_idx + change_count + skip_count >= mod_list.length) {
-                // Set to start (0), reset skip count since the starting base is different
-                skip_count = 0;
-                start_idx = 0;
+        
+        // Only print the mods we would have touched
+        if (dry_run) {
+            const print_groups: Array<[string, string[]]> = [];
+            
+            // Only take pre-group (left) if we can go left from section
+            if (safe_section > 0) {
+                print_groups.push(['group #' + safe_section + ' (pre)', get_mods_in_group(mod_map, mod_list, groups, safe_section - 1)]);
             }
-
-            const mod_id = mod_list[start_idx + change_count + skip_count];
-            if (mod_id != undefined) {
-                const changed_mods = await enable_mod_deep(mod_id, mod_map, changed_list);
-                if (changed_mods == 0) {
-                    // We might hit some mods multiple times, and therefore skip them, leading to no changes,
-                    // and us infinitely re-testing the specific index. This increments on skipped mods
-                    skip_count++;
-                } else {
-                    change_count += changed_mods;
-                }
-            } else {
-                console.error('Mod list OOB');
-                await save_map_to_file('./annotated_mods.json', mod_map)
-                process.exit(1)
+            
+            // Middle section is always safe
+            print_groups.push(['group #' + (safe_section + 1) + ' (target)', get_mods_in_group(mod_map, mod_list, groups, safe_section)]);
+            
+            // Only take post-group (right) if we can go right from section
+            if (safe_section < scope - 1) {
+                print_groups.push(['group #' + (safe_section + 2) + ' (post)', get_mods_in_group(mod_map, mod_list, groups, safe_section + 1)]);
             }
-        }
-
-        await enable_base_mods(mod_map);
-        await save_map_to_file('./annotated_mods.json', mod_map);
-        if (change_count > 0) {
-            if (!undo) await revision_hist_push(target_fraction);
-            console.log('Changed ', change_count, ' mods.\n');
+            
+            print_pretty(...print_groups);
+            
+            // Actually disable the mods
         } else {
-            console.log('No changes made.');
+            // Disable all mods, so we don't get stragglers
+            await disable_all_mods(mod_map);
+            
+            const changed_list: Array<string> = [];
+            // print_pretty(["Enabling Mods:", get_mods_in_group(mod_map, mod_list, groups, safe_section)])
+            for (const mod_id of get_mods_in_group(mod_map, mod_list, groups, safe_section)) {
+                await enable_mod_deep(mod_id, mod_map, changed_list);
+            }
+
+            await enable_base_mods(mod_map);
+            await save_map_to_file('./annotated_mods.json', mod_map);
+            if (changed_list.length > 0) {
+                if (!undo) await revision_hist_push(target_fraction);
+                console.log('Changed ', changed_list.length, ' mods.\n');
+            } else {
+                console.log('No changes made.');
+            }
         }
     } else {
         console.error('Received faulty fraction.');
@@ -651,7 +691,7 @@ async function visualize_graph() {
     Bun.file('graph.html').write(html);
 }
 
-//#region toggle, all modes
+//#region toggle, enable / disable all modes
 async function toggle_mod(opts: string | undefined) {
     const mod_map = await read_saved_mods('./annotated_mods.json');
     if (opts != undefined) {
@@ -680,7 +720,7 @@ async function enable_all_mods(mod_map?: Map<string, mod_object>) {
     mod_map = mod_map == undefined ? await read_saved_mods('./annotated_mods.json') : mod_map;
     const change_list: string[] = [];
     let changes = 0;
-    
+
     for (const [mod_id, mod_object] of mod_map) {
         changes += await enable_mod_deep(mod_id, mod_map, change_list);
     }
@@ -717,16 +757,14 @@ async function enable_atomic_deep(opts_mod_id: string, mod_map?: Map<string, mod
     mod_map = mod_map == undefined ? await read_saved_mods('./annotated_mods.json') : mod_map;
     const change_list: string[] = [];
     let changes = 0;
-    
+
     opts_mod_id = opts_mod_id.toLowerCase();
-    const mod_id = mod_map.keys().find((key: string) => 
-        key.toLowerCase() === opts_mod_id
-    );
+    const mod_id = mod_map.keys().find((key: string) => key.toLowerCase() === opts_mod_id);
 
     if (mod_id != undefined) {
         changes += await enable_mod_deep(mod_id, mod_map, change_list);
     }
-    
+
     if (changes > 0) {
         await save_map_to_file('./annotated_mods.json', mod_map);
         console.log('Changed ', changes, ' mods.\n');
@@ -742,9 +780,7 @@ async function disable_atomic_deep(opts_mod_id: string, mod_map?: Map<string, mo
     let changes = 0;
 
     opts_mod_id = opts_mod_id.toLowerCase();
-    const mod_id = mod_map.keys().find((key: string) => 
-        key.toLowerCase() === opts_mod_id
-    );
+    const mod_id = mod_map.keys().find((key: string) => key.toLowerCase() === opts_mod_id);
 
     if (mod_id != undefined) {
         changes += await disable_mod_deep(mod_id, mod_map, change_list);
@@ -758,7 +794,6 @@ async function disable_atomic_deep(opts_mod_id: string, mod_map?: Map<string, mo
         console.log('No changes made.');
     }
 }
-
 
 //#region Entrypoint
 async function main() {
@@ -774,62 +809,50 @@ async function main() {
             for (const [file_path, mod_object] of await extract_modinfos(await scan_mods_folder('../.minecraft/mods/'))) {
                 console.log(`${mod_object.mod_id}: ${file_path}`);
             }
-        } else if (mode === 'binary') {
+        } else if (mode === 'binary' || mode === 'binary_dry') {
             if (opts != undefined) {
-                await binary_search_disable(opts);
+                await binary_search_disable(opts, mode === 'binary_dry');
             } else {
                 console.error('Missing target fraction for mode binary, i.e. [1/4].');
             }
         } else if (mode === 'graph') {
             await visualize_graph();
         } else if (mode === 'toggle') {
-            await toggle_mod(opts)
+            await toggle_mod(opts);
         } else if (mode === 'enable_all') {
-            await enable_all_mods()
+            await enable_all_mods();
         } else if (mode === 'disable_all') {
-            await disable_all_mods()
+            await disable_all_mods();
         } else if (mode === 'enable') {
             if (opts != undefined) {
-                await enable_atomic_deep(opts)
+                await enable_atomic_deep(opts);
             } else {
-                console.error("Missing target mod (id) to enable.")
+                console.error('Missing target mod (id) to enable.');
             }
         } else if (mode === 'disable') {
             if (opts != undefined) {
-                await disable_atomic_deep(opts)
+                await disable_atomic_deep(opts);
             } else {
-                console.error("Missing target mod (id) to disable.")
+                console.error('Missing target mod (id) to disable.');
             }
         } else {
             console.log('Usage: node annotate.js [mode]');
             console.log('Modes:');
-            console.log('  update                            - Update annotated mod list');
-            console.log('  list                              - List all indexed mods');
-            console.log('  binary [target fraction | undo]   - Perform a deep-disable for a binary section');
-            console.log('  graph                             - Build a html file, that visualizes dependencies');
-            console.log('  toggle [mod_id]                   - Disable / Enable a specific mod by its id');
-            console.log('  enable_all                        - Enable all mods');
-            console.log('  disable_all                       - Disable all mods');
-            console.log('  enable [mod_id]                   - Deep-Enable a specific mod by its id');
-            console.log('  disable [mod_id]                  - Deep-Disable a specific mod by its id');
+            console.log('  update                                - Update annotated mod list');
+            console.log('  list                                  - List all indexed mods');
+            console.log('  binary [target fraction | undo]       - Perform a deep-disable for a binary section');
+            console.log('  binary_dry [target fraction | undo]   - List the mods that would be disabled with the target fraction');
+            console.log('  graph                                 - Build a html file, that visualizes dependencies');
+            console.log('  toggle [mod_id]                       - Disable / Enable a specific mod by its id');
+            console.log('  enable_all                            - Enable all mods');
+            console.log('  disable_all                           - Disable all mods');
+            console.log('  enable [mod_id]                       - Deep-Enable a specific mod by its id');
+            console.log('  disable [mod_id]                      - Deep-Disable a specific mod by its id');
         }
     } catch (error: any) {
         console.error('Error:', error.message);
         process.exit(1);
     }
-}
-
-/**
- * Delay execution by a given time
- * @param {number} t Time in millis
- * @returns A promise to await
- */
-export function delay(t: number | undefined) {
-    return /** @type {Promise<void>} */ new Promise<void>(function (resolve) {
-        setTimeout(function () {
-            resolve();
-        }, t);
-    });
 }
 
 //// Add this at the end of the file
