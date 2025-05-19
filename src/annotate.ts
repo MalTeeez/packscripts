@@ -12,6 +12,8 @@ import {
     read_arr_from_file,
     version_string_to_comparable,
     print_pretty,
+    extract_main_class_from_zip,
+    search_zip_for_string,
 } from './utils';
 
 //#region general
@@ -144,6 +146,11 @@ function parse_mod_id(
     let wants: undefined | Array<string> = undefined;
     let mod_version: undefined | number[];
 
+    // oh god what have I created.
+    // Basically, this first matches the folder path in front of the file. Then it filters out any non word chars in front of the name or a tag group, such as [CLIENT].
+    // Then to mark the start of the name, it looks for a alphanum character,
+    // and from thereout grabs everything (alphanum) OR (a single digit) OR (another part of the name, seperated by + OR - and (starting with 2 alphanum chars OR a i or a for single words))
+    // This stops at a non fitting seperator, such as [,],-,_ or a digit
     const filename_match = file_path.match(
         /(?<path>^.*\/)(?<pre>(?:(?:\[[A-Z]+?\])|[\-\[\]\+\d\.])*)(?<middle>(?<first_char>[a-zA-Z])(?:[a-zA-Z]|\d{1}|[\+\-](?:(?!mc|MC)[a-zA-Z]{2}|[aI]))+)[+\-_\.]*(?:mc|MC)?(?<post>\d?.*?)(?:\.jar(?:\.disabled)?)/m,
     );
@@ -186,11 +193,6 @@ function parse_mod_id(
         }
     } else if (info_json === undefined || mod_id == undefined) {
         // mod_id is still not found, so we try to extract it from its file name
-        // oh god what have I created.
-        // Basically, this first matches the folder path in front of the file. Then it filters out any non word chars in front of the name or a tag group, such as [CLIENT].
-        // Then to mark the start of the name, it looks for a alphanum character,
-        // and from thereout grabs everything (alphanum) OR (a single digit) OR (another part of the name, seperated by + OR - and (starting with 2 alphanum chars OR a i or a for single words))
-        // This stops at a non fitting seperator, such as [,],-,_ or a digit
         if (filename_match && filename_match.length > 1) {
             if (filename_match.groups?.middle) {
                 //console.info("\t ^^ Found id secondary through regex")
@@ -272,6 +274,12 @@ function update_list(files: Map<string, { [key: string]: any }>, mod_map: Map<st
             mod_map.set(file_object['mod_id'], file_obj);
         }
     }
+    for (const [mod_id, mod] of mod_map) {
+        if (!files.has(mod.file_path)) {
+            console.warn("Mod ", mod_id, " is missing its linked file. Was it renamed?")
+        }
+    }
+
     // Update list with backtraced deps
     trace_deps(mod_map, files);
 
@@ -795,6 +803,30 @@ async function disable_atomic_deep(opts_mod_id: string, mod_map?: Map<string, mo
     }
 }
 
+async function get_mainclass() {
+    const mod_map = await read_saved_mods('./annotated_mods.json');
+    const dep_annotation_pattern = new RegExp(/Lcpw\/mods\/fml\/common\/Mod;.*?(dependencies.*?)$/m)
+    const dep_tag_pattern = new RegExp(/after:(?<mod_id>(?<first_char>[a-zA-Z])(?:[a-zA-Z]|\d{1}|[\+\-](?:(?!mc|MC)[a-zA-Z]{2}|[aI]))+?)(?:[ \n\r;@]|$)/mg)
+    for (const [mod_id, mod] of mod_map) {
+        await search_zip_for_string(mod.file_path, "Lcpw/mods/fml/common/Mod;").then((data) => {
+            // Get annotation statement
+            const match = data.match(dep_annotation_pattern)
+            if (match && match.length > 1) {
+                // Get dependency tags
+                const deps = new Set()
+                const dep_annotation_line = match.at(1)
+                if (dep_annotation_line != undefined) {
+                    for (const dep_match in dep_annotation_line.matchAll(dep_tag_pattern)) {
+                        console.log("Found dependency match for mod", mod_id ,":", dep_match)
+                    }
+                }
+            }
+        }).catch((err) => {
+            console.log("Failed to find mod annotation for mod ", mod_id)
+        })
+    }
+}
+
 //#region Entrypoint
 async function main() {
     const args = process.argv.slice(2);
@@ -835,6 +867,8 @@ async function main() {
             } else {
                 console.error('Missing target mod (id) to disable.');
             }
+        } else if (mode === 'mainclass') {
+            await get_mainclass()
         } else {
             console.log('Usage: node annotate.js [mode]');
             console.log('Modes:');

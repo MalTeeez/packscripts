@@ -110,6 +110,47 @@ export async function read_from_file(file_path: string): Promise<JsonObject> {
     }
 }
 
+export function search_zip_for_string(zipFilePath: string, target: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+        yauzl.open(zipFilePath, { lazyEntries: true }, function (err, zipfile) {
+            if (err) return reject(err);
+            zipfile.readEntry();
+            zipfile.on('entry', function (entry) {
+                if (/\/$/.test(entry.fileName)) {
+                    // Directory file names end with '/'.
+                    // Note that entries for directories themselves are optional.
+                    // An entry's fileName implicitly requires its parent directories to exist.
+                    zipfile.readEntry();
+                } else {
+                    // file entry
+                    zipfile.openReadStream(entry, (err, readStream) => {
+                        let found_target = false;
+                        if (err) return reject(err);
+                        const fileData: string[] = [];
+                        readStream.on('data', (data) => {
+                            if (String(data).includes(target)) {
+                                found_target = true;
+                            }
+                            fileData.push(data);
+                        });
+                        readStream.on('end', () => {
+                            if (found_target) {
+                                resolve(fileData.join(''));
+                            }
+                        });
+                    });
+                    // Not our file, try next
+                    zipfile.readEntry();
+                }
+            });
+            zipfile.on('end', () => {
+                return reject('String not found in zip archive for file ' + zipFilePath);
+            });
+        });
+    });
+}
+
+
 /**
  * Extract the content of a file inside a zip archive
  * @param {string} zipFilePath The path to the zip file

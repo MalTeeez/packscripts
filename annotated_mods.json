@@ -775,7 +775,7 @@
     "Thaumcraft": {
         "file_path": "../.minecraft/mods/Thaumcraft-1.7.10-4.2.3.5.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://www.curseforge.com/minecraft/mc-mods/tellme/files/2224235",
+        "source": "https://www.curseforge.com/minecraft/mc-mods/thaumcraft/files/2227552",
         "notes": "",
         "wanted_by": [
             "Automagy",
@@ -1594,7 +1594,7 @@
     "tellme": {
         "file_path": "../.minecraft/mods/tellme-1.7.10-0.2.6a.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "",
+        "source": "https://www.curseforge.com/minecraft/mc-mods/tellme/files/2224235",
         "notes": "",
         "wanted_by": [],
         "wants": [],
