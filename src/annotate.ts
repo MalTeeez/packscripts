@@ -120,15 +120,20 @@ async function extract_modinfos(files: Map<string, { [key: string]: any }>) {
                     }
                     return undefined;
                 }
-            })
-            .catch(() => {
+        }).catch(() => {
                 return undefined;
-            });
-        file_object['info_json'] = info_json;
-        const [mod_id, wants, version] = parse_mod_id(info_json, file_path);
-        file_object['mod_id'] = mod_id;
-        if (wants) file_object['wants'] = wants;
-        if (version) file_object['version'] = version;
+        });
+
+        const [mod_id, wants, version] = parse_mod_details(info_json, file_path);
+        if (mod_id != undefined) {
+            file_object['info_json'] = info_json;
+            file_object['mod_id'] = mod_id;
+            // Also get deps from mainclass annotation, and then deduplicate with set
+            file_object['wants'] = Array.from(new Set([...wants, ...(await get_deps_from_mainclass(file_path, mod_id))]));
+            if (version) file_object['version'] = version;
+        } else {
+            console.warn("Failed to parse mod id for file", file_path, ", ignoring.")
+        }
     }
     return files;
 }
@@ -138,15 +143,15 @@ async function extract_modinfos(files: Map<string, { [key: string]: any }>) {
  * @param info_json Contents of the mods mcmod.info file, might be a json object, a string or undefined
  * @param basename The basename of the file, with extension
  */
-function parse_mod_id(
+function parse_mod_details(
     info_json: Array<JsonObject> | JsonObject | string | undefined,
     file_path: string,
-): [string | undefined, Array<string> | undefined, number[] | undefined] {
+): [string | undefined, Array<string>, number[] | undefined] {
     let mod_id: undefined | string = undefined;
-    let wants: undefined | Array<string> = undefined;
+    let wants: Array<string> = [];
     let mod_version: undefined | number[];
 
-    // oh god what have I created.
+    // oh god what have I created. (Filename to modid pattern)
     // Basically, this first matches the folder path in front of the file. Then it filters out any non word chars in front of the name or a tag group, such as [CLIENT].
     // Then to mark the start of the name, it looks for a alphanum character,
     // and from thereout grabs everything (alphanum) OR (a single digit) OR (another part of the name, seperated by + OR - and (starting with 2 alphanum chars OR a i or a for single words))
@@ -199,9 +204,6 @@ function parse_mod_id(
                 mod_id = filename_match.groups.middle;
             }
         }
-    }
-    if (mod_id == undefined) {
-        console.error('Failed to find any id from file ', file_path);
     }
 
     if (filename_match && filename_match.length > 1 && filename_match.groups?.post) {
@@ -266,7 +268,7 @@ function update_list(files: Map<string, { [key: string]: any }>, mod_map: Map<st
                     file_obj[key] = std_object[key];
                 }
             }
-        } else {
+        } else if (file_object['mod_id'] != undefined) {
             file_obj = clone(std_object);
             file_obj.file_path = file_path;
             file_obj.enabled = !file_path.includes('.jar.disabled');
@@ -276,7 +278,7 @@ function update_list(files: Map<string, { [key: string]: any }>, mod_map: Map<st
     }
     for (const [mod_id, mod] of mod_map) {
         if (!files.has(mod.file_path)) {
-            console.warn("Mod ", mod_id, " is missing its linked file. Was it renamed?")
+            console.warn('Mod ', mod_id, ' is missing its linked file. Was it renamed?');
         }
     }
 
@@ -298,7 +300,7 @@ function trace_deps(mod_list: Map<string, mod_object>, files: Map<string, { [key
                 // Check our stored dependencies contain this mods annotated depedencies (from its mcmod.info)
                 // Filter out deps to forge, and filter each of our entries by their fit in the contained dep, to also match versioned deps (both in lowercase)
                 if (
-                    !dep.match(/((?:Minecraft)?Forge(?:@|$))/m) &&
+                    !dep.match(/((?:Minecraft)?Forge(?:@|$))|(^\s*FML\s*$)/mi) &&
                     mod_object.wants &&
                     !mod_object.wants.find(
                         (val: string) => dep.toLowerCase().includes(val.toLowerCase()) || val.toLowerCase().includes(dep.toLowerCase()),
@@ -326,24 +328,67 @@ function trace_deps(mod_list: Map<string, mod_object>, files: Map<string, { [key
     }
 }
 
+async function get_deps_from_mainclass(file_path: string, mod_id: string) {
+    const deps: Set<string> = new Set();
+    const dep_annotation_pattern = new RegExp(/Lcpw\/mods\/fml\/common\/Mod;.*?(dependencies.*?)$/m);
+    const dep_tag_pattern = new RegExp(
+        /required-after:(?<mod_id>(?<first_char>[a-zA-Z])(?:[a-zA-Z]|\d{1}|[\+\-\|](?:(?!mc|MC)[a-zA-Z]{2}|[aI]))+?)(?:[ \n\r;@]|$)/gm,
+    );
+    const search_result = await search_zip_for_string(file_path, 'Lcpw/mods/fml/common/Mod;');
+    if (search_result != undefined) {
+        for (const [main_file, data] of search_result) {
+            // Get annotation statement
+            const match = data.match(dep_annotation_pattern);
+            if (match && match.length > 1) {
+                // Get dependency tags
+                const dep_annotation_line = match.at(1);
+                if (dep_annotation_line != undefined) {
+                    for (const dep_match of dep_annotation_line.matchAll(dep_tag_pattern)) {
+                        const dep_id = dep_match.at(1);
+                        if (dep_id) {
+                            deps.add(dep_id);
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        // We failed to find the mainclass and its annotation in the mod, which probably means its injected via ASM
+    }
+
+    // Check and remove this mods own id from found dependencies, may occur when mod has multiple sub-modules of itself
+    mod_id = mod_id.toLowerCase()
+    const self_contain_id = deps.keys().find((val) => val.toLowerCase() === mod_id)
+    if (self_contain_id != undefined) {
+        deps.delete(self_contain_id)
+    }
+    return Array.from(deps);
+}
+
 //#region binary
 /**
  * Gets a list of mods in a specific group section along with their dependencies
  * @param {Map<string, mod_object>} mod_map - Map of all mods indexed by mod ID
  * @param {Array<string>} mod_list - Ordered list of mod IDs
  * @param {number[]} groups - Array of even group sizes that sum up to the total number of mods
- * @param {number} section - Zero-based index of the group section to retrieve 
+ * @param {number} section - Zero-based index of the group section to retrieve
  * @param {string} [dep_key="wanted_by"] - Key to use for dependency lookup ("wanted_by" or "wants")
  * @returns {string[]} Array of mod IDs in the specified group section including dependencies
  */
-function get_mods_in_group(mod_map: Map<string, mod_object>, mod_list: Array<string>, groups: number[], section: number, dep_key: string = "wants"): string[] {
-    const group_limit =  groups[section] || 0;
+function get_mods_in_group(
+    mod_map: Map<string, mod_object>,
+    mod_list: Array<string>,
+    groups: number[],
+    section: number,
+    dep_key: string = 'wants',
+): string[] {
+    const group_limit = groups[section] || 0;
     const group_start_index = groups.reduce(
         (previousValue: number, currentValue: number, currentIndex: number) =>
             currentIndex < section ? previousValue + currentValue : previousValue,
         0,
     );
-    // Slice mod_ids from mod_list 
+    // Slice mod_ids from mod_list
     const group_list = new Set(mod_list.slice(group_start_index, group_start_index + group_limit));
 
     // Recursively collect dependencies
@@ -353,16 +398,16 @@ function get_mods_in_group(mod_map: Map<string, mod_object>, mod_list: Array<str
 
         if (mod != undefined && mod[dep_key] != undefined && Array.isArray(mod[dep_key])) {
             for (const dep of mod[dep_key]) {
-                deps.push(...get_deps(dep))
+                deps.push(...get_deps(dep));
                 deps.push(dep);
             }
         }
 
         return deps;
-    }
+    };
     // Add depencies for each mod in group
     group_list.forEach((mod_id) => {
-        for (const dep of get_deps(mod_id)) group_list.add(dep)
+        for (const dep of get_deps(mod_id)) group_list.add(dep);
     });
 
     return Array.from(group_list);
@@ -390,31 +435,34 @@ async function binary_search_disable(target_fraction: string, dry_run: boolean) 
         // Start at 0 for mods indexed at 0
         // Using a new variable for section here, since typescript apparently hates me mutating it before using at groups.reduce()
         const safe_section = section - 1;
-        
+
         // Only print the mods we would have touched
         if (dry_run) {
             const print_groups: Array<[string, string[]]> = [];
-            
+
             // Only take pre-group (left) if we can go left from section
             if (safe_section > 0) {
                 print_groups.push(['group #' + safe_section + ' (pre)', get_mods_in_group(mod_map, mod_list, groups, safe_section - 1)]);
             }
-            
+
             // Middle section is always safe
             print_groups.push(['group #' + (safe_section + 1) + ' (target)', get_mods_in_group(mod_map, mod_list, groups, safe_section)]);
-            
+
             // Only take post-group (right) if we can go right from section
             if (safe_section < scope - 1) {
-                print_groups.push(['group #' + (safe_section + 2) + ' (post)', get_mods_in_group(mod_map, mod_list, groups, safe_section + 1)]);
+                print_groups.push([
+                    'group #' + (safe_section + 2) + ' (post)',
+                    get_mods_in_group(mod_map, mod_list, groups, safe_section + 1),
+                ]);
             }
-            
+
             print_pretty(...print_groups);
-            
+
             // Actually disable the mods
         } else {
             // Disable all mods, so we don't get stragglers
             await disable_all_mods(mod_map);
-            
+
             const changed_list: Array<string> = [];
             // print_pretty(["Enabling Mods:", get_mods_in_group(mod_map, mod_list, groups, safe_section)])
             for (const mod_id of get_mods_in_group(mod_map, mod_list, groups, safe_section)) {
@@ -703,10 +751,11 @@ async function visualize_graph() {
 async function toggle_mod(opts: string | undefined) {
     const mod_map = await read_saved_mods('./annotated_mods.json');
     if (opts != undefined) {
-        const mod = mod_map.get(opts);
-        if (mod != undefined) {
+        opts = opts.toLowerCase();
+        const mod_id = mod_map.keys().find((key: string) => key.toLowerCase() === opts);
+        if (mod_id != undefined) {
             const change_list: string[] = [];
-            let changes = await toggle_mod_deep(opts, mod_map, change_list);
+            let changes = await toggle_mod_deep(mod_id, mod_map, change_list);
             await enable_base_mods(mod_map);
 
             if (changes > 0) {
@@ -803,30 +852,6 @@ async function disable_atomic_deep(opts_mod_id: string, mod_map?: Map<string, mo
     }
 }
 
-async function get_mainclass() {
-    const mod_map = await read_saved_mods('./annotated_mods.json');
-    const dep_annotation_pattern = new RegExp(/Lcpw\/mods\/fml\/common\/Mod;.*?(dependencies.*?)$/m)
-    const dep_tag_pattern = new RegExp(/after:(?<mod_id>(?<first_char>[a-zA-Z])(?:[a-zA-Z]|\d{1}|[\+\-](?:(?!mc|MC)[a-zA-Z]{2}|[aI]))+?)(?:[ \n\r;@]|$)/mg)
-    for (const [mod_id, mod] of mod_map) {
-        await search_zip_for_string(mod.file_path, "Lcpw/mods/fml/common/Mod;").then((data) => {
-            // Get annotation statement
-            const match = data.match(dep_annotation_pattern)
-            if (match && match.length > 1) {
-                // Get dependency tags
-                const deps = new Set()
-                const dep_annotation_line = match.at(1)
-                if (dep_annotation_line != undefined) {
-                    for (const dep_match in dep_annotation_line.matchAll(dep_tag_pattern)) {
-                        console.log("Found dependency match for mod", mod_id ,":", dep_match)
-                    }
-                }
-            }
-        }).catch((err) => {
-            console.log("Failed to find mod annotation for mod ", mod_id)
-        })
-    }
-}
-
 //#region Entrypoint
 async function main() {
     const args = process.argv.slice(2);
@@ -867,8 +892,10 @@ async function main() {
             } else {
                 console.error('Missing target mod (id) to disable.');
             }
-        } else if (mode === 'mainclass') {
-            await get_mainclass()
+        } else if (mode === 'debug') {
+            console.log('debug run..');
+            const a = await get_deps_from_mainclass('../.minecraft/mods/buildcraft-7.1.42.jar', "Buildcraft|Core");
+            console.log(a);
         } else {
             console.log('Usage: node annotate.js [mode]');
             console.log('Modes:');

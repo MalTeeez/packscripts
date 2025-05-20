@@ -49,7 +49,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://modrinth.com/mod/baubles-expanded/version/2.1.4",
         "notes": "",
-        "wanted_by": ["Thaumcraft", "ThaumicHorizons", "ae2fc"],
+        "wanted_by": ["Thaumcraft", "ThaumicHorizons", "ae2fc", "Botania"],
         "wants": [],
         "enabled": true
     },
@@ -131,7 +131,7 @@
         "source": "https://github.com/GTNewHorizons/Botania/releases/tag/1.12.5-GTNH",
         "notes": "Replace resources/assets/botania/sounds/doit.ogg with our sound (startup sound).",
         "wanted_by": ["TCBotaniaExoflame", "AdvancedBotany", "alfheim", "ForgottenRelics"],
-        "wants": ["gtnhlib"],
+        "wants": ["gtnhlib", "BaublesExpanded"],
         "enabled": true
     },
     "BrandonsCore": {
@@ -328,7 +328,7 @@
         "source": "https://github.com/GTNewHorizons/EnderIO/releases/tag/2.9.4",
         "notes": "",
         "wanted_by": [],
-        "wants": ["endercore"],
+        "wants": ["endercore", "gtnhlib"],
         "enabled": true
     },
     "EnderStorage": {
@@ -625,7 +625,7 @@
         "source": "https://github.com/GTNewHorizons/ProjectRed/releases/tag/4.11.1-GTNH",
         "notes": "",
         "wanted_by": [],
-        "wants": [],
+        "wants": ["ForgeMultipart"],
         "enabled": true
     },
     "RArm": {
@@ -634,7 +634,7 @@
         "source": "",
         "notes": "",
         "wanted_by": [],
-        "wants": ["ThermalExpansion", "ThermalFoundation", "RedstoneArsenal", "endercore"],
+        "wants": ["ThermalExpansion", "ThermalFoundation", "RedstoneArsenal", "endercore", "ttCore"],
         "enabled": true
     },
     "ReactorCraft": {
@@ -823,7 +823,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/thermal-dynamics/files/2388756",
         "notes": "",
         "wanted_by": [],
-        "wants": ["CoFHCore"],
+        "wants": ["CoFHCore", "ThermalFoundation"],
         "enabled": true
     },
     "ThermalExpansion": {
@@ -1084,7 +1084,7 @@
         "source": "",
         "notes": "",
         "wanted_by": ["endlessids"],
-        "wants": [],
+        "wants": ["falsepatternlib"],
         "enabled": true
     },
     "coretweaks": {
@@ -1262,7 +1262,8 @@
             "Botania",
             "HardcoreEnderExpansion",
             "MouseTweaks",
-            "appliedenergistics2"
+            "appliedenergistics2",
+            "EnderIO"
         ],
         "wants": ["unimixins"],
         "enabled": true

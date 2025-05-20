@@ -110,12 +110,13 @@ export async function read_from_file(file_path: string): Promise<JsonObject> {
     }
 }
 
-export function search_zip_for_string(zipFilePath: string, target: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-        yauzl.open(zipFilePath, { lazyEntries: true }, function (err, zipfile) {
+export async function search_zip_for_string(zipFilePath: string, target: string): Promise<Map<string, string> | undefined> {
+    const results = await new Promise((resolve, reject) => {
+        yauzl.open(zipFilePath, { lazyEntries: true }, (err, zipfile) => {
             if (err) return reject(err);
+            const results: Map<string, string> = new Map();
             zipfile.readEntry();
-            zipfile.on('entry', function (entry) {
+            zipfile.on('entry', (entry) => {
                 if (/\/$/.test(entry.fileName)) {
                     // Directory file names end with '/'.
                     // Note that entries for directories themselves are optional.
@@ -135,7 +136,7 @@ export function search_zip_for_string(zipFilePath: string, target: string): Prom
                         });
                         readStream.on('end', () => {
                             if (found_target) {
-                                resolve(fileData.join(''));
+                                results.set(entry.fileName, fileData.join(''));
                             }
                         });
                     });
@@ -144,10 +145,17 @@ export function search_zip_for_string(zipFilePath: string, target: string): Prom
                 }
             });
             zipfile.on('end', () => {
-                return reject('String not found in zip archive for file ' + zipFilePath);
+                if (results.size > 0) {
+                    resolve(results)
+                } else {
+                    reject('Failed to find target string in zip file.')
+                }
             });
         });
-    });
+    }).then((results) => results).catch((err) => undefined);
+
+    //@ts-ignore
+    return results
 }
 
 
