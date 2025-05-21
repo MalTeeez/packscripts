@@ -227,7 +227,8 @@
             "rftools",
             "SonarCore",
             "mo",
-            "BuildCraft|Core"
+            "BuildCraft|Core",
+            "Forestry"
         ],
         "wants": [],
         "enabled": true
@@ -377,12 +378,12 @@
         "enabled": true
     },
     "Forestry": {
-        "file_path": "../.minecraft/mods/Forestry-4.10.3.jar",
+        "file_path": "../.minecraft/mods/Forestry-4.10.7.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/ForestryMC/releases/tag/4.10.3",
+        "source": "https://github.com/GTNewHorizons/ForestryMC/releases/tag/4.10.7",
         "notes": "",
         "wanted_by": ["beebetteratbees", "BinnieCore", "MagicBees"],
-        "wants": [],
+        "wants": ["CoFHCore"],
         "enabled": true
     },
     "ForgeMultipart": {
@@ -390,7 +391,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/ForgeMultipart/releases/tag/1.6.2",
         "notes": "",
-        "wanted_by": ["RelocationFMP", "Mekanism", "SonarCore"],
+        "wanted_by": ["RelocationFMP", "Mekanism", "SonarCore", "WR-CBE|Core"],
         "wants": [],
         "enabled": true
     },
@@ -449,9 +450,9 @@
         "enabled": true
     },
     "MagicBees": {
-        "file_path": "../.minecraft/mods/magicbees-2.9.1-GTNH.jar",
+        "file_path": "../.minecraft/mods/magicbees-2.9.2-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/MagicBees/releases/tag/2.9.1-GTNH",
+        "source": "https://github.com/GTNewHorizons/MagicBees/releases/tag/2.9.2-GTNH",
         "notes": "",
         "wanted_by": [],
         "wants": ["Forestry"],
@@ -543,7 +544,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/NotEnoughItems/releases/tag/2.7.29-GTNH",
         "notes": "",
-        "wanted_by": ["beebetteratbees", "NEIAddons", "neiintegration", "neenergistics", "mobsinfo"],
+        "wanted_by": ["beebetteratbees", "NEIAddons", "neiintegration", "neenergistics", "mobsinfo", "draconicplus"],
         "wants": ["CodeChickenCore"],
         "enabled": true
     },
@@ -886,7 +887,7 @@
         "source": "https://github.com/GTNewHorizons/WirelessRedstone-CBE/releases/tag/1.7.0",
         "notes": "",
         "wanted_by": [],
-        "wants": ["CodeChickenCore"],
+        "wants": ["CodeChickenCore", "ForgeMultipart"],
         "enabled": true
     },
     "Waila": {
@@ -912,7 +913,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/Ztones-Unofficial/releases",
         "notes": "Can't find 2.2.2 version built somewhere, so jar is from GTNH pack.",
-        "wanted_by": [],
+        "wanted_by": ["chiseltones"],
         "wants": [],
         "enabled": true
     },
@@ -931,7 +932,7 @@
         "source": "https://github.com/GTNewHorizons/AE2FluidCraft-Rework/releases/tag/1.4.32-gtnh",
         "notes": "",
         "wanted_by": [],
-        "wants": ["appliedenergistics2", "CoFHCore", "BaublesExpanded"],
+        "wants": ["appliedenergistics2", "CoFHCore", "BaublesExpanded", "extracells"],
         "enabled": true
     },
     "ae2stuff": {
@@ -953,7 +954,7 @@
         "enabled": true
     },
     "angelica": {
-        "file_path": "../.minecraft/mods/angelica-1.0.0-beta40.jar",
+        "file_path": "../.minecraft/mods/[CLIENT]angelica-1.0.0-beta41.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/Angelica/releases/tag/1.0.0-beta40",
         "notes": "",
@@ -971,7 +972,7 @@
         "enabled": true
     },
     "archaicfix": {
-        "file_path": "../.minecraft/mods/archaicfix-0.7.4.jar",
+        "file_path": "../.minecraft/mods/archaicfix-0.7.6.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/embeddedt/ArchaicFix/releases/tag/0.7.4",
         "notes": "",
@@ -1003,7 +1004,7 @@
         "source": "https://github.com/GTNewHorizons/Avaritiaddons/releases/tag/1.8.4-GTNH",
         "notes": "",
         "wanted_by": [],
-        "wants": ["Avaritia"],
+        "wants": ["Avaritia", "wanionlib"],
         "enabled": true
     },
     "battlegear2": {
@@ -1075,7 +1076,7 @@
         "source": "https://github.com/GTNewHorizons/ChiselTones/releases/tag/1.2.0-GTNH",
         "notes": "",
         "wanted_by": [],
-        "wants": ["chisel", "ztones"],
+        "wants": ["chisel", "Ztones"],
         "enabled": true
     },
     "chunkapi": {
@@ -1084,7 +1085,7 @@
         "source": "",
         "notes": "",
         "wanted_by": ["endlessids"],
-        "wants": [],
+        "wants": ["falsepatternlib"],
         "enabled": true
     },
     "coretweaks": {
@@ -1129,7 +1130,7 @@
         "source": "https://github.com/MalTeeez/DraconicMinus-",
         "notes": "",
         "wanted_by": [],
-        "wants": ["DraconicEvolution"],
+        "wants": ["DraconicEvolution", "NotEnoughItems"],
         "enabled": true
     },
     "dsurround": {
@@ -1182,7 +1183,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/ExtraCells2/releases/tag/2.5.35",
         "notes": "",
-        "wanted_by": [],
+        "wanted_by": ["ae2fc"],
         "wants": ["appliedenergistics2"],
         "enabled": true
     },
@@ -1200,7 +1201,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/FalsePattern/FalsePatternLib/releases/tag/1.5.9",
         "notes": "",
-        "wanted_by": ["falsetweaks", "laggoggles", "endlessids"],
+        "wanted_by": ["falsetweaks", "laggoggles", "endlessids", "chunkapi"],
         "wants": [],
         "enabled": true
     },
@@ -1241,16 +1242,16 @@
         "enabled": true
     },
     "gadomancy": {
-        "file_path": "../.minecraft/mods/gadomancy-1.4.2.jar",
+        "file_path": "../.minecraft/mods/gadomancy-1.4.3.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Gadomancy/releases/tag/1.4.2",
+        "source": "https://github.com/GTNewHorizons/Gadomancy/releases/tag/1.4.3",
         "notes": "",
         "wanted_by": [],
         "wants": ["Thaumcraft"],
         "enabled": true
     },
     "gtnhlib": {
-        "file_path": "../.minecraft/mods/gtnhlib-0.6.11.jar",
+        "file_path": "../.minecraft/mods/gtnhlib-0.6.21.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/GTNHLib/releases/tag/0.6.11",
         "notes": "",
@@ -1286,9 +1287,9 @@
         "enabled": true
     },
     "hodgepodge": {
-        "file_path": "../.minecraft/mods/hodgepodge-2.5.90.jar",
+        "file_path": "../.minecraft/mods/hodgepodge-2.6.55-pre.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Hodgepodge/releases/tag/2.5.90",
+        "source": "https://github.com/GTNewHorizons/Hodgepodge/releases/tag/2.6.55-pre",
         "notes": "",
         "wanted_by": [],
         "wants": ["unimixins", "gtnhlib"],
@@ -1367,9 +1368,9 @@
         "enabled": true
     },
     "lwjgl3ify": {
-        "file_path": "../.minecraft/mods/lwjgl3ify-2.1.9.jar",
+        "file_path": "../.minecraft/mods/lwjgl3ify-2.1.12.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER", "REQUIRED_BASE"],
-        "source": "https://github.com/GTNewHorizons/lwjgl3ify/releases/tag/2.1.9",
+        "source": "https://github.com/GTNewHorizons/lwjgl3ify/releases/tag/2.1.12",
         "notes": "",
         "wanted_by": [],
         "wants": ["unimixins"],
@@ -1707,7 +1708,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/WanionLib/releases/tag/1.9.0",
         "notes": "",
-        "wanted_by": ["eternalsingularity"],
+        "wanted_by": ["eternalsingularity", "avaritiaddons"],
         "wants": [],
         "enabled": true
     },
