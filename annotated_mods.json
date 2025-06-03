@@ -228,7 +228,8 @@
             "SonarCore",
             "mo",
             "BuildCraft|Core",
-            "Forestry"
+            "Forestry",
+            "EnderIO"
         ],
         "wants": [],
         "enabled": true
@@ -329,7 +330,7 @@
         "source": "https://github.com/GTNewHorizons/EnderIO/releases/tag/2.9.4",
         "notes": "",
         "wanted_by": [],
-        "wants": ["endercore", "gtnhlib"],
+        "wants": ["endercore", "gtnhlib", "CoFHCore"],
         "enabled": true
     },
     "EnderStorage": {
@@ -391,7 +392,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/ForgeMultipart/releases/tag/1.6.2",
         "notes": "",
-        "wanted_by": ["RelocationFMP", "Mekanism", "SonarCore", "WR-CBE|Core"],
+        "wanted_by": ["RelocationFMP", "Mekanism", "SonarCore", "WR-CBE|Core", "ProjRed|Core"],
         "wants": [],
         "enabled": true
     },
@@ -841,7 +842,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://www.curseforge.com/minecraft/mc-mods/thermal-foundation/files/2388752",
         "notes": "",
-        "wanted_by": ["RArm", "ThermalExpansion"],
+        "wanted_by": ["RArm", "ThermalExpansion", "ThermalDynamics"],
         "wants": ["CoFHCore"],
         "enabled": true
     },
@@ -1251,7 +1252,7 @@
         "enabled": true
     },
     "gtnhlib": {
-        "file_path": "../.minecraft/mods/gtnhlib-0.6.21.jar",
+        "file_path": "../.minecraft/mods/gtnhlib-0.6.27.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/GTNHLib/releases/tag/0.6.11",
         "notes": "",
@@ -1288,7 +1289,7 @@
         "enabled": true
     },
     "hodgepodge": {
-        "file_path": "../.minecraft/mods/hodgepodge-2.6.55-pre.jar",
+        "file_path": "../.minecraft/mods/hodgepodge-2.6.73-pre.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/Hodgepodge/releases/tag/2.6.55-pre",
         "notes": "",

@@ -10,7 +10,6 @@ import {
     type JsonObject,
     version_string_to_comparable,
     print_pretty,
-    extract_main_class_from_zip,
     search_zip_for_string,
 } from './utils';
 import { file } from 'bun';
@@ -84,7 +83,7 @@ async function annotate() {
 async function scan_mods_folder(directory: string): Promise<Map<string, { [key: string]: any }>> {
     const files = fg.sync(directory + '**/*', { onlyFiles: true, deep: 4, globstar: true });
 
-    const extension_pattern = /^.*\/(.+\.(?:jar(?:\.disabled)?))$/m;
+    const extension_pattern = /^.*\/(.+\.(?:jar(?:.*\.disabled)?))$/m;
     // Array of [file_path, file_name]
     const filtered_files: Map<string, { [key: string]: string | JsonObject | Array<JsonObject> | undefined }> = new Map();
 
@@ -124,13 +123,14 @@ async function extract_modinfos(files: Map<string, { [key: string]: any }>) {
                 return undefined;
         });
 
-        const [mod_id, wants, version] = parse_mod_details(info_json, file_path);
-        if (mod_id != undefined) {
+        const { id, state, version, wants } = parse_mod_details(info_json, file_path);
+        if (id != undefined) {
             file_object['info_json'] = info_json;
-            file_object['mod_id'] = mod_id;
+            file_object['mod_id'] = id;
             // Also get deps from mainclass annotation, and then deduplicate with set
-            file_object['wants'] = Array.from(new Set([...wants, ...(await get_deps_from_mainclass(file_path, mod_id))]));
+            file_object['wants'] = Array.from(new Set([...wants, ...(await get_deps_from_mainclass(file_path, id))]));
             if (version) file_object['version'] = version;
+            file_object['enabled'] = state;
         } else {
             console.warn("Failed to parse mod id for file", file_path, ", ignoring.")
         }
@@ -146,10 +146,11 @@ async function extract_modinfos(files: Map<string, { [key: string]: any }>) {
 function parse_mod_details(
     info_json: Array<JsonObject> | JsonObject | string | undefined,
     file_path: string,
-): [string | undefined, Array<string>, number[] | undefined] {
+): { id: string | undefined, wants: Array<string>, version: number[] | undefined, state: boolean } {
     let mod_id: undefined | string = undefined;
     let wants: Array<string> = [];
     let mod_version: undefined | number[];
+    const mod_state: boolean = !file_path.endsWith(".disabled");
 
     // oh god what have I created. (Filename to modid pattern)
     // Basically, this first matches the folder path in front of the file. Then it filters out any non word chars in front of the name or a tag group, such as [CLIENT].
@@ -239,7 +240,7 @@ function parse_mod_details(
         }
     }
 
-    return [mod_id, wants, mod_version];
+    return {id: mod_id, wants: wants, version: mod_version, state: mod_state};
 }
 
 /**
@@ -278,7 +279,7 @@ function update_list(files: Map<string, { [key: string]: any }>, mod_map: Map<st
     }
     for (const [mod_id, mod] of mod_map) {
         if (!files.has(mod.file_path)) {
-            console.warn('Mod ', mod_id, ' is missing its linked file. Was it renamed?');
+            console.warn('Mod ', mod_id, ' is missing its linked file. Was it renamed / moved?');
         }
     }
 
