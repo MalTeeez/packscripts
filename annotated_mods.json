@@ -1148,7 +1148,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/EnderCore/releases/tag/0.4.6",
         "notes": "",
-        "wanted_by": ["EnderIO", "RArm"],
+        "wanted_by": ["EnderIO", "RArm", "wailaplugins"],
         "wants": [],
         "enabled": true
     },
@@ -1523,9 +1523,9 @@
         "enabled": true
     },
     "rftools": {
-        "file_path": "../.minecraft/mods/rftools-4.23.jar",
+        "file_path": "../.minecraft/mods/rftools-4.24.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://www.curseforge.com/minecraft/mc-mods/rftools/files/2287287",
+        "source": "https://github.com/quentin452/RFTools-Continuation/releases/tag/V4.2.4",
         "notes": "",
         "wanted_by": [],
         "wants": ["CoFHCore", "mcjtylib"],
@@ -1702,7 +1702,7 @@
         "source": "https://github.com/GTNewHorizons/WAILAPlugins/releases/tag/0.6.0",
         "notes": "",
         "wanted_by": [],
-        "wants": ["Waila"],
+        "wants": ["Waila", "endercore"],
         "enabled": true
     },
     "wanionlib": {

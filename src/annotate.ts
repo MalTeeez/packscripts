@@ -12,8 +12,9 @@ import {
     print_pretty,
     search_zip_for_string,
 } from './utils';
-import { file } from 'bun';
 
+
+const MOD_BASE_DIR = "../.minecraft/mods/"
 //#region general
 /**
  * Read a map of annotated mods from a json file, and return them as parsed objects
@@ -63,7 +64,7 @@ async function enable_base_mods(mod_map: Map<string, mod_object>) {
 async function annotate() {
     const annotated_file = './annotated_mods.json';
 
-    const mod_files = await scan_mods_folder('../.minecraft/mods/');
+    const mod_files = await scan_mods_folder(MOD_BASE_DIR);
     await extract_modinfos(mod_files);
 
     const old_list = await read_saved_mods(annotated_file);
@@ -423,43 +424,51 @@ function get_mods_in_group(
     return Array.from(group_list);
 }
 
-async function binary_search_disable(target_fraction: string, dry_run: boolean) {
+async function binary_search_disable(target_fractions: string[], dry_run: boolean) {
     const mod_map = await read_saved_mods('./annotated_mods.json');
     const mod_list = Array.from(mod_map.keys());
+    const fractions: { section: number, scope: number, groups: number[] }[] = [];
 
-    let [section, scope] = target_fraction.split('/').map(Number);
-
-    if (section != undefined && scope != undefined && section <= scope && section > 0) {
-        // Split our list into even groups
-        const groups = divide_to_full_groups(mod_list.length, scope);
-        // Start at 0 for mods indexed at 0
-        // Using a new variable for section here, since typescript apparently hates me mutating it before using at groups.reduce()
-        const safe_section = section - 1;
+    for (const fraction of target_fractions ) {
+        let [section, scope] = fraction.split('/').map(Number);
+        if (section != undefined && scope != undefined && section <= scope && section > 0) {
+            // Split our list into even groups
+            const groups = divide_to_full_groups(mod_list.length, scope);
+            // Start at 0 for mods indexed at 0
+            // Using a new variable for section here, since typescript apparently hates me mutating it before using at groups.reduce()
+            const safe_section = section - 1;
+            fractions.push({ section: safe_section, groups, scope })
+        }
+    }
+    
+    const first_fraction = fractions[0];
+    if (first_fraction != undefined) {
+        const {section, scope, groups} = first_fraction
 
         // Only print the mods we would have touched
         if (dry_run) {
             let print_groups: Array<[string, string[]]> = [];
 
-            console.info(`Mod groups for target ${target_fraction}:`);
+            console.info(`Mod groups for target ${target_fractions[0]}:`);
             // Only take pre-group (left) if we can go left from section
-            if (safe_section > 0) {
+            if (section > 0) {
                 print_groups.push([
-                    'group #' + safe_section + ' (pre)',
-                    get_mods_in_group(mod_map, mod_list, groups, safe_section - 1, { dep_key: 'wants', show_deps: true }),
+                    'group #' + section + ' (pre)',
+                    get_mods_in_group(mod_map, mod_list, groups, section - 1, { dep_key: 'wants', show_deps: true }),
                 ]);
             }
 
             // Middle section is always safe
             print_groups.push([
-                'group #' + (safe_section + 1) + ' (target)',
-                get_mods_in_group(mod_map, mod_list, groups, safe_section, { dep_key: 'wants', show_deps: true }),
+                'group #' + (section + 1) + ' (target)',
+                get_mods_in_group(mod_map, mod_list, groups, section, { dep_key: 'wants', show_deps: true }),
             ]);
 
             // Only take post-group (right) if we can go right from section
-            if (safe_section < scope - 1) {
+            if (section < scope - 1) {
                 print_groups.push([
-                    'group #' + (safe_section + 2) + ' (post)',
-                    get_mods_in_group(mod_map, mod_list, groups, safe_section + 1, { dep_key: 'wants', show_deps: true }),
+                    'group #' + (section + 2) + ' (post)',
+                    get_mods_in_group(mod_map, mod_list, groups, section + 1, { dep_key: 'wants', show_deps: true }),
                 ]);
             }
 
@@ -469,7 +478,7 @@ async function binary_search_disable(target_fraction: string, dry_run: boolean) 
             print_groups = [];
             const sub_scope = scope * 2;
             const sub_groups = divide_to_full_groups(mod_list.length, sub_scope);
-            const sub_safe_section = section * 2 - 1;
+            const sub_safe_section = (section + 1) * 2 - 1;
             console.info(`Mod groups for sub-target ${sub_safe_section + 1}/${sub_scope}:`);
 
             // Only take pre-group (left) if we can go left from section
@@ -495,13 +504,17 @@ async function binary_search_disable(target_fraction: string, dry_run: boolean) 
             await disable_all_mods(mod_map);
 
             const changed_list: Array<string> = [];
-            // print_pretty(["Enabling Mods:", get_mods_in_group(mod_map, mod_list, groups, safe_section)])
-            for (const mod_id of get_mods_in_group(mod_map, mod_list, groups, safe_section)) {
-                await enable_mod_deep(mod_id, mod_map, changed_list);
-            }
 
-            await enable_base_mods(mod_map);
-            await save_map_to_file('./annotated_mods.json', mod_map);
+            for (const {section, scope, groups} of fractions) {
+                console.log(`Enabling fraction ${section + 1}/${scope}.`)
+                // print_pretty(["Enabling Mods:", get_mods_in_group(mod_map, mod_list, groups, safe_section)])
+                for (const mod_id of get_mods_in_group(mod_map, mod_list, groups, section)) {
+                    await enable_mod_deep(mod_id, mod_map, changed_list);
+                }
+                
+                await enable_base_mods(mod_map);
+                await save_map_to_file('./annotated_mods.json', mod_map);
+            }
             if (changed_list.length > 0) {
                 console.log('Changed ', changed_list.length, ' mods.\n');
             } else {
@@ -875,7 +888,7 @@ async function list_mods() {
         ['File Path', []],
     ];
 
-    for (const [file_path, mod_object] of await extract_modinfos(await scan_mods_folder('../.minecraft/mods/'))) {
+    for (const [file_path, mod_object] of await extract_modinfos(await scan_mods_folder(MOD_BASE_DIR))) {
         if (mod_object.enabled && typeof mod_object.mod_id === 'string') {
             //@ts-ignore
             mods[0][1].push(mod_object.mod_id);
@@ -906,7 +919,7 @@ async function main() {
             await list_mods();
         } else if (mode === 'binary' || mode === 'binary_dry') {
             if (opts != undefined) {
-                await binary_search_disable(opts, mode === 'binary_dry');
+                await binary_search_disable(args.slice(1), mode === 'binary_dry');
             } else {
                 console.error('Missing target fraction for mode binary, i.e. [1/4].');
             }
@@ -932,14 +945,14 @@ async function main() {
             }
         } else if (mode === 'debug') {
             console.log('debug run..');
-            const a = await get_deps_from_mainclass('../.minecraft/mods/buildcraft-7.1.42.jar', "Buildcraft|Core");
+            const a = await get_deps_from_mainclass(MOD_BASE_DIR + 'buildcraft-7.1.42.jar', "Buildcraft|Core");
             console.log(a);
         } else {
             console.log('Usage: node annotate.js [mode]');
             console.log('Modes:');
             console.log('  update                                - Update annotated mod list');
             console.log('  list                                  - List all indexed mods');
-            console.log('  binary [target fraction]              - Perform a deep-disable for a binary section');
+            console.log('  binary [target fraction(s)]           - Perform a deep-disable for a binary section');
             console.log('  binary_dry [target fraction]          - List the mods that would be disabled with the target fraction');
             console.log('  graph                                 - Build a html file, that visualizes dependencies');
             console.log('  toggle [mod_id]                       - Disable / Enable a specific mod by its id');
@@ -954,7 +967,7 @@ async function main() {
     }
 }
 
-//// Add this at the end of the file
+// Forward to main function with arguments
 if (import.meta.url === import.meta.resolve('file://' + process.argv[1])) {
     main().catch(console.error);
 }
