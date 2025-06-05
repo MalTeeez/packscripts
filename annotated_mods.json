@@ -276,7 +276,7 @@
         "source": "https://github.com/aidancbrady/DefenseTech",
         "notes": "No apparent prebuilt files found (Link on aidans website seems broken).",
         "wanted_by": [],
-        "wants": ["Mekanism", "endlessids"],
+        "wants": ["Mekanism"],
         "enabled": true
     },
     "Ding": {
@@ -1153,11 +1153,11 @@
         "enabled": true
     },
     "endlessids": {
-        "file_path": "../.minecraft/mods/endlessids-mc1.7.10-1.6.3.jar",
+        "file_path": "../.minecraft/mods/endlessids-mc1.7.10-1.6.5.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "",
+        "source": "https://github.com/GTMEGA/EndlessIDs/releases/tag/1.6.5",
         "notes": "",
-        "wanted_by": ["DefenseTech"],
+        "wanted_by": [],
         "wants": ["unimixins", "falsepatternlib", "chunkapi"],
         "enabled": true
     },
