@@ -506,7 +506,7 @@ async function binary_search_disable(target_fractions: string[], dry_run: boolea
             const changed_list: Array<string> = [];
 
             for (const {section, scope, groups} of fractions) {
-                console.log(`Enabling fraction ${section + 1}/${scope}.`)
+                console.log(`Enabling fraction ${section + 1}/${scope} .`)
                 // print_pretty(["Enabling Mods:", get_mods_in_group(mod_map, mod_list, groups, safe_section)])
                 for (const mod_id of get_mods_in_group(mod_map, mod_list, groups, section)) {
                     await enable_mod_deep(mod_id, mod_map, changed_list);

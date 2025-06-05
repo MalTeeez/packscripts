@@ -942,7 +942,7 @@
         "source": "https://github.com/GTNewHorizons/ae2stuff/releases/tag/0.9.4-GTNH",
         "notes": "",
         "wanted_by": [],
-        "wants": ["appliedenergistics2"],
+        "wants": ["appliedenergistics2", "bdlib"],
         "enabled": true
     },
     "alfheim": {
@@ -955,9 +955,9 @@
         "enabled": true
     },
     "angelica": {
-        "file_path": "../.minecraft/mods/[CLIENT]angelica-1.0.0-beta41.jar",
-        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Angelica/releases/tag/1.0.0-beta40",
+        "file_path": "../.minecraft/mods/[CLIENT]angelica-1.0.0-beta45.jar",
+        "tags": ["SIDE.CLIENT"],
+        "source": "https://github.com/GTNewHorizons/Angelica/releases/tag/1.0.0-beta41",
         "notes": "",
         "wanted_by": [],
         "wants": ["unimixins", "gtnhlib"],
@@ -1022,7 +1022,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/bdlib/releases/tag/1.10.0-GTNH",
         "notes": "",
-        "wanted_by": [],
+        "wanted_by": ["ae2stuff"],
         "wants": [],
         "enabled": true
     },
@@ -1406,9 +1406,9 @@
         "enabled": true
     },
     "mobsinfo": {
-        "file_path": "../.minecraft/mods/[CLIENT]mobsinfo-0.5.1-GTNH.jar",
+        "file_path": "../.minecraft/mods/mobsinfo-0.4.5.jar",
         "tags": ["SIDE.CLIENT"],
-        "source": "https://github.com/GTNewHorizons/Mobs-Info/releases/tag/0.5.1-GTNH",
+        "source": "https://modrinth.com/mod/mobsinfo/version/0.4.5",
         "notes": "",
         "wanted_by": [],
         "wants": ["NotEnoughItems", "forgelin"],
