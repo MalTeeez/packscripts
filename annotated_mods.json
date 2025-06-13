@@ -1081,9 +1081,9 @@
         "enabled": true
     },
     "chunkapi": {
-        "file_path": "../.minecraft/mods/chunkapi-mc1.7.10-0.6.1.jar",
+        "file_path": "../.minecraft/mods/chunkapi-mc1.7.10-0.6.3.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "",
+        "source": "https://github.com/LegacyModdingMC/ChunkAPI/releases/tag/0.6.3",
         "notes": "",
         "wanted_by": ["endlessids"],
         "wants": ["falsepatternlib"],
@@ -1153,9 +1153,9 @@
         "enabled": true
     },
     "endlessids": {
-        "file_path": "../.minecraft/mods/endlessids-mc1.7.10-1.6.5.jar",
+        "file_path": "../.minecraft/mods/endlessids-mc1.7.10-1.6.9.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTMEGA/EndlessIDs/releases/tag/1.6.5",
+        "source": "https://github.com/GTMEGA/EndlessIDs/releases/tag/1.6.9",
         "notes": "",
         "wanted_by": [],
         "wants": ["unimixins", "falsepatternlib", "chunkapi"],
@@ -1189,18 +1189,18 @@
         "enabled": true
     },
     "exuportalfix": {
-        "file_path": "../.minecraft/mods/exuportalfix-b4748d1.jar",
+        "file_path": "../.minecraft/mods/exuportalfix-1.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER", "CUSTOM"],
-        "source": "https://github.com/MalTeeez/ExtraUtilities-Portal-Fix",
+        "source": "https://github.com/MalTeeez/ExtraUtilities-Portal-Fix/releases/tag/1.0",
         "notes": "",
         "wanted_by": [],
         "wants": ["ExtraUtilities"],
         "enabled": true
     },
     "falsepatternlib": {
-        "file_path": "../.minecraft/mods/falsepatternlib-mc1.7.10-1.5.9.jar",
+        "file_path": "../.minecraft/mods/falsepatternlib-mc1.7.10-1.7.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/FalsePattern/FalsePatternLib/releases/tag/1.5.9",
+        "source": "https://github.com/FalsePattern/FalsePatternLib/releases/tag/1.7.0",
         "notes": "",
         "wanted_by": ["falsetweaks", "laggoggles", "endlessids", "chunkapi"],
         "wants": [],

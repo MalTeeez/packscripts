@@ -5,3 +5,4 @@
 - Automatic update checker for github releases, curseforge, modrinth (needs version tracking)
 - Add Web UI, either via electron or as a seperate website with websockets
 - Add funtionality for mod to present itself as provider of multiple mod-ids
+- Add a "last-changed" attribute, shouldn't trigger on disable
