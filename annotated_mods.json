@@ -188,15 +188,6 @@
         "wants": [],
         "enabled": true
     },
-    "ChickenChunks": {
-        "file_path": "../.minecraft/mods/ChickenChunks-1.3.4.27.jar",
-        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/LITW-Refined/ChickenChunks/releases/tag/1.3.4.27",
-        "notes": "Secondary local version with a possible nother fix exists.",
-        "wanted_by": [],
-        "wants": ["CodeChickenCore"],
-        "enabled": true
-    },
     "ChromatiCraft": {
         "file_path": "../.minecraft/mods/ChromatiCraft+1.7.10+V33a.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
@@ -325,9 +316,9 @@
         "enabled": true
     },
     "EnderIO": {
-        "file_path": "../.minecraft/mods/EnderIO-2.9.4.jar",
+        "file_path": "../.minecraft/mods/EnderIO-2.9.18.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/EnderIO/releases/tag/2.9.4",
+        "source": "https://github.com/GTNewHorizons/EnderIO/releases/tag/2.9.18",
         "notes": "",
         "wanted_by": [],
         "wants": ["endercore", "gtnhlib", "CoFHCore"],
@@ -511,15 +502,6 @@
         "notes": "",
         "wanted_by": [],
         "wants": [],
-        "enabled": true
-    },
-    "MouseTweaks": {
-        "file_path": "../.minecraft/mods/MouseTweaks-2.4.20-GTNH.jar",
-        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/MouseTweaks/releases/tag/2.4.20-GTNH",
-        "notes": "",
-        "wanted_by": [],
-        "wants": ["gtnhlib"],
         "enabled": true
     },
     "MrTJPCoreMod": {
@@ -918,15 +900,6 @@
         "wants": [],
         "enabled": true
     },
-    "act": {
-        "file_path": "../.minecraft/mods/AdminCommandsToolbox-0.0.2a_1.7.10.jar",
-        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://www.curseforge.com/minecraft/mc-mods/admin-commands-toolbox/files/2212871",
-        "notes": "Mostly needed for the pregen command. Not sure if actually needed on client",
-        "wanted_by": [],
-        "wants": [],
-        "enabled": true
-    },
     "ae2fc": {
         "file_path": "../.minecraft/mods/ae2fc-1.4.32-gtnh.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
@@ -1044,6 +1017,15 @@
         "wants": ["appliedenergistics2", "forgelin"],
         "enabled": true
     },
+    "bogosorter": {
+        "file_path": "../.minecraft/mods/bogosorter-1.2.35-GTNH.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "https://github.com/GTNewHorizons/InventoryBogoSorter/releases/tag/1.2.35-GTNH",
+        "notes": "",
+        "wanted_by": [],
+        "wants": ["gtnhlib"],
+        "enabled": true
+    },
     "bspkrsCore": {
         "file_path": "../.minecraft/mods/1.7.10/[1.7.10]bspkrsCore-universal-6.16.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
@@ -1135,12 +1117,12 @@
         "enabled": true
     },
     "dsurround": {
-        "file_path": "../.minecraft/mods/DynamicSurroundings-1.7.10-1.0.5.11.jar",
+        "file_path": "../.minecraft/mods/DynamicSurroundings-1.7.10-1.0.7.6.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://www.curseforge.com/minecraft/mc-mods/dynamic-surroundings/files/2401298",
+        "source": "https://github.com/mist475/DynamicSurroundings/releases/tag/1.0.7.6",
         "notes": "Newer versions are incompatible.",
         "wanted_by": [],
-        "wants": [],
+        "wants": ["unimixins"],
         "enabled": true
     },
     "endercore": {
@@ -1263,9 +1245,10 @@
             "BinnieCore",
             "Botania",
             "HardcoreEnderExpansion",
-            "MouseTweaks",
             "appliedenergistics2",
-            "EnderIO"
+            "EnderIO",
+            "navigator",
+            "bogosorter"
         ],
         "wants": ["unimixins"],
         "enabled": true
@@ -1313,15 +1296,6 @@
         "notes": "",
         "wanted_by": [],
         "wants": ["unimixins"],
-        "enabled": true
-    },
-    "inventorytweaks": {
-        "file_path": "../.minecraft/mods/inventorytweaks-1.7.1.jar",
-        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/inventory-tweaks/releases/tag/1.7.1",
-        "notes": "",
-        "wanted_by": [],
-        "wants": [],
         "enabled": true
     },
     "ironbackpacks": {
@@ -1432,6 +1406,24 @@
         "wants": ["MineTweaker3"],
         "enabled": true
     },
+    "modularui2": {
+        "file_path": "../.minecraft/mods/modularui2-2.2.15-1.7.10.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "",
+        "notes": "",
+        "wanted_by": [],
+        "wants": [],
+        "enabled": true
+    },
+    "navigator": {
+        "file_path": "../.minecraft/mods/navigator-1.0.16.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "https://github.com/GTNewHorizons/Navigator/releases/tag/1.0.16",
+        "notes": "",
+        "wanted_by": [],
+        "wants": ["gtnhlib"],
+        "enabled": true
+    },
     "neenergistics": {
         "file_path": "../.minecraft/mods/NotEnoughEnergistics-1.7.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
@@ -1448,15 +1440,6 @@
         "notes": "",
         "wanted_by": [],
         "wants": ["NotEnoughItems"],
-        "enabled": true
-    },
-    "neodymium": {
-        "file_path": "../.minecraft/mods/[CLIENT]neodymium-mc1.7.10-0.4.3-unofficial.jar",
-        "tags": ["SIDE.CLIENT"],
-        "source": "https://github.com/FalsePattern/NeodymiumUnofficial/releases/tag/0.4.3-unofficial",
-        "notes": "Most parts disabled due to Angelica doing the same.",
-        "wanted_by": [],
-        "wants": [],
         "enabled": true
     },
     "netherportalfix": {
@@ -1532,7 +1515,7 @@
         "enabled": true
     },
     "serverutilities": {
-        "file_path": "../.minecraft/mods/ServerUtilities-2.1.29.jar",
+        "file_path": "../.minecraft/mods/ServerUtilities-2.1.54.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/ServerUtilities/releases/tag/2.1.29",
         "notes": "",
@@ -1547,6 +1530,15 @@
         "notes": "No apparent prebuilt files found (Anymore).",
         "wanted_by": [],
         "wants": ["CoFHCore", "enderio"],
+        "enabled": true
+    },
+    "smoothfont": {
+        "file_path": "../.minecraft/mods/[CLIENT]SmoothFont-1.7.10-1.15.3.jar",
+        "tags": ["SIDE.CLIENT"],
+        "source": "https://www.curseforge.com/minecraft/mc-mods/smooth-font/files/2614474",
+        "notes": "",
+        "wanted_by": [],
+        "wants": [],
         "enabled": true
     },
     "spacore": {
@@ -1586,9 +1578,9 @@
         "enabled": true
     },
     "tcnodetracker": {
-        "file_path": "../.minecraft/mods/[CLIENT]tcnodetracker-1.7.10-1.1.2.jar",
+        "file_path": "../.minecraft/mods/[CLIENT]tcnodetracker-1.3.2.jar",
         "tags": ["SIDE.CLIENT"],
-        "source": "https://www.curseforge.com/minecraft/mc-mods/thaumcraft-node-tracker/files/2247224",
+        "source": "https://github.com/GTNewHorizons/TCNodeTracker/releases/tag/1.3.2",
         "notes": "",
         "wanted_by": [],
         "wants": ["Thaumcraft"],
@@ -1682,7 +1674,8 @@
             "lwjgl3ify",
             "archaicfix",
             "tcneiadditions",
-            "endlessids"
+            "endlessids",
+            "dsurround"
         ],
         "wants": [],
         "enabled": true
