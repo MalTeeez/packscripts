@@ -12,6 +12,7 @@ import {
     print_pretty,
     search_zip_for_string,
 } from './utils';
+import { rename } from "node:fs/promises";
 
 
 const MOD_BASE_DIR = "../.minecraft/mods/"
@@ -133,7 +134,7 @@ async function extract_modinfos(files: Map<string, { [key: string]: any }>) {
             if (version) file_object['version'] = version;
             file_object['enabled'] = state;
         } else {
-            console.warn("Failed to parse mod id for file", file_path, ", ignoring.")
+            console.warn("W: Failed to parse mod id for file", file_path, ", ignoring.")
         }
     }
     return files;
@@ -280,7 +281,7 @@ function update_list(files: Map<string, { [key: string]: any }>, mod_map: Map<st
     }
     for (const [mod_id, mod] of mod_map) {
         if (!files.has(mod.file_path)) {
-            console.warn('Mod ', mod_id, ' is missing its linked file. Was it renamed / moved?');
+            console.warn('W: Mod ', mod_id, ' is missing its linked file. Was it renamed / moved?');
         }
     }
 
@@ -445,6 +446,10 @@ async function binary_search_disable(target_fractions: string[], dry_run: boolea
     if (first_fraction != undefined) {
         const {section, scope, groups} = first_fraction
 
+        if (mod_list.length / 2 < scope) {
+            console.warn(`W: The current scope (${scope}) is bigger than half of your mods, which will lead to imprecisions. Use binary_dry with manual toggling.\n`)
+        }
+
         // Only print the mods we would have touched
         if (dry_run) {
             let print_groups: Array<[string, string[]]> = [];
@@ -479,6 +484,11 @@ async function binary_search_disable(target_fractions: string[], dry_run: boolea
             const sub_scope = scope * 2;
             const sub_groups = divide_to_full_groups(mod_list.length, sub_scope);
             const sub_safe_section = (section + 1) * 2 - 1;
+
+            if (mod_list.length / 2 < sub_scope) {
+                console.warn(`W: The next scope (${sub_scope}) is bigger than half of your mods, which will lead to imprecisions. Use binary_dry with manual toggling.\n`)
+            }
+
             console.info(`Mod groups for sub-target ${sub_safe_section + 1}/${sub_scope}:`);
 
             // Only take pre-group (left) if we can go left from section
@@ -532,9 +542,7 @@ async function binary_search_disable(target_fractions: string[], dry_run: boolea
 async function rename_file(old_path: string, new_path: string) {
     const old_file = Bun.file(old_path);
     if (await old_file.exists()) {
-        const new_file = Bun.file(new_path);
-        await Bun.write(new_file, old_file);
-        await old_file.delete();
+        await rename(old_path, new_path);
     } else {
         console.log('File ', old_path, ' does not exist, but we tried to rename it.');
     }
@@ -912,9 +920,9 @@ async function main() {
     const opts = args[1];
 
     try {
-        if (mode === 'update') {
+        if (mode === 'refresh') {
             await annotate();
-            console.log('Mod list updated successfully!');
+            console.log('Mod list refreshed successfully!');
         } else if (mode === 'list') {
             await list_mods();
         } else if (mode === 'binary' || mode === 'binary_dry') {
@@ -950,7 +958,7 @@ async function main() {
         } else {
             console.log('Usage: node annotate.js [mode]');
             console.log('Modes:');
-            console.log('  update                                - Update annotated mod list');
+            console.log('  refresh                               - Update annotated mod list');
             console.log('  list                                  - List all indexed mods');
             console.log('  binary [target fraction(s)]           - Perform a deep-disable for a binary section');
             console.log('  binary_dry [target fraction]          - List the mods that would be disabled with the target fraction');
