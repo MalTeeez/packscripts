@@ -1085,8 +1085,17 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/LegacyModdingMC/ChunkAPI/releases/tag/0.6.3",
         "notes": "",
-        "wanted_by": ["endlessids"],
+        "wanted_by": ["endlessids", "lumi"],
         "wants": ["falsepatternlib"],
+        "enabled": true
+    },
+    "climateControl": {
+        "file_path": "../.minecraft/mods/ClimateControl-0.10.0-GTNH.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "https://github.com/GTNewHorizons/Climate-Control/releases/tag/0.10.0-GTNH",
+        "notes": "",
+        "wanted_by": [],
+        "wants": [],
         "enabled": true
     },
     "coretweaks": {
@@ -1211,7 +1220,16 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/FalsePattern/FalsePatternLib/releases/tag/1.7.0",
         "notes": "",
-        "wanted_by": ["falsetweaks", "laggoggles", "endlessids", "chunkapi"],
+        "wanted_by": ["falsetweaks", "laggoggles", "endlessids", "chunkapi", "lumi"],
+        "wants": [],
+        "enabled": true
+    },
+    "falsetweaks": {
+        "file_path": "../.minecraft/mods/falsetweaks-mc1.7.10-3.9.7.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "",
+        "notes": "",
+        "wanted_by": [],
         "wants": [],
         "enabled": true
     },
@@ -1368,6 +1386,15 @@
         "notes": "",
         "wanted_by": [],
         "wants": [],
+        "enabled": true
+    },
+    "lumi": {
+        "file_path": "../.minecraft/mods/lumi-mc1.7.10-1.2.0.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "https://github.com/GTMEGA/Lumi/releases/tag/1.2.0",
+        "notes": "",
+        "wanted_by": [],
+        "wants": ["unimixins", "falsepatternlib", "chunkapi"],
         "enabled": true
     },
     "lwjgl3ify": {
@@ -1532,6 +1559,15 @@
         "wants": [],
         "enabled": true
     },
+    "quickplant": {
+        "file_path": "../.minecraft/mods/QuickPlant-1.7.10-1.0.1.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "https://www.curseforge.com/minecraft/mc-mods/quickplant/download/3751332",
+        "notes": "",
+        "wanted_by": [],
+        "wants": [],
+        "enabled": true
+    },
     "rftools": {
         "file_path": "../.minecraft/mods/rftools-4.24.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
@@ -1539,6 +1575,15 @@
         "notes": "",
         "wanted_by": [],
         "wants": ["CoFHCore", "mcjtylib"],
+        "enabled": true
+    },
+    "rple": {
+        "file_path": "../.minecraft/mods/rple-mc1.7.10-1.6.1.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "",
+        "notes": "",
+        "wanted_by": [],
+        "wants": [],
         "enabled": true
     },
     "serverutilities": {
@@ -1702,7 +1747,8 @@
             "archaicfix",
             "tcneiadditions",
             "endlessids",
-            "dsurround"
+            "dsurround",
+            "lumi"
         ],
         "wants": [],
         "enabled": true
