@@ -1,5 +1,5 @@
 import { extract_file_from_zip, read_from_file, rename_file, save_map_to_file, search_zip_for_string } from './fs';
-import { clone, version_string_to_comparable, type JsonObject } from './utils';
+import { type JsonObject } from './utils';
 
 export interface mod_object {
     file_path: string;
@@ -10,6 +10,7 @@ export interface mod_object {
     wants: string[] | undefined;
     enabled: boolean | undefined;
     other_mod_ids: string[] | undefined;
+    version: string | undefined;
     // We only need this, so that we can access the attributes via [string]
     [key: string]: string | string[] | boolean | undefined;
 }
@@ -17,9 +18,8 @@ export interface mod_object {
 export interface mod_object_unsafe {
     mod_id: string;
     other_mod_ids?: string[];
-    info_json: JsonObject;
     wants: string[];
-    version?: number[];
+    version?: string;
     enabled: boolean;
     file_path: string;
     file_basename: string;
@@ -222,31 +222,13 @@ export async function disable_all_mods(mod_map?: Map<string, mod_object>) {
 export async function extract_modinfos(files: Map<string, string>): Promise<Map<string, mod_object_unsafe>> {
     const mods = new Map();
     for (const [file_path, file_basename] of files) {
-        let info_json: JsonObject = await extract_file_from_zip(file_path, 'mcmod.info')
-            .then((file_data: string) => {
-                // Try to parse the modinfo file as json
-                try {
-                    return JSON.parse(file_data);
-                } catch (err) {
-                    //console.error("Failed to parse mod info for file ", file_name)
-                    if (file_data.length > 0) {
-                        return file_data;
-                    }
-                    return undefined;
-                }
-            })
-            .catch(() => {
-                return undefined;
-            });
-
-        const { id, other_mod_ids, state, version, wants } = parse_mod_details(info_json, file_path);
+        const { id, other_mod_ids, state, version, wants } = await parse_mod_details(file_path);
         if (id != undefined) {
             const mod: mod_object_unsafe = {
                 mod_id: id,
                 other_mod_ids: other_mod_ids,
-                info_json: info_json,
                 // Also get deps from mainclass annotation, and then deduplicate with set
-                wants: filterForFaultyDependencies([...wants, ...(await get_deps_from_mainclass(file_path, id))], id),
+                wants: wants,
                 version: version,
                 enabled: state,
                 file_path: file_path,
@@ -265,14 +247,17 @@ export async function extract_modinfos(files: Map<string, string>): Promise<Map<
  * @param info_json Contents of the mods mcmod.info file, might be a json object, a string or undefined
  * @param basename The basename of the file, with extension
  */
-export function parse_mod_details(
-    info_json: Array<JsonObject> | JsonObject | string | undefined,
-    file_path: string,
-): { id: string | undefined; other_mod_ids: string[] | undefined; wants: Array<string>; version: number[] | undefined; state: boolean } {
+export async function parse_mod_details(file_path: string): Promise<{
+    id: string | undefined;
+    other_mod_ids: string[] | undefined;
+    wants: Array<string>;
+    version: string | undefined;
+    state: boolean;
+}> {
     let mod_id: undefined | string = undefined;
     let other_mod_ids: string[] | undefined = undefined;
     let wants: Array<string> = [];
-    let mod_version: undefined | number[];
+    let mod_version: undefined | string;
     const mod_state: boolean = !file_path.endsWith('.disabled');
 
     // oh god what have I created. (Filename to modid pattern)
@@ -283,52 +268,119 @@ export function parse_mod_details(
     const filename_match = file_path.match(
         /(?<path>^.*\/)(?<pre>(?:(?:\[[A-Z]+?\])|[\-\[\]\+\d\.])*)(?<middle>(?<first_char>[a-zA-Z])(?:[a-zA-Z]|\d{1}|[\+\-](?:(?!mc|MC)[a-zA-Z]{2}|[aI]))+)[+\-_\.]*(?:mc|MC)?(?<post>\d?.*?)(?:\.jar(?:\.disabled)?)/m,
     );
-    // Get mod id (with fallbacks)
-    if (typeof info_json === 'object') {
-        if (
-            Array.isArray(info_json) &&
-            info_json[0] &&
-            info_json[0].modid &&
-            typeof info_json[0].modid === 'string' &&
-            info_json[0].modid.length > 0
-        ) {
-            // if (info_json.length > 1) {
-            //     console.log("Multiple Mod-Ids for ", file_path)
-            //     for (const entry of info_json) {
-            //         console.log(": ", entry.modid)
-            //     }
-            // }
-            mod_id = info_json[0].modid;
-            // Sometimes the mcmod.info file has multiple entries for a single mod, ususually submodules
-            // Some mods reference not the main mod (usually the first entry), but one of these submodules
-            if (info_json.length > 1) {
-                other_mod_ids = info_json
-                    .slice(1)
-                    .filter((mod_entry) => mod_entry.modid && typeof mod_entry.modid === 'string')
-                    .map((mod_entry) => mod_entry.modid) as string[];
-            }
-        } else if (
-            !Array.isArray(info_json) &&
-            info_json.modList &&
-            Array.isArray(info_json.modList) &&
-            info_json.modList[0] &&
-            info_json.modList[0].modid &&
-            typeof info_json.modList[0].modid === 'string' &&
-            info_json.modList[0].modid.length > 0
-        ) {
-            mod_id = info_json.modList[0].modid;
 
-            // Sometimes the mcmod.info file has multiple entries for a single mod, ususually submodules
-            // Some mods reference not the main mod (usually the first entry), but one of these submodules
+    const info_json: JsonObject | JsonObject[] | string | undefined = await extract_file_from_zip(file_path, 'mcmod.info')
+        .then((file_data: string) => {
+            // Try to parse the modinfo file as json
+            try {
+                return JSON.parse(file_data);
+            } catch (err) {
+                //console.error("Failed to parse mod info for file ", file_name)
+                if (file_data.length > 0) {
+                    return file_data;
+                }
+                return undefined;
+            }
+        })
+        .catch(() => {
+            return undefined;
+        });
+
+    // Get all infos from mcmod.info
+    if (typeof info_json === 'object') {
+        if (Array.isArray(info_json) && info_json[0]) {
+            // Mod-ID
+            if (info_json[0].modid && typeof info_json[0].modid === 'string' && info_json[0].modid.length > 0) {
+                // if (info_json.length > 1) {
+                //     console.log("Multiple Mod-Ids for ", file_path)
+                //     for (const entry of info_json) {
+                //         console.log(": ", entry.modid)
+                //     }
+                // }
+                mod_id = info_json[0].modid;
+                // Sometimes the mcmod.info file has multiple entries for a single mod, ususually submodules
+                // Some mods reference not the main mod (usually the first entry), but one of these submodules
+                if (info_json.length > 1) {
+                    other_mod_ids = info_json
+                        .slice(1)
+                        .filter((mod_entry) => mod_entry.modid && typeof mod_entry.modid === 'string')
+                        .map((mod_entry) => mod_entry.modid) as string[];
+                }
+            }
+            // Mod-Wants
+            if (info_json[0].requiredMods && Array.isArray(info_json[0].requiredMods) && info_json[0].requiredMods.length > 0) {
+                wants = info_json[0].requiredMods as unknown as string[];
+            } else if (info_json[0].dependencies && Array.isArray(info_json[0].dependencies) && info_json[0].dependencies.length > 0) {
+                wants = info_json[0].dependencies as unknown as string[];
+            }
+            if (info_json.length > 1) {
+                wants.push(
+                    ...[
+                        ...(info_json
+                            .slice(1)
+                            .filter((mod_entry) => mod_entry.dependencies && Array.isArray(mod_entry.dependencies))
+                            .flatMap((mod_entry) => mod_entry.dependencies) as string[]),
+                        ...(info_json
+                            .slice(1)
+                            .filter((mod_entry) => mod_entry.requiredMods && Array.isArray(mod_entry.requiredMods))
+                            .flatMap((mod_entry) => mod_entry.requiredMods) as string[]),
+                    ],
+                );
+            }
+            // Mod-Version
+            if (info_json[0].version && typeof info_json[0].version === 'string') {
+                mod_version = info_json[0].version;
+            }
+        } else if (!Array.isArray(info_json) && info_json.modList && Array.isArray(info_json.modList) && info_json.modList[0]) {
+            // Mod-ID
+            if (info_json.modList[0].modid && typeof info_json.modList[0].modid === 'string' && info_json.modList[0].modid.length > 0) {
+                mod_id = info_json.modList[0].modid;
+
+                // Sometimes the mcmod.info file has multiple entries for a single mod, ususually submodules
+                // Some mods reference not the main mod (usually the first entry), but one of these submodules
+                if (info_json.modList.length > 1) {
+                    other_mod_ids = info_json.modList
+                        .slice(1)
+                        .filter((mod_entry) => mod_entry.modid && typeof mod_entry.modid === 'string')
+                        .map((mod_entry) => mod_entry.modid) as string[];
+                }
+            }
+            // Mod-Wants
+            if (
+                info_json.modList[0].requiredMods &&
+                Array.isArray(info_json.modList[0].requiredMods) &&
+                info_json.modList[0].requiredMods.length > 0
+            ) {
+                wants = info_json.modList[0].requiredMods as unknown as string[];
+            } else if (
+                info_json.modList[0].dependencies &&
+                Array.isArray(info_json.modList[0].dependencies) &&
+                info_json.modList[0].dependencies.length > 0
+            ) {
+                wants = info_json.modList[0].dependencies as unknown as string[];
+            }
             if (info_json.modList.length > 1) {
-                other_mod_ids = info_json.modList
-                    .slice(1)
-                    .filter((mod_entry) => mod_entry.modid && typeof mod_entry.modid === 'string')
-                    .map((mod_entry) => mod_entry.modid) as string[];
+                wants.push(
+                    ...[
+                        ...(info_json.modList
+                            .slice(1)
+                            .filter((mod_entry) => mod_entry.dependencies && Array.isArray(mod_entry.dependencies))
+                            .flatMap((mod_entry) => mod_entry.dependencies) as string[]),
+                        ...(info_json.modList
+                            .slice(1)
+                            .filter((mod_entry) => mod_entry.requiredMods && Array.isArray(mod_entry.requiredMods))
+                            .flatMap((mod_entry) => mod_entry.requiredMods) as string[]),
+                    ],
+                );
+            }
+            // Mod-Version
+            if (info_json.modList[0].version && typeof info_json.modList[0].version === 'string') {
+                mod_version = info_json.modList[0].version;
             }
         }
     }
-    // If the json was existent, but had empty values (was malformed), we might still be undefined
+
+    // If the json was existent, but had empty values (was malformed), the mod id might still be undefined
     if (typeof info_json === 'string' && mod_id == undefined) {
         // Couldn't parse the file as json, try it as a simple key for the id
         const modid_matches = info_json.matchAll(/"modid":\s*"(.*?)"/g).toArray();
@@ -358,61 +410,26 @@ export function parse_mod_details(
         }
     }
 
-    if (filename_match && filename_match.length > 1 && filename_match.groups?.post) {
-        mod_version = version_string_to_comparable(filename_match.groups.post);
+    // Get all info from the @Mod annotation inside the mods main class
+    const { main_deps, main_version } = await get_details_from_mainclass(file_path);
+
+    // Mod-Version fallbacks & filtering
+    if (mod_version && !mod_version.match(/(\d)/) && mod_version.toLowerCase().includes("version")) {
+        // Version does not have a single number, and contains "version itself" - probably malformed
+        mod_version = undefined;
+    }
+    if (mod_version == undefined && main_version) {
+        mod_version = main_version;
+    } else if (mod_version == undefined && filename_match && filename_match.length > 1 && filename_match.groups?.post) {
+        mod_version = filename_match.groups.post;
     }
 
-    // Get mod wants (just json)
-    if (typeof info_json === 'object') {
-        if (Array.isArray(info_json) && info_json[0]) {
-            if (info_json[0].requiredMods && Array.isArray(info_json[0].requiredMods) && info_json[0].requiredMods.length > 0) {
-                wants = info_json[0].requiredMods as unknown as string[];
-            } else if (info_json[0].dependencies && Array.isArray(info_json[0].dependencies) && info_json[0].dependencies.length > 0) {
-                wants = info_json[0].dependencies as unknown as string[];
-            }
-            if (info_json.length > 1) {
-                wants.push(
-                    ...[
-                        ...(info_json
-                            .slice(1)
-                            .filter((mod_entry) => mod_entry.dependencies && Array.isArray(mod_entry.dependencies))
-                            .flatMap((mod_entry) => mod_entry.dependencies) as string[]),
-                        ...(info_json
-                            .slice(1)
-                            .filter((mod_entry) => mod_entry.requiredMods && Array.isArray(mod_entry.requiredMods))
-                            .flatMap((mod_entry) => mod_entry.requiredMods) as string[]),
-                    ],
-                );
-            }
-        } else if (!Array.isArray(info_json) && info_json.modList && Array.isArray(info_json.modList) && info_json.modList[0]) {
-            if (
-                info_json.modList[0].requiredMods &&
-                Array.isArray(info_json.modList[0].requiredMods) &&
-                info_json.modList[0].requiredMods.length > 0
-            ) {
-                wants = info_json.modList[0].requiredMods as unknown as string[];
-            } else if (
-                info_json.modList[0].dependencies &&
-                Array.isArray(info_json.modList[0].dependencies) &&
-                info_json.modList[0].dependencies.length > 0
-            ) {
-                wants = info_json.modList[0].dependencies as unknown as string[];
-            }
-            if (info_json.modList.length > 1) {
-                wants.push(
-                    ...[
-                        ...(info_json.modList
-                            .slice(1)
-                            .filter((mod_entry) => mod_entry.dependencies && Array.isArray(mod_entry.dependencies))
-                            .flatMap((mod_entry) => mod_entry.dependencies) as string[]),
-                        ...(info_json.modList
-                            .slice(1)
-                            .filter((mod_entry) => mod_entry.requiredMods && Array.isArray(mod_entry.requiredMods))
-                            .flatMap((mod_entry) => mod_entry.requiredMods) as string[]),
-                    ],
-                );
-            }
-        }
+    // Expand wants with the ones from the @Mod annotation, filter and deduplicate
+    if (mod_id) {
+        wants = filterForFaultyDependencies([...wants, ...main_deps], mod_id);
+    } else {
+        console.warn(`W: Failed to get any mod id for ${file_path}, faulty file?`);
+        wants = [];
     }
 
     return { id: mod_id, other_mod_ids: other_mod_ids, wants: wants, version: mod_version, state: mod_state };
@@ -422,41 +439,43 @@ export function parse_mod_details(
  * Extract the dependencies of a mod (by its id and file path) from a "@Mod" annotation encoded somewhere in the bytecode of the mainclass of the mod
  * @returns A list of dependencies this mod has
  */
-export async function get_deps_from_mainclass(file_path: string, mod_id: string) {
+export async function get_details_from_mainclass(file_path: string): Promise<{ main_deps: string[]; main_version?: string }> {
     const deps: Set<string> = new Set();
-    const dep_annotation_pattern = new RegExp(/Lcpw\/mods\/fml\/common\/Mod;.*?(dependencies.*?)$/m);
-    const dep_tag_pattern = new RegExp(
+    let version: string | undefined = undefined;
+
+    const mod_annotation_pattern = new RegExp(/\u0019Lcpw\/mods\/fml\/common\/Mod;((?:.|(?:\r\n|\n|\x0b|\f|\r|\x85)){1,512})/);
+    // Mod Annotation terminators (not very reliable): (?:\u0001\u0000(?:\u0023|\u0011|(?:\u0005bytes)))/);
+    const dep_version_pattern = new RegExp(/(?:\u0007|\u000c|\u000a)version\u0001\u0000(?:[\u0003-\u000c])(.+?)\u0001\u0000/);
+    const dep_entry_pattern = new RegExp(
         /required-after:(?<mod_id>(?<first_char>[a-zA-Z])(?:[a-zA-Z]|\d{1}|[\+\-\|](?:(?!mc|MC)[a-zA-Z]{2}|[aI]))+?)(?:[ \n\r;@]|$)/gm,
     );
     const search_result = await search_zip_for_string(file_path, 'Lcpw/mods/fml/common/Mod;');
     if (search_result != undefined) {
         for (const [main_file, data] of search_result) {
             // Get annotation statement
-            const match = data.match(dep_annotation_pattern);
-            if (match && match.length > 1) {
+            const match = data.match(mod_annotation_pattern)?.at(1);
+            if (match != undefined) {
                 // Get dependency tags
-                const dep_annotation_line = match.at(1);
-                if (dep_annotation_line != undefined) {
-                    for (const dep_match of dep_annotation_line.matchAll(dep_tag_pattern)) {
-                        const dep_id = dep_match.at(1);
-                        if (dep_id) {
-                            deps.add(dep_id);
-                        }
+                for (const dep_match of match.matchAll(dep_entry_pattern)) {
+                    const dep_id = dep_match.at(1);
+                    if (dep_id) {
+                        deps.add(dep_id);
                     }
                 }
+                // Get version tag
+                const version_match = match.match(dep_version_pattern)?.at(1);
+                if (version_match != undefined) {
+                    version = version_match;
+                }
+            } else {
+                // console.log(`W: Failed get @Mod annotation for main: ${main_file}`)
             }
         }
     } else {
         // We failed to find the mainclass and its annotation in the mod, which probably means its injected via ASM
     }
 
-    // Check and remove this mods own id from found dependencies, may occur when mod has multiple sub-modules of itself
-    mod_id = mod_id.toLowerCase();
-    const self_contain_id = deps.keys().find((val) => val.toLowerCase() === mod_id);
-    if (self_contain_id != undefined) {
-        deps.delete(self_contain_id);
-    }
-    return Array.from(deps);
+    return { main_deps: Array.from(deps), main_version: version };
 }
 
 function filterForFaultyDependencies(wants: string[], mod_id: string): string[] {
@@ -482,7 +501,7 @@ function filterForFaultyDependencies(wants: string[], mod_id: string): string[] 
         } else if (dep.toLowerCase() === mod_id?.toLowerCase()) {
             continue;
         }
-        wants.push(dep);
+        wants.push(dep.trim());
     }
     //  Filter out duplicates
     wants = Array.from(

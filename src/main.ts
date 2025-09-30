@@ -1,10 +1,11 @@
 //@ts-check
 import { binary_search_disable } from './subcommands/binary';
-import { enable_all_mods, disable_all_mods, get_deps_from_mainclass } from './utils/mods';
+import { enable_all_mods, disable_all_mods, get_details_from_mainclass } from './utils/mods';
 import { MOD_BASE_DIR } from './utils/consts';
 import { annotate } from './subcommands/annotate';
 import { disable_atomic_deep, enable_atomic_deep, list_mods, toggle_mod } from './subcommands/simple';
 import { visualize_graph } from './subcommands/graph';
+import { check_all_mods_for_updates } from './subcommands/update';
 
 //#region Entrypoint
 async function main() {
@@ -44,9 +45,12 @@ async function main() {
             } else {
                 console.error('Missing target mod (id) to disable.');
             }
+        } else if (mode === 'update') {
+            console.log('checking mods for updates..');
+            await check_all_mods_for_updates();
         } else if (mode === 'debug') {
             console.log('debug run..');
-            const a = await get_deps_from_mainclass(MOD_BASE_DIR + 'buildcraft-7.1.42.jar', "Buildcraft|Core");
+            const a = await get_details_from_mainclass(MOD_BASE_DIR + 'buildcraft-7.1.42.jar');
             console.log(a);
         } else {
             console.log('Usage: node annotate.js [mode]');

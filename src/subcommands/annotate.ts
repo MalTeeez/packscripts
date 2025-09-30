@@ -31,6 +31,7 @@ export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<
         wanted_by: [],
         wants: [],
         enabled: true,
+        version: '',
     };
     // Create maps from parameters
     for (const [file_path, new_mod_obj] of files) {
@@ -38,9 +39,10 @@ export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<
 
         // Did the mod exist in the already annotated mods?
         if (old_mod_obj != undefined) {
-            // Update path & enabled state
+            // Update properties that we should always set programtically
             old_mod_obj.file_path = new_mod_obj.file_path;
             old_mod_obj.enabled = new_mod_obj.enabled;
+            old_mod_obj.version = new_mod_obj.version;
             // Add missing attributes, try from new obj, then from standard
             for (const key in std_object) {
                 if (old_mod_obj[key] == undefined) {
@@ -73,7 +75,7 @@ export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<
     }
 
     // Update list with backtraced deps
-    trace_deps(mod_map, files);
+    trace_deps(mod_map);
 
     return mod_map;
 }
@@ -82,30 +84,18 @@ export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<
  * Figure out what mods a mod is wanted by
  * Will log probable deps, and set non-bidirectional deps
  */
-export function trace_deps(mod_list: Map<string, mod_object>, new_mods: Map<string, mod_object_unsafe>) {
+export function trace_deps(mod_list: Map<string, mod_object>) {
     for (const [mod_id, mod_object] of mod_list) {
-        const file = new_mods.get(mod_object.file_path);
-        if (file && file.wants && Array.isArray(file.wants)) {
-            for (const dep of file.wants) {
-                // Check our stored dependencies contain this mods annotated depedencies (from its mcmod.info)
-                // Filter out deps to forge, and filter each of our entries by their fit in the contained dep, to also match versioned deps (both in lowercase)
-                if (
-                    !dep.match(/((?:Minecraft)?Forge(?:@|$))|(^\s*FML\s*$)/im) &&
-                    mod_object.wants &&
-                    !mod_object.wants.find(
-                        (val: string) => dep.toLowerCase().includes(val.toLowerCase()) || val.toLowerCase().includes(dep.toLowerCase()),
-                    ) &&
-                    mod_id !== dep
-                ) {
-                    console.log('Mod ', mod_id, ' might be missing dep ', dep);
+        if (mod_object.wants != undefined) {
+            for (const dep_id of mod_object.wants || []) {
+                const [, dep_obj] = getModDeep(mod_list, dep_id);
+                if (!dep_obj) {
+                    console.log(`Mod ${mod_id} might be missing dep "${dep_id}"`);
                 }
-            }
-        }
-        if (mod_object.wants != undefined && mod_object.wants.length > 0) {
-            for (const dep_id of mod_object.wants) {
+
                 if (!dep_id.match(/((?:Minecraft)?Forge(?:@|$))|(^\s*FML\s*$)/im)) {
                     const [actual_dep_id, dep_obj] = getModDeep(mod_list, dep_id);
-                    const wants_idx = mod_object.wants.indexOf(dep_id)
+                    const wants_idx = mod_object.wants.indexOf(dep_id);
                     if (dep_obj && actual_dep_id && wants_idx != -1) {
                         // Check if wanted_by list contains the current mod that wants this mod
                         if (dep_obj.wanted_by != undefined && !dep_obj.wanted_by.includes(mod_id)) {
@@ -132,13 +122,12 @@ function getModDeep(mod_list: Map<string, mod_object>, target_mod_id: string): [
     if (mod_list.has(target_mod_id)) {
         return [target_mod_id, mod_list.get(target_mod_id)];
     }
+    const rough_match_key = mod_list.keys().find((key) => key.toLowerCase() === target_mod_id.toLowerCase());
+    if (rough_match_key) {
+        return [rough_match_key, mod_list.get(rough_match_key)];
+    }
     for (const mod_obj of mod_list.values()) {
-        if (
-            mod_obj.other_mod_ids?.find(
-                (mod_id) =>
-                    mod_id.toLowerCase().includes(target_mod_id.toLowerCase()) || target_mod_id.toLowerCase().includes(mod_id.toLowerCase()),
-            )
-        ) {
+        if (mod_obj.other_mod_ids?.find((mod_id) => mod_id.toLowerCase() === target_mod_id.toLowerCase())) {
             return [mod_list.entries().find(([mod_id, sub_mod_obj]) => sub_mod_obj == mod_obj)?.[0], mod_obj];
         }
     }
