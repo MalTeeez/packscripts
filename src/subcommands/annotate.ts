@@ -104,14 +104,17 @@ export function trace_deps(mod_list: Map<string, mod_object>, new_mods: Map<stri
         if (mod_object.wants != undefined && mod_object.wants.length > 0) {
             for (const dep_id of mod_object.wants) {
                 if (!dep_id.match(/((?:Minecraft)?Forge(?:@|$))|(^\s*FML\s*$)/im)) {
-                    const dep = getModDeep(mod_list, dep_id);
-                    if (dep) {
+                    const [actual_dep_id, dep_obj] = getModDeep(mod_list, dep_id);
+                    const wants_idx = mod_object.wants.indexOf(dep_id)
+                    if (dep_obj && actual_dep_id && wants_idx != -1) {
                         // Check if wanted_by list contains the current mod that wants this mod
-                        if (dep.wanted_by != undefined && !dep.wanted_by.includes(mod_id)) {
-                            dep.wanted_by.push(mod_id);
+                        if (dep_obj.wanted_by != undefined && !dep_obj.wanted_by.includes(mod_id)) {
+                            dep_obj.wanted_by.push(mod_id);
+                            mod_object.wants[wants_idx] = actual_dep_id;
                             console.log('Added missing dependent ', mod_id, ' to ', dep_id);
-                        } else if (dep.wanted_by == undefined) {
-                            dep.wanted_by = [mod_id];
+                        } else if (dep_obj.wanted_by == undefined) {
+                            dep_obj.wanted_by = [mod_id];
+                            mod_object.wants[wants_idx] = actual_dep_id;
                             console.log('Added missing dependent ', mod_id, ' to ', dep_id);
                         }
                     }
@@ -123,10 +126,11 @@ export function trace_deps(mod_list: Map<string, mod_object>, new_mods: Map<stri
 
 /**
  * Get a mod from the mod_list, while also allowing for matches of a mods alternate ids
+ * @returns A tuple of the optional values: [Mod Id the Mod is actually known as, The Mod Object]
  */
-function getModDeep(mod_list: Map<string, mod_object>, target_mod_id: string): mod_object | undefined {
+function getModDeep(mod_list: Map<string, mod_object>, target_mod_id: string): [string | undefined, mod_object | undefined] {
     if (mod_list.has(target_mod_id)) {
-        return mod_list.get(target_mod_id);
+        return [target_mod_id, mod_list.get(target_mod_id)];
     }
     for (const mod_obj of mod_list.values()) {
         if (
@@ -135,8 +139,8 @@ function getModDeep(mod_list: Map<string, mod_object>, target_mod_id: string): m
                     mod_id.toLowerCase().includes(target_mod_id.toLowerCase()) || target_mod_id.toLowerCase().includes(mod_id.toLowerCase()),
             )
         ) {
-            return mod_obj;
+            return [mod_list.entries().find(([mod_id, sub_mod_obj]) => sub_mod_obj == mod_obj)?.[0], mod_obj];
         }
     }
-    return undefined;
+    return [undefined, undefined];
 }

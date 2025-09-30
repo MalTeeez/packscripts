@@ -145,7 +145,7 @@
         "source": "https://github.com/GTNewHorizons/Botania/releases/tag/1.12.5-GTNH",
         "notes": "Replace resources/assets/botania/sounds/doit.ogg with our sound (startup sound).",
         "wanted_by": ["TCBotaniaExoflame", "AdvancedBotany", "alfheim", "ForgottenRelics"],
-        "wants": ["gtnhlib", "BaublesExpanded", "Baubles"],
+        "wants": ["gtnhlib", "BaublesExpanded"],
         "enabled": true,
         "other_mod_ids": []
     },
@@ -253,7 +253,17 @@
         ],
         "wants": [],
         "enabled": true,
-        "other_mod_ids": ["CoFHLib", "CoFHAPI"]
+        "other_mod_ids": []
+    },
+    "CoFHLib": {
+        "file_path": "../.minecraft/mods/CoFHLib-[1.7.10]1.2.1-185.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "",
+        "notes": "",
+        "wanted_by": ["SonarCore", "mo"],
+        "wants": [],
+        "enabled": true,
+        "other_mod_ids": []
     },
     "CodeChickenCore": {
         "file_path": "../.minecraft/mods/CodeChickenCore-1.4.1.jar",
@@ -351,7 +361,7 @@
         "source": "https://github.com/GTNewHorizons/EnderIO/releases/tag/2.9.18",
         "notes": "",
         "wanted_by": [],
-        "wants": ["endercore", "gtnhlib", "CoFHCore", "CoFHLib"],
+        "wants": ["endercore", "gtnhlib", "CoFHCore"],
         "enabled": true,
         "other_mod_ids": []
     },
@@ -371,7 +381,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/extraplanets/files/3214411",
         "notes": "",
         "wanted_by": [],
-        "wants": ["GalacticraftCore", "GalacticraftMars"],
+        "wants": ["GalacticraftCore"],
         "enabled": true,
         "other_mod_ids": []
     },
@@ -451,7 +461,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/galacticraft-legacy/files/4501439",
         "notes": "Contains GalacticraftCore, Galacticraft-Planets and MicdoodleCore",
         "wanted_by": ["ExtraPlanets"],
-        "wants": ["Micdoodlecore"],
+        "wants": [],
         "enabled": true,
         "other_mod_ids": []
     },
@@ -500,7 +510,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/Mantle/releases/tag/0.5.0",
         "notes": "",
-        "wanted_by": ["TConstruct", "Natura"],
+        "wanted_by": ["TConstruct"],
         "wants": [],
         "enabled": true,
         "other_mod_ids": []
@@ -520,7 +530,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://www.curseforge.com/minecraft/mc-mods/minefactory-reloaded/files/2366149",
         "notes": "",
-        "wanted_by": ["thaumicenergistics"],
+        "wanted_by": [],
         "wants": ["CoFHCore", "ThermalExpansion"],
         "enabled": true,
         "other_mod_ids": [
@@ -616,7 +626,7 @@
         "source": "",
         "notes": "",
         "wanted_by": [],
-        "wants": ["Mantle"],
+        "wants": [],
         "enabled": true,
         "other_mod_ids": []
     },
@@ -715,8 +725,8 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/ProjectRed/releases/tag/4.11.1-GTNH",
         "notes": "",
-        "wanted_by": ["ProjRed|Core"],
-        "wants": ["ForgeMultipart", "ProjRed|Integration"],
+        "wanted_by": [],
+        "wants": ["ForgeMultipart"],
         "enabled": true,
         "other_mod_ids": [
             "ProjRed|Compatibility",
@@ -735,7 +745,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/redstone-armory/files/2263890",
         "notes": "",
         "wanted_by": [],
-        "wants": ["ThermalExpansion", "ThermalFoundation", "RedstoneArsenal", "endercore", "ttCore", "recipetweakingcore"],
+        "wants": ["ThermalExpansion", "ThermalFoundation", "RedstoneArsenal", "endercore", "ttCore"],
         "enabled": true,
         "other_mod_ids": []
     },
@@ -825,7 +835,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/sonar-core/files/2306173",
         "notes": "",
         "wanted_by": [],
-        "wants": ["CoFHCore", "Waila", "ForgeMultipart", "CoFHLib", "CoFHAPI", "WailaAPI"],
+        "wants": ["CoFHCore", "Waila", "ForgeMultipart", "CoFHLib"],
         "enabled": true,
         "other_mod_ids": []
     },
@@ -923,7 +933,7 @@
             "tcnodetracker",
             "thaumcraftneiplugin"
         ],
-        "wants": ["CodeChickenCore", "BaublesExpanded", "Baubles"],
+        "wants": ["CodeChickenCore", "BaublesExpanded"],
         "enabled": true,
         "other_mod_ids": []
     },
@@ -933,7 +943,7 @@
         "source": "https://github.com/GTNewHorizons/ThaumicHorizons/releases/tag/1.7.1",
         "notes": "",
         "wanted_by": [],
-        "wants": ["Thaumcraft", "BaublesExpanded", "Baubles"],
+        "wants": ["Thaumcraft", "BaublesExpanded"],
         "enabled": true,
         "other_mod_ids": []
     },
@@ -1063,7 +1073,7 @@
         "source": "https://github.com/GTNewHorizons/AE2FluidCraft-Rework/releases/tag/1.4.32-gtnh",
         "notes": "",
         "wanted_by": [],
-        "wants": ["appliedenergistics2", "CoFHCore", "BaublesExpanded", "extracells", "Baubles"],
+        "wants": ["appliedenergistics2", "CoFHCore", "BaublesExpanded", "extracells"],
         "enabled": true,
         "other_mod_ids": []
     },
@@ -1113,7 +1123,7 @@
         "source": "https://github.com/embeddedt/ArchaicFix/releases/tag/0.7.4",
         "notes": "",
         "wanted_by": [],
-        "wants": ["unimixins", "required-after:gtnhmixins", "required-after:unimixins"],
+        "wants": ["unimixins"],
         "enabled": true,
         "other_mod_ids": []
     },
@@ -1323,7 +1333,7 @@
         "source": "https://github.com/mist475/DynamicSurroundings/releases/tag/1.0.7.6",
         "notes": "Newer versions are incompatible.",
         "wanted_by": [],
-        "wants": ["unimixins", "gtnhmixins"],
+        "wants": ["unimixins"],
         "enabled": true,
         "other_mod_ids": []
     },
@@ -1784,7 +1794,7 @@
         "source": "https://github.com/quentin452/RFTools-Continuation/releases/tag/V4.2.4",
         "notes": "",
         "wanted_by": [],
-        "wants": ["CoFHCore", "mcjtylib", "CoFHLib"],
+        "wants": ["CoFHCore", "mcjtylib"],
         "enabled": true,
         "other_mod_ids": []
     },
@@ -1864,7 +1874,7 @@
         "source": "https://github.com/GTNewHorizons/TCNEIAdditions/releases/tag/1.3.2",
         "notes": "",
         "wanted_by": [],
-        "wants": ["Thaumcraft", "thaumcraftneiplugin", "unimixins", "spongemixins", "gtnhmixins"],
+        "wants": ["Thaumcraft", "thaumcraftneiplugin", "unimixins"],
         "enabled": true,
         "other_mod_ids": []
     },
@@ -1934,7 +1944,7 @@
         "source": "https://github.com/GTNewHorizons/ThaumicEnergistics/releases/tag/1.7.6-GTNH",
         "notes": "",
         "wanted_by": [],
-        "wants": ["Thaumcraft", "appliedenergistics2", "thaumcraft"],
+        "wants": ["Thaumcraft", "appliedenergistics2"],
         "enabled": true,
         "other_mod_ids": []
     },
@@ -2027,7 +2037,7 @@
         "source": "https://www.curseforge.com/minecraft/mc-mods/witchery/files/2234410",
         "notes": "",
         "wanted_by": [],
-        "wants": [""],
+        "wants": ["BaublesExpanded"],
         "enabled": true,
         "other_mod_ids": []
     },
