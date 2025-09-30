@@ -1,0 +1,493 @@
+import { extract_file_from_zip, read_from_file, rename_file, save_map_to_file, search_zip_for_string } from './fs';
+import { clone, version_string_to_comparable, type JsonObject } from './utils';
+
+export interface mod_object {
+    file_path: string;
+    tags: string[] | undefined;
+    source: string | undefined;
+    notes: string | undefined;
+    wanted_by: string[] | undefined;
+    wants: string[] | undefined;
+    enabled: boolean | undefined;
+    other_mod_ids: string[] | undefined;
+    // We only need this, so that we can access the attributes via [string]
+    [key: string]: string | string[] | boolean | undefined;
+}
+
+export interface mod_object_unsafe {
+    mod_id: string;
+    other_mod_ids?: string[];
+    info_json: JsonObject;
+    wants: string[];
+    version?: number[];
+    enabled: boolean;
+    file_path: string;
+    file_basename: string;
+    // We only need this, so that we can access the attributes via [string]
+    [key: string]: string | JsonObject | string[] | number[] | boolean | undefined;
+}
+
+/**
+ * Checks if safe conversion from properties of mod_object_unsafe to properties of mod_object can be done.
+ * Feel free to assert type with `as string | string[] | boolean` afterwards.
+ */
+export function isModPropertySafe(prop: string | JsonObject | string[] | number[] | boolean | undefined): boolean {
+    return (
+        typeof prop === 'string' ||
+        (Array.isArray(prop) && (prop.length == 0 || prop.filter((entry) => typeof entry === 'string').length == prop.length))
+    );
+}
+
+//#region general
+/**
+ * Read a map of annotated mods from a json file, and return them as parsed objects
+ * @param annotated_file The file path to the json file
+ * @returns A map, keyed by the mod id
+ */
+export async function read_saved_mods(annotated_file: string): Promise<Map<string, mod_object>> {
+    const file_contents = await read_from_file(annotated_file);
+    const file_map: Map<string, any> = new Map(Object.entries(file_contents));
+
+    const mod_map = new Map<string, mod_object>();
+    for (const [mod_id, mod] of file_map) {
+        const modObj: mod_object = {
+            file_path: mod.file_path,
+            tags: mod.tags || ['SIDE.CLIENT', 'SIDE.SERVER'],
+            source: mod.source || '',
+            notes: mod.notes || '',
+            wanted_by: mod.wanted_by || [],
+            wants: mod.wants || [],
+            enabled: mod.enabled !== undefined ? mod.enabled : true,
+            other_mod_ids: mod.other_mod_ids || [],
+        };
+        mod_map.set(mod_id, modObj);
+    }
+
+    return mod_map;
+}
+
+/**
+ * Enable mods with the REQUIRED_BASE flag, as a way to keep mods enabled.
+ * This function should be called after broad actions that disable mods.
+ * This function does not handle saving mod_map to file,
+ * so the outer calling function must save afterwards.
+ */
+export async function enable_base_mods(mod_map: Map<string, mod_object>) {
+    const changed_list: string[] = [];
+
+    // Get base required mods from tag
+    for (const [mod_id, mod_object] of mod_map) {
+        if (mod_object.tags && mod_object.tags.includes('REQUIRED_BASE') && !mod_object.enabled) {
+            console.log('Re-Enabling mod required by basegame:', mod_id);
+            await enable_mod_deep(mod_id, mod_map, changed_list);
+        }
+    }
+}
+
+/**
+ * Disable a mod, with its dependents
+ * @param mod_id The mod to disable
+ * @param mod_map A mod map, from read_saved_mods()
+ * @param changed_list A list of mod ids, to keep track of which mods we have already updated
+ * @returns The number of mods that were changed
+ */
+export async function toggle_mod_deep(mod_id: string, mod_map: Map<string, mod_object>, changed_list: Array<string>): Promise<number> {
+    let change_count = 0;
+
+    const mod = mod_map.get(mod_id);
+    if (mod != undefined) {
+        if (mod.enabled) {
+            // Disable self
+            change_count += await disable_mod_deep(mod_id, mod_map, changed_list);
+        } else {
+            // Enable self
+            change_count += await enable_mod_deep(mod_id, mod_map, changed_list);
+        }
+    }
+
+    return change_count;
+}
+
+/**
+ * Disable a mod, with its dependents
+ * @param mod_id The mod to disable
+ * @param mod_map A mod map, from read_saved_mods()
+ * @param changed_list A list of mod ids, to keep track of which mods we have already updated
+ * @returns The number of mods that were changed
+ */
+export async function disable_mod_deep(mod_id: string, mod_map: Map<string, mod_object>, changed_list: Array<string>): Promise<number> {
+    let change_count = 0;
+
+    const mod = mod_map.get(mod_id);
+    if (mod != undefined) {
+        // Disable dependents
+        if (mod.wanted_by && mod.wanted_by.length > 0) {
+            for (const dependency of mod.wanted_by) {
+                change_count += await disable_mod_deep(dependency, mod_map, changed_list);
+            }
+        }
+        // Make sure we didnt already touch this mod before & its enabled
+        if (!changed_list.includes(mod_id) && mod.enabled) {
+            console.log('Disabling mod ', mod_id);
+            // Mod was enabled before (as is the name now), add .disabled suffix
+            const new_path = mod.file_path + '.disabled';
+            await rename_file(mod.file_path, new_path);
+            mod.file_path = new_path;
+
+            mod.enabled = false;
+            changed_list.push(mod_id);
+            change_count++;
+        }
+    }
+
+    return change_count;
+}
+
+/**
+ * Disable a mod, with its dependents
+ * @param mod_id The mod to disable
+ * @param mod_map A mod map, from read_saved_mods()
+ * @param changed_list A list of mod ids, to keep track of which mods we have already updated
+ * @returns The number of mods that were changed
+ */
+export async function enable_mod_deep(mod_id: string, mod_map: Map<string, mod_object>, changed_list: Array<string>): Promise<number> {
+    let change_count = 0;
+
+    const mod = mod_map.get(mod_id);
+    if (mod != undefined) {
+        // Enable dependencies
+        if (mod.wants && mod.wants.length > 0) {
+            for (const dependency of mod.wants) {
+                change_count += await enable_mod_deep(dependency, mod_map, changed_list);
+            }
+        }
+        // Make sure we didnt already touch this mod before & its disabled
+        if (!changed_list.includes(mod_id) && !mod.enabled) {
+            console.log('Enabling mod ', mod_id);
+            // Mod was disabled before (as is the name now), remove .disabled suffix
+            const new_path = mod.file_path.replace(/\.disabled$/m, '');
+            await rename_file(mod.file_path, new_path);
+            mod.file_path = new_path;
+
+            mod.enabled = true;
+            changed_list.push(mod_id);
+            change_count++;
+        }
+    }
+
+    return change_count;
+}
+
+export async function enable_all_mods(mod_map?: Map<string, mod_object>) {
+    // Initialize map if not provided, since we can't use await in param
+    mod_map = mod_map == undefined ? await read_saved_mods('./annotated_mods.json') : mod_map;
+    const change_list: string[] = [];
+    let changes = 0;
+
+    for (const [mod_id, mod_object] of mod_map) {
+        changes += await enable_mod_deep(mod_id, mod_map, change_list);
+    }
+
+    if (changes > 0) {
+        await save_map_to_file('./annotated_mods.json', mod_map);
+        console.log('Changed ', changes, ' mods.\n');
+    } else {
+        console.log('No changes made.');
+    }
+}
+
+export async function disable_all_mods(mod_map?: Map<string, mod_object>) {
+    // Initialize map if not provided, since we can't use await in param
+    mod_map = mod_map == undefined ? await read_saved_mods('./annotated_mods.json') : mod_map;
+    const change_list: string[] = [];
+    let changes = 0;
+
+    for (const [mod_id, mod_object] of mod_map) {
+        changes += await disable_mod_deep(mod_id, mod_map, change_list);
+    }
+    await enable_base_mods(mod_map);
+
+    if (changes > 0) {
+        await save_map_to_file('./annotated_mods.json', mod_map);
+        console.log('Changed ', changes, ' mods.\n');
+    } else {
+        console.log('No changes made.');
+    }
+}
+
+/**
+ * Extract more infos about a list of mods from their contained mcmod.info files (json)
+ * @param files A map of mod jars, of type <file path, file basename>, usually returned by scan_mods_folder()
+ */
+export async function extract_modinfos(files: Map<string, string>): Promise<Map<string, mod_object_unsafe>> {
+    const mods = new Map();
+    for (const [file_path, file_basename] of files) {
+        let info_json: JsonObject = await extract_file_from_zip(file_path, 'mcmod.info')
+            .then((file_data: string) => {
+                // Try to parse the modinfo file as json
+                try {
+                    return JSON.parse(file_data);
+                } catch (err) {
+                    //console.error("Failed to parse mod info for file ", file_name)
+                    if (file_data.length > 0) {
+                        return file_data;
+                    }
+                    return undefined;
+                }
+            })
+            .catch(() => {
+                return undefined;
+            });
+
+        const { id, other_mod_ids, state, version, wants } = parse_mod_details(info_json, file_path);
+        if (id != undefined) {
+            const mod: mod_object_unsafe = {
+                mod_id: id,
+                other_mod_ids: other_mod_ids,
+                info_json: info_json,
+                // Also get deps from mainclass annotation, and then deduplicate with set
+                wants: filterForFaultyDependencies([...wants, ...(await get_deps_from_mainclass(file_path, id))], id),
+                version: version,
+                enabled: state,
+                file_path: file_path,
+                file_basename: file_basename,
+            };
+            mods.set(file_path, mod);
+        } else {
+            console.warn('W: Failed to parse mod id for file', file_path, ', ignoring.');
+        }
+    }
+    return mods;
+}
+
+/**
+ * Parse the mcmod.info inside a mod file, to get its infos
+ * @param info_json Contents of the mods mcmod.info file, might be a json object, a string or undefined
+ * @param basename The basename of the file, with extension
+ */
+export function parse_mod_details(
+    info_json: Array<JsonObject> | JsonObject | string | undefined,
+    file_path: string,
+): { id: string | undefined; other_mod_ids: string[] | undefined; wants: Array<string>; version: number[] | undefined; state: boolean } {
+    let mod_id: undefined | string = undefined;
+    let other_mod_ids: string[] | undefined = undefined;
+    let wants: Array<string> = [];
+    let mod_version: undefined | number[];
+    const mod_state: boolean = !file_path.endsWith('.disabled');
+
+    // oh god what have I created. (Filename to modid pattern)
+    // Basically, this first matches the folder path in front of the file. Then it filters out any non word chars in front of the name or a tag group, such as [CLIENT].
+    // Then to mark the start of the name, it looks for a alphanum character,
+    // and from thereout grabs everything (alphanum) OR (a single digit) OR (another part of the name, seperated by + OR - and (starting with 2 alphanum chars OR a i or a for single words))
+    // This stops at a non fitting seperator, such as [,],-,_ or a digit
+    const filename_match = file_path.match(
+        /(?<path>^.*\/)(?<pre>(?:(?:\[[A-Z]+?\])|[\-\[\]\+\d\.])*)(?<middle>(?<first_char>[a-zA-Z])(?:[a-zA-Z]|\d{1}|[\+\-](?:(?!mc|MC)[a-zA-Z]{2}|[aI]))+)[+\-_\.]*(?:mc|MC)?(?<post>\d?.*?)(?:\.jar(?:\.disabled)?)/m,
+    );
+    // Get mod id (with fallbacks)
+    if (typeof info_json === 'object') {
+        if (
+            Array.isArray(info_json) &&
+            info_json[0] &&
+            info_json[0].modid &&
+            typeof info_json[0].modid === 'string' &&
+            info_json[0].modid.length > 0
+        ) {
+            // if (info_json.length > 1) {
+            //     console.log("Multiple Mod-Ids for ", file_path)
+            //     for (const entry of info_json) {
+            //         console.log(": ", entry.modid)
+            //     }
+            // }
+            mod_id = info_json[0].modid;
+            // Sometimes the mcmod.info file has multiple entries for a single mod, ususually submodules
+            // Some mods reference not the main mod (usually the first entry), but one of these submodules
+            if (info_json.length > 1) {
+                other_mod_ids = info_json
+                    .slice(1)
+                    .filter((mod_entry) => mod_entry.modid && typeof mod_entry.modid === 'string')
+                    .map((mod_entry) => mod_entry.modid) as string[];
+            }
+        } else if (
+            !Array.isArray(info_json) &&
+            info_json.modList &&
+            Array.isArray(info_json.modList) &&
+            info_json.modList[0] &&
+            info_json.modList[0].modid &&
+            typeof info_json.modList[0].modid === 'string' &&
+            info_json.modList[0].modid.length > 0
+        ) {
+            mod_id = info_json.modList[0].modid;
+
+            // Sometimes the mcmod.info file has multiple entries for a single mod, ususually submodules
+            // Some mods reference not the main mod (usually the first entry), but one of these submodules
+            if (info_json.modList.length > 1) {
+                other_mod_ids = info_json.modList
+                    .slice(1)
+                    .filter((mod_entry) => mod_entry.modid && typeof mod_entry.modid === 'string')
+                    .map((mod_entry) => mod_entry.modid) as string[];
+            }
+        }
+    }
+    // If the json was existent, but had empty values (was malformed), we might still be undefined
+    if (typeof info_json === 'string' && mod_id == undefined) {
+        // Couldn't parse the file as json, try it as a simple key for the id
+        const modid_matches = info_json.matchAll(/"modid":\s*"(.*?)"/g).toArray();
+        if (modid_matches && modid_matches.length > 0) {
+            if (modid_matches[0] !== undefined) {
+                const match = modid_matches[0].at(1);
+                if (match && match !== '') {
+                    mod_id = match;
+                }
+            }
+            // Even here, we can have multiple submodules, since just a single mistake can throw off the json parsing
+            if (modid_matches.length > 1) {
+                other_mod_ids = modid_matches
+                    .slice(1)
+                    .filter((match) => typeof match.at(1) === 'string' && match.at(1) !== '')
+                    .map((match) => match.at(1)) as string[];
+            }
+        }
+        // Info json was just missing, so we fall back further
+    } else if (info_json === undefined || mod_id == undefined) {
+        // mod_id is still not found, so we try to extract it from its file name
+        if (filename_match && filename_match.length > 1) {
+            if (filename_match.groups?.middle) {
+                //console.info("\t ^^ Found id secondary through regex")
+                mod_id = filename_match.groups.middle;
+            }
+        }
+    }
+
+    if (filename_match && filename_match.length > 1 && filename_match.groups?.post) {
+        mod_version = version_string_to_comparable(filename_match.groups.post);
+    }
+
+    // Get mod wants (just json)
+    if (typeof info_json === 'object') {
+        if (Array.isArray(info_json) && info_json[0]) {
+            if (info_json[0].requiredMods && Array.isArray(info_json[0].requiredMods) && info_json[0].requiredMods.length > 0) {
+                wants = info_json[0].requiredMods as unknown as string[];
+            } else if (info_json[0].dependencies && Array.isArray(info_json[0].dependencies) && info_json[0].dependencies.length > 0) {
+                wants = info_json[0].dependencies as unknown as string[];
+            }
+            if (info_json.length > 1) {
+                wants.push(
+                    ...[
+                        ...(info_json
+                            .slice(1)
+                            .filter((mod_entry) => mod_entry.dependencies && Array.isArray(mod_entry.dependencies))
+                            .flatMap((mod_entry) => mod_entry.dependencies) as string[]),
+                        ...(info_json
+                            .slice(1)
+                            .filter((mod_entry) => mod_entry.requiredMods && Array.isArray(mod_entry.requiredMods))
+                            .flatMap((mod_entry) => mod_entry.requiredMods) as string[]),
+                    ],
+                );
+            }
+        } else if (!Array.isArray(info_json) && info_json.modList && Array.isArray(info_json.modList) && info_json.modList[0]) {
+            if (
+                info_json.modList[0].requiredMods &&
+                Array.isArray(info_json.modList[0].requiredMods) &&
+                info_json.modList[0].requiredMods.length > 0
+            ) {
+                wants = info_json.modList[0].requiredMods as unknown as string[];
+            } else if (
+                info_json.modList[0].dependencies &&
+                Array.isArray(info_json.modList[0].dependencies) &&
+                info_json.modList[0].dependencies.length > 0
+            ) {
+                wants = info_json.modList[0].dependencies as unknown as string[];
+            }
+            if (info_json.modList.length > 1) {
+                wants.push(
+                    ...[
+                        ...(info_json.modList
+                            .slice(1)
+                            .filter((mod_entry) => mod_entry.dependencies && Array.isArray(mod_entry.dependencies))
+                            .flatMap((mod_entry) => mod_entry.dependencies) as string[]),
+                        ...(info_json.modList
+                            .slice(1)
+                            .filter((mod_entry) => mod_entry.requiredMods && Array.isArray(mod_entry.requiredMods))
+                            .flatMap((mod_entry) => mod_entry.requiredMods) as string[]),
+                    ],
+                );
+            }
+        }
+    }
+
+    return { id: mod_id, other_mod_ids: other_mod_ids, wants: wants, version: mod_version, state: mod_state };
+}
+
+/**
+ * Extract the dependencies of a mod (by its id and file path) from a "@Mod" annotation encoded somewhere in the bytecode of the mainclass of the mod
+ * @returns A list of dependencies this mod has
+ */
+export async function get_deps_from_mainclass(file_path: string, mod_id: string) {
+    const deps: Set<string> = new Set();
+    const dep_annotation_pattern = new RegExp(/Lcpw\/mods\/fml\/common\/Mod;.*?(dependencies.*?)$/m);
+    const dep_tag_pattern = new RegExp(
+        /required-after:(?<mod_id>(?<first_char>[a-zA-Z])(?:[a-zA-Z]|\d{1}|[\+\-\|](?:(?!mc|MC)[a-zA-Z]{2}|[aI]))+?)(?:[ \n\r;@]|$)/gm,
+    );
+    const search_result = await search_zip_for_string(file_path, 'Lcpw/mods/fml/common/Mod;');
+    if (search_result != undefined) {
+        for (const [main_file, data] of search_result) {
+            // Get annotation statement
+            const match = data.match(dep_annotation_pattern);
+            if (match && match.length > 1) {
+                // Get dependency tags
+                const dep_annotation_line = match.at(1);
+                if (dep_annotation_line != undefined) {
+                    for (const dep_match of dep_annotation_line.matchAll(dep_tag_pattern)) {
+                        const dep_id = dep_match.at(1);
+                        if (dep_id) {
+                            deps.add(dep_id);
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        // We failed to find the mainclass and its annotation in the mod, which probably means its injected via ASM
+    }
+
+    // Check and remove this mods own id from found dependencies, may occur when mod has multiple sub-modules of itself
+    mod_id = mod_id.toLowerCase();
+    const self_contain_id = deps.keys().find((val) => val.toLowerCase() === mod_id);
+    if (self_contain_id != undefined) {
+        deps.delete(self_contain_id);
+    }
+    return Array.from(deps);
+}
+
+function filterForFaultyDependencies(wants: string[], mod_id: string): string[] {
+    // Filter on the depdencies of a mod
+    //  Some mods enter their deps not as a json array, but as a string with commas
+    let old_wants = Array.from(wants);
+    wants = [];
+    for (let dep of old_wants) {
+        dep = dep.replace(/@.+$/, '');
+        if (dep.includes(',')) {
+            wants.push(...dep.split(','));
+        } else {
+            wants.push(dep);
+        }
+    }
+    old_wants = Array.from(wants);
+    wants = [];
+    for (let dep of old_wants) {
+        //  Filter out references to forge
+        if (dep.match(/((?:Minecraft)?Forge(?:@|$))|(^\s*FML\s*$)/im)) {
+            continue;
+            // And to the main mod module (from submodules)
+        } else if (dep.toLowerCase() === mod_id?.toLowerCase()) {
+            continue;
+        }
+        wants.push(dep);
+    }
+    //  Filter out duplicates
+    wants = Array.from(
+        new Set(wants.filter((mod_entry) => !wants.find((sub_mod_entry) => mod_entry.toLowerCase() === sub_mod_entry.toLowerCase()))),
+    );
+
+    return wants;
+}

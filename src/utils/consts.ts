@@ -1,0 +1,1 @@
+export const MOD_BASE_DIR = "../.minecraft/mods/"

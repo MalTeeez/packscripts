@@ -4,7 +4,7 @@
   "description": "",
   "main": "annotate.js",
   "scripts": {
-    "main": "bun run src/annotate.ts"
+    "main": "bun run src/main.ts"
   },
   "keywords": [],
   "author": "",
