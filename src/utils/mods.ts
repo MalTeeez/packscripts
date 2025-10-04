@@ -1,6 +1,26 @@
 import { extract_file_from_zip, read_from_file, rename_file, save_map_to_file, search_zip_for_string } from './fs';
 import { type JsonObject } from './utils';
 
+//#region types
+export enum UpdateFrequenciesEnum {
+    COMMON = 'COMMON',
+    RARE = 'RARE',
+    EOL = 'EOL',
+}
+export type update_frequency = keyof typeof UpdateFrequenciesEnum;
+
+export interface update_state {
+    version: string | undefined;
+    disable_check: boolean;
+    frequency: update_frequency;
+    source_type: 'GH_RELEASE' | 'CURSEFORGE' | 'MODRINTH' | 'OTHER';
+    last_status: string;
+    last_updated_at: string | undefined;
+    file_pattern: string | undefined;
+    // We only need this, so that we can access the attributes via [string]
+    [key: string]: string | boolean | undefined;
+}
+
 export interface mod_object {
     file_path: string;
     tags: string[] | undefined;
@@ -10,32 +30,63 @@ export interface mod_object {
     wants: string[] | undefined;
     enabled: boolean | undefined;
     other_mod_ids: string[] | undefined;
-    version: string | undefined;
+    update_state: update_state;
     // We only need this, so that we can access the attributes via [string]
-    [key: string]: string | string[] | boolean | undefined;
+    [key: string]: string | string[] | boolean | undefined | update_state;
+}
+
+export const default_mod_object: mod_object = {
+    file_path: '',
+    tags: ['SIDE.CLIENT', 'SIDE.SERVER'],
+    source: '',
+    notes: '',
+    wanted_by: [],
+    wants: [],
+    enabled: true,
+    other_mod_ids: [],
+    update_state: {
+        version: '',
+        disable_check: false,
+        frequency: 'EOL',
+        last_status: '200',
+        last_updated_at: '',
+        source_type: 'OTHER',
+        file_pattern: '',
+    },
+};
+
+export interface update_state_unsafe {
+    version?: string | undefined;
+    last_updated_at?: string | undefined;
+    // We only need this, so that we can access the attributes via [string]
+    [key: string]: string | boolean | undefined;
 }
 
 export interface mod_object_unsafe {
     mod_id: string;
-    other_mod_ids?: string[];
-    wants: string[];
-    version?: string;
-    enabled: boolean;
     file_path: string;
-    file_basename: string;
+    enabled: boolean;
+    wants?: string[];
+    other_mod_ids?: string[];
+    update_state?: update_state_unsafe;
     // We only need this, so that we can access the attributes via [string]
-    [key: string]: string | JsonObject | string[] | number[] | boolean | undefined;
+    [key: string]: string | JsonObject | string[] | boolean | undefined | update_state_unsafe;
 }
 
 /**
  * Checks if safe conversion from properties of mod_object_unsafe to properties of mod_object can be done.
  * Feel free to assert type with `as string | string[] | boolean` afterwards.
  */
-export function isModPropertySafe(prop: string | JsonObject | string[] | number[] | boolean | undefined): boolean {
+export function isModPropertySafe(prop: string | JsonObject | string[] | boolean | undefined | update_state): boolean {
     return (
         typeof prop === 'string' ||
-        (Array.isArray(prop) && (prop.length == 0 || prop.filter((entry) => typeof entry === 'string').length == prop.length))
+        (Array.isArray(prop) && (prop.length == 0 || prop.filter((entry) => typeof entry === 'string').length == prop.length)) ||
+        (typeof prop === 'object' && Object.values(prop).filter((sub_prop) => !isModPropertySafe(sub_prop)).length == 0)
     );
+}
+
+export function isUpdateFrequency(val: any): val is update_frequency {
+    return Object.values(UpdateFrequenciesEnum).includes(val as UpdateFrequenciesEnum);
 }
 
 //#region general
@@ -46,24 +97,51 @@ export function isModPropertySafe(prop: string | JsonObject | string[] | number[
  */
 export async function read_saved_mods(annotated_file: string): Promise<Map<string, mod_object>> {
     const file_contents = await read_from_file(annotated_file);
-    const file_map: Map<string, any> = new Map(Object.entries(file_contents));
+    const file_map: Map<string, mod_object> = new Map(Object.entries(file_contents)) as Map<string, mod_object>;
 
     const mod_map = new Map<string, mod_object>();
     for (const [mod_id, mod] of file_map) {
         const modObj: mod_object = {
             file_path: mod.file_path,
-            tags: mod.tags || ['SIDE.CLIENT', 'SIDE.SERVER'],
-            source: mod.source || '',
-            notes: mod.notes || '',
-            wanted_by: mod.wanted_by || [],
-            wants: mod.wants || [],
-            enabled: mod.enabled !== undefined ? mod.enabled : true,
-            other_mod_ids: mod.other_mod_ids || [],
+            tags: mod.tags || default_mod_object.tags,
+            source: mod.source || default_mod_object.source,
+            notes: mod.notes || default_mod_object.notes,
+            wanted_by: mod.wanted_by || default_mod_object.wanted_by,
+            wants: mod.wants || default_mod_object.wants,
+            enabled: mod.enabled !== undefined ? mod.enabled : default_mod_object.enabled,
+            other_mod_ids: mod.other_mod_ids || default_mod_object.other_mod_ids,
+            update_state: {
+                version: mod.update_state?.version || default_mod_object.update_state.version,
+                disable_check: mod.update_state?.disable_check || default_mod_object.update_state.disable_check,
+                frequency:
+                    mod.update_state?.frequency || ((mod.source as string) || ('' as string)).startsWith('https://github.com')
+                        ? 'COMMON'
+                        : default_mod_object.update_state.frequency,
+                last_status: mod.update_state?.last_status || default_mod_object.update_state.last_status,
+                last_updated_at: mod.update_state?.last_updated_at || default_mod_object.update_state.last_updated_at,
+                source_type:
+                    mod.update_state?.source_type || mod.source
+                        ? get_source_type_from_url(mod.source)
+                        : default_mod_object.update_state.source_type,
+                file_pattern: mod.update_state?.file_pattern || default_mod_object.update_state.file_pattern,
+            },
         };
         mod_map.set(mod_id, modObj);
     }
 
     return mod_map;
+}
+
+function get_source_type_from_url(url: string | undefined): 'GH_RELEASE' | 'CURSEFORGE' | 'MODRINTH' | 'OTHER' {
+    if (url == undefined) return 'OTHER';
+    if (url.startsWith('https://github.com')) {
+        return 'GH_RELEASE';
+    } else if (url.startsWith('https://modrinth.com')) {
+        return 'MODRINTH';
+    } else if (url.startsWith('https://www.curseforge.com')) {
+        return 'CURSEFORGE';
+    }
+    return 'OTHER';
 }
 
 /**
@@ -221,18 +299,18 @@ export async function disable_all_mods(mod_map?: Map<string, mod_object>) {
  */
 export async function extract_modinfos(files: Map<string, string>): Promise<Map<string, mod_object_unsafe>> {
     const mods = new Map();
-    for (const [file_path, file_basename] of files) {
+    for (const [file_path, ] of files) {
         const { id, other_mod_ids, state, version, wants } = await parse_mod_details(file_path);
         if (id != undefined) {
             const mod: mod_object_unsafe = {
                 mod_id: id,
                 other_mod_ids: other_mod_ids,
-                // Also get deps from mainclass annotation, and then deduplicate with set
                 wants: wants,
-                version: version,
                 enabled: state,
                 file_path: file_path,
-                file_basename: file_basename,
+                update_state: {
+                    version: version
+                }
             };
             mods.set(file_path, mod);
         } else {
@@ -414,7 +492,7 @@ export async function parse_mod_details(file_path: string): Promise<{
     const { main_deps, main_version } = await get_details_from_mainclass(file_path);
 
     // Mod-Version fallbacks & filtering
-    if (mod_version && !mod_version.match(/(\d)/) && mod_version.toLowerCase().includes("version")) {
+    if (mod_version && !mod_version.match(/(\d)/) && mod_version.toLowerCase().includes('version')) {
         // Version does not have a single number, and contains "version itself" - probably malformed
         mod_version = undefined;
     }
@@ -422,6 +500,15 @@ export async function parse_mod_details(file_path: string): Promise<{
         mod_version = main_version;
     } else if (mod_version == undefined && filename_match && filename_match.length > 1 && filename_match.groups?.post) {
         mod_version = filename_match.groups.post;
+    }
+    // Remove 1.7.10 from version if something reasonable remains
+    if (mod_version !== undefined) {
+        const possible_version = mod_version.replace(/[-+]?(mc)?1\.7\.10[-+]?/i, '');
+        if (possible_version.length < mod_version.length && possible_version.length > 1 && possible_version.match(/(\d)/)) {
+            mod_version = possible_version;
+        } else if (possible_version.length == 0 && filename_match?.groups?.post) {
+            mod_version = filename_match.groups.post;
+        }
     }
 
     // Expand wants with the ones from the @Mod annotation, filter and deduplicate

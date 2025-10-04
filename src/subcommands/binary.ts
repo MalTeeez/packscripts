@@ -1,6 +1,6 @@
-import { save_map_to_file } from "../utils/fs";
-import { disable_all_mods, enable_base_mods, read_saved_mods, type mod_object } from "../utils/mods";
-import { divide_to_full_groups, print_pretty } from "../utils/utils";
+import { save_map_to_file } from '../utils/fs';
+import { disable_all_mods, enable_base_mods, read_saved_mods, type mod_object } from '../utils/mods';
+import { divide_to_full_groups, print_pretty } from '../utils/utils';
 
 type ModGroupOptions = {
     dep_key: 'wants' | 'wanted_by';
@@ -61,9 +61,9 @@ function get_mods_in_group(
 export async function binary_search_disable(target_fractions: string[], dry_run: boolean) {
     const mod_map = await read_saved_mods('./annotated_mods.json');
     const mod_list = Array.from(mod_map.keys());
-    const fractions: { section: number, scope: number, groups: number[] }[] = [];
+    const fractions: { section: number; scope: number; groups: number[] }[] = [];
 
-    for (const fraction of target_fractions ) {
+    for (const fraction of target_fractions) {
         let [section, scope] = fraction.split('/').map(Number);
         if (section != undefined && scope != undefined && section <= scope && section > 0) {
             // Split our list into even groups
@@ -71,16 +71,18 @@ export async function binary_search_disable(target_fractions: string[], dry_run:
             // Start at 0 for mods indexed at 0
             // Using a new variable for section here, since typescript apparently hates me mutating it before using at groups.reduce()
             const safe_section = section - 1;
-            fractions.push({ section: safe_section, groups, scope })
+            fractions.push({ section: safe_section, groups, scope });
         }
     }
-    
+
     const first_fraction = fractions[0];
     if (first_fraction != undefined) {
-        const {section, scope, groups} = first_fraction
+        const { section, scope, groups } = first_fraction;
 
         if (mod_list.length / 2 < scope) {
-            console.warn(`W: The current scope (${scope}) is bigger than half of your mods, which will lead to imprecisions. Use binary_dry with manual toggling.\n`)
+            console.warn(
+                `W: The current scope (${scope}) is bigger than half of your mods, which will lead to imprecisions. Use binary_dry with manual toggling.\n`,
+            );
         }
 
         // Only print the mods we would have touched
@@ -119,7 +121,9 @@ export async function binary_search_disable(target_fractions: string[], dry_run:
             const sub_safe_section = (section + 1) * 2 - 1;
 
             if (mod_list.length / 2 < sub_scope) {
-                console.warn(`W: The next scope (${sub_scope}) is bigger than half of your mods, which will lead to imprecisions. Use binary_dry with manual toggling.\n`)
+                console.warn(
+                    `W: The next scope (${sub_scope}) is bigger than half of your mods, which will lead to imprecisions. Use binary_dry with manual toggling.\n`,
+                );
             }
 
             console.info(`Mod groups for sub-target ${sub_safe_section + 1}/${sub_scope}:`);
@@ -148,13 +152,13 @@ export async function binary_search_disable(target_fractions: string[], dry_run:
 
             const changed_list: Array<string> = [];
 
-            for (const {section, scope, groups} of fractions) {
-                console.log(`Enabling fraction ${section + 1}/${scope} .`)
+            for (const { section, scope, groups } of fractions) {
+                console.log(`Enabling fraction ${section + 1}/${scope} .`);
                 // print_pretty(["Enabling Mods:", get_mods_in_group(mod_map, mod_list, groups, safe_section)])
                 for (const mod_id of get_mods_in_group(mod_map, mod_list, groups, section)) {
                     await enable_mod_deep(mod_id, mod_map, changed_list);
                 }
-                
+
                 await enable_base_mods(mod_map);
                 await save_map_to_file('./annotated_mods.json', mod_map);
             }
@@ -170,5 +174,5 @@ export async function binary_search_disable(target_fractions: string[], dry_run:
 }
 
 function enable_mod_deep(mod_id: string, mod_map: any, changed_list: string[]) {
-    throw new Error("Function not implemented.");
+    throw new Error('Function not implemented.');
 }

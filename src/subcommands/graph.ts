@@ -1,4 +1,6 @@
-import { read_from_file } from "../utils/fs";
+import { exec } from 'child_process';
+import { read_from_file } from '../utils/fs';
+import path from 'path';
 
 export async function visualize_graph() {
     const annotated_file = './annotated_mods.json';
@@ -127,4 +129,6 @@ export async function visualize_graph() {
     `;
 
     Bun.file('graph.html').write(html);
+    const filePath = `${process.cwd().replaceAll("\\", '/')}/graph.html`;
+    exec(`start "" "${path.toNamespacedPath(filePath)}"`);
 }

@@ -1,6 +1,6 @@
 import { MOD_BASE_DIR } from '../utils/consts';
-import { save_map_to_file, scan_mods_folder, search_zip_for_string } from '../utils/fs';
-import { extract_modinfos, isModPropertySafe, read_saved_mods, type mod_object, type mod_object_unsafe } from '../utils/mods';
+import { save_map_to_file, scan_mods_folder } from '../utils/fs';
+import { default_mod_object, extract_modinfos, isModPropertySafe, read_saved_mods, type mod_object, type mod_object_unsafe } from '../utils/mods';
 import { clone } from '../utils/utils';
 
 export async function annotate() {
@@ -22,46 +22,22 @@ export async function annotate() {
  * Update a loaded mod map with the actual state from fs
  */
 export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<string, mod_object>) {
-    const std_object: mod_object = {
-        file_path: '',
-        other_mod_ids: [],
-        tags: ['SIDE.CLIENT', 'SIDE.SERVER'],
-        source: '',
-        notes: '',
-        wanted_by: [],
-        wants: [],
-        enabled: true,
-        version: '',
-    };
     // Create maps from parameters
     for (const [file_path, new_mod_obj] of files) {
         let old_mod_obj = mod_map.get(new_mod_obj.mod_id);
 
         // Did the mod exist in the already annotated mods?
         if (old_mod_obj != undefined) {
-            // Update properties that we should always set programtically
+            // Update properties that we should always set programtically (update each time)
             old_mod_obj.file_path = new_mod_obj.file_path;
             old_mod_obj.enabled = new_mod_obj.enabled;
-            old_mod_obj.version = new_mod_obj.version;
+
             // Add missing attributes, try from new obj, then from standard
-            for (const key in std_object) {
-                if (old_mod_obj[key] == undefined) {
-                    if (new_mod_obj[key] != undefined && isModPropertySafe(new_mod_obj[key])) {
-                        old_mod_obj[key] = new_mod_obj[key] as string | string[] | boolean;
-                    } else {
-                        old_mod_obj[key] = std_object[key];
-                    }
-                } else if (
-                    Array.isArray(old_mod_obj[key]) &&
-                    isModPropertySafe(new_mod_obj[key]) &&
-                    Array.isArray(new_mod_obj[key]) &&
-                    new_mod_obj[key].length > 0
-                ) {
-                    old_mod_obj[key] = Array.from(new Set([...old_mod_obj[key], ...(new_mod_obj[key] as string[])]));
-                }
+            for (const key in default_mod_object) {
+                set_new_or_default_property(key, old_mod_obj, new_mod_obj, default_mod_object);
             }
         } else if (new_mod_obj.mod_id != undefined) {
-            old_mod_obj = clone(std_object) as mod_object;
+            old_mod_obj = clone(default_mod_object) as mod_object;
             old_mod_obj.file_path = file_path;
             old_mod_obj.enabled = new_mod_obj.enabled;
 
@@ -78,6 +54,41 @@ export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<
     trace_deps(mod_map);
 
     return mod_map;
+}
+
+interface str_obj {
+    [key: string]: string | str_obj | string[] | boolean | undefined;
+}
+
+function set_new_or_default_property(
+    property_name: string,
+    base_mod: mod_object | str_obj,
+    new_mod: mod_object_unsafe | str_obj,
+    std_object: mod_object | str_obj,
+) {
+    if (typeof std_object[property_name] === 'object' && !Array.isArray(std_object[property_name])) {
+        let sub_prop: str_obj = base_mod[property_name] as str_obj || {};
+        for (const key in std_object[property_name]) {
+            set_new_or_default_property(key, sub_prop, new_mod[property_name] as str_obj, std_object[property_name]);
+        }
+        base_mod[property_name] = sub_prop;
+    } else {
+        // If the attribute is new and isnt parsed from mods, it might be empty in a recusive pull
+        if (!new_mod) new_mod = {} as str_obj;
+        const new_prop = new_mod[property_name] as string | string[] | boolean | undefined;
+
+        // Is this a new property? If yes take the value from the newer mod if set there
+        if (base_mod[property_name] == undefined || base_mod[property_name] === "") {
+            if (new_prop != undefined && isModPropertySafe(new_prop) && new_prop !== "") {
+                base_mod[property_name] = new_prop;
+            } else {
+                base_mod[property_name] = std_object[property_name];
+            }
+            // Or is this an newer array? If yes, merge both the old and new one
+        } else if (Array.isArray(base_mod[property_name]) && isModPropertySafe(new_prop) && Array.isArray(new_prop) && new_prop.length > 0) {
+            base_mod[property_name] = Array.from(new Set([...base_mod[property_name], ...(new_prop as string[])]));
+        }
+    }
 }
 
 /**

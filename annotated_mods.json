@@ -8,7 +8,15 @@
         "wants": ["endlessids"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.5"
+        "update_state": {
+            "version": "1.7.5",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "AdvancedBotany": {
         "file_path": "../.minecraft/mods/Advanced+Botany+1.3.1.7.jar",
@@ -19,7 +27,15 @@
         "wants": ["Botania"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.3.1.7"
+        "update_state": {
+            "version": "1.3.1.7",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "AnimationAPI": {
         "file_path": "../.minecraft/mods/AnimationAPI-1.7.10-1.2.4.jar",
@@ -30,7 +46,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10-1.2.4"
+        "update_state": {
+            "version": "1.2.4",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "Automagy": {
         "file_path": "../.minecraft/mods/Automagy-1.7.10-0.28.2.jar",
@@ -41,7 +65,15 @@
         "wants": ["Thaumcraft"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10-0.28.2"
+        "update_state": {
+            "version": "0.28.2",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "Avaritia": {
         "file_path": "../.minecraft/mods/Avaritia-1.61.jar",
@@ -52,7 +84,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.61"
+        "update_state": {
+            "version": "1.61",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "BaublesExpanded": {
         "file_path": "../.minecraft/mods/BaublesExpanded-2.1.4.jar",
@@ -63,7 +103,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": ["Baubles"],
-        "version": "2.1.4"
+        "update_state": {
+            "version": "2.1.4",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "MODRINTH",
+            "file_pattern": ""
+        }
     },
     "BetterAchievements": {
         "file_path": "../.minecraft/mods/BetterAchievements-0.3.0.jar",
@@ -74,7 +122,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.3.0"
+        "update_state": {
+            "version": "0.3.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "BetterFoliage": {
         "file_path": "../.minecraft/mods/BetterFoliage-MC1.7.10-2.0.17.jar",
@@ -85,7 +141,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.0.17"
+        "update_state": {
+            "version": "2.0.17",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "BiblioCraft": {
         "file_path": "../.minecraft/mods/BiblioCraft[v1.11.7][MC1.7.10].jar",
@@ -96,7 +160,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.11.7"
+        "update_state": {
+            "version": "1.11.7",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "BigReactors": {
         "file_path": "../.minecraft/mods/BigReactors-0.4.3A.jar",
@@ -107,7 +179,15 @@
         "wants": ["CoFHCore", "ThermalExpansion"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.4.3A"
+        "update_state": {
+            "version": "0.4.3A",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "BinnieCore": {
         "file_path": "../.minecraft/mods/binnie-mods-2.4.8.jar",
@@ -118,7 +198,15 @@
         "wants": ["Forestry", "gtnhlib"],
         "enabled": true,
         "other_mod_ids": ["ExtraBees", "ExtraTrees", "Botany", "Genetics"],
-        "version": "2.4.8"
+        "update_state": {
+            "version": "2.4.8",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "BiomesOPlenty": {
         "file_path": "../.minecraft/mods/BiomesOPlenty-1.7.10-2.1.0.2308-universal.jar",
@@ -129,7 +217,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.1.0"
+        "update_state": {
+            "version": "2.1.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "BloodArsenal": {
         "file_path": "../.minecraft/mods/BloodArsenal-1.3.6.jar",
@@ -140,7 +236,15 @@
         "wants": ["AWWayofTime"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.3.6"
+        "update_state": {
+            "version": "1.3.6",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "Botania": {
         "file_path": "../.minecraft/mods/Botania-1.12.5-GTNH.jar",
@@ -151,7 +255,15 @@
         "wants": ["gtnhlib", "BaublesExpanded"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.12.5-GTNH"
+        "update_state": {
+            "version": "1.12.5-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "BrandonsCore": {
         "file_path": "../.minecraft/mods/BrandonsCore-1.2.0-GTNH.jar",
@@ -162,7 +274,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.2.0-GTNH"
+        "update_state": {
+            "version": "1.2.0-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "BuildCraft|Compat": {
         "file_path": "../.minecraft/mods/buildcraft-compat-7.1.17.jar",
@@ -173,7 +293,15 @@
         "wants": ["BuildCraft|Core"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "7.1.17"
+        "update_state": {
+            "version": "7.1.17",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "BuildCraft|Core": {
         "file_path": "../.minecraft/mods/buildcraft-7.1.42.jar",
@@ -191,7 +319,15 @@
             "BuildCraft|Transport",
             "BuildCraft|Robotics"
         ],
-        "version": "7.1.42"
+        "update_state": {
+            "version": "7.1.42",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "CTMLib": {
         "file_path": "../.minecraft/mods/CTMLib-1.4.5.jar",
@@ -202,7 +338,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.4.5"
+        "update_state": {
+            "version": "1.4.5",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "CarpentersBlocks": {
         "file_path": "../.minecraft/mods/Carpenter's Blocks v3.3.8.1 - MC 1.7.10.jar",
@@ -213,7 +357,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "3.3.8.1"
+        "update_state": {
+            "version": "3.3.8.1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "ChromatiCraft": {
         "file_path": "../.minecraft/mods/ChromatiCraft+1.7.10+V33a.jar",
@@ -224,7 +376,15 @@
         "wants": ["DragonAPI"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "V33a"
+        "update_state": {
+            "version": "V33a",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "CoFHCore": {
         "file_path": "../.minecraft/mods/CoFHCore-[1.7.10]3.1.4-329.jar",
@@ -254,7 +414,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": ["CoFHAPI", "CoFHLib"],
-        "version": "3.1.4"
+        "update_state": {
+            "version": "3.1.4",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "CodeChickenCore": {
         "file_path": "../.minecraft/mods/CodeChickenCore-1.4.1.jar",
@@ -265,7 +433,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.4.1"
+        "update_state": {
+            "version": "1.4.1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "CodeChickenLib": {
         "file_path": "../.minecraft/mods/1.7.10/CodeChickenLib-1.3.0.jar",
@@ -276,7 +452,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.3.0"
+        "update_state": {
+            "version": "1.3.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "DamageIndicatorsMod": {
         "file_path": "../.minecraft/mods/[CLIENT]DamageIndicatorsMod-3.3.2.jar",
@@ -287,7 +471,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "3.3.2"
+        "update_state": {
+            "version": "3.3.2",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "DefenseTech": {
         "file_path": "../.minecraft/mods/DefenseTech-1.7.10-1.0.1.46.jar",
@@ -298,7 +490,15 @@
         "wants": ["Mekanism", "endlessids"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.0.1"
+        "update_state": {
+            "version": "1.0.1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "404",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "Ding": {
         "file_path": "../.minecraft/mods/Ding-MC1.7.10v2.jar",
@@ -309,7 +509,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "MC1.7.10v2"
+        "update_state": {
+            "version": "v2",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "DraconicEvolution": {
         "file_path": "../.minecraft/mods/Draconic-Evolution-1.2.1-GTNH-U25r.3+add1ed49ec.jar",
@@ -320,7 +528,15 @@
         "wants": ["BrandonsCore"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.2.1-GTNH-master.3+add1ed49ec"
+        "update_state": {
+            "version": "1.2.1-GTNH-master.3+add1ed49ec",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "404",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "DragonAPI": {
         "file_path": "../.minecraft/mods/DragonAPI+1.7.10+V33b.jar",
@@ -331,7 +547,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "V33b"
+        "update_state": {
+            "version": "V33b",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "EJML-core": {
         "file_path": "../.minecraft/mods/ic2/EJML-core-0.26.jar",
@@ -342,7 +566,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.26"
+        "update_state": {
+            "version": "0.26",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "OTHER",
+            "file_pattern": ""
+        }
     },
     "ElectriCraft": {
         "file_path": "../.minecraft/mods/ElectriCraft+1.7.10+V33a.jar",
@@ -353,7 +585,15 @@
         "wants": ["DragonAPI", "RotaryCraft"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "V33a"
+        "update_state": {
+            "version": "V33a",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "EnderIO": {
         "file_path": "../.minecraft/mods/EnderIO-2.9.18.jar",
@@ -364,7 +604,15 @@
         "wants": ["endercore", "gtnhlib", "CoFHCore"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.9.18"
+        "update_state": {
+            "version": "2.9.18",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "EnderStorage": {
         "file_path": "../.minecraft/mods/EnderStorage-1.7.2.jar",
@@ -375,7 +623,15 @@
         "wants": ["CodeChickenCore"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.2"
+        "update_state": {
+            "version": "1.7.2",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "ExtraPlanets": {
         "file_path": "../.minecraft/mods/ExtraPlanets-1.7.10-2.1.4.jar",
@@ -386,7 +642,15 @@
         "wants": ["GalacticraftCore"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10-2.1.4"
+        "update_state": {
+            "version": "2.1.4",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "ExtraTiC": {
         "file_path": "../.minecraft/mods/ExtraTiC-1.7.10-1.4.6.jar",
@@ -397,7 +661,15 @@
         "wants": ["TConstruct"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.4.6"
+        "update_state": {
+            "version": "1.4.6",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "ExtraUtilities": {
         "file_path": "../.minecraft/mods/extrautilities-1.2.12.jar",
@@ -408,7 +680,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.2.12"
+        "update_state": {
+            "version": "1.2.12",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "ForbiddenMagic": {
         "file_path": "../.minecraft/mods/Forbidden.Magic-0.8.0-GTNH.jar",
@@ -419,7 +699,15 @@
         "wants": ["Thaumcraft"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.8.0-GTNH"
+        "update_state": {
+            "version": "0.8.0-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "Forestry": {
         "file_path": "../.minecraft/mods/Forestry-4.10.7.jar",
@@ -430,7 +718,15 @@
         "wants": ["CoFHCore"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "4.10.7"
+        "update_state": {
+            "version": "4.10.7",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "ForgeMultipart": {
         "file_path": "../.minecraft/mods/1.7.10/ForgeMultipart-1.6.2.jar",
@@ -441,7 +737,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": ["McMultipart", "ForgeMicroblock"],
-        "version": "1.6.2"
+        "update_state": {
+            "version": "1.6.2",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "ForgeRelocation": {
         "file_path": "../.minecraft/mods/ForgeRelocation-0.3.1.jar",
@@ -452,7 +756,15 @@
         "wants": ["MrTJPCoreMod"],
         "enabled": true,
         "other_mod_ids": ["MCFrames"],
-        "version": "0.3.1"
+        "update_state": {
+            "version": "0.3.1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "ForgottenRelics": {
         "file_path": "../.minecraft/mods/ForgottenRelics-1.7.3-[Final].jar",
@@ -463,7 +775,15 @@
         "wants": ["Thaumcraft", "Botania"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.3"
+        "update_state": {
+            "version": "1.7.3",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "GalacticraftCore": {
         "file_path": "../.minecraft/mods/Galacticraft-1.7-3.0.12.504.jar",
@@ -474,7 +794,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "3.0.12.504"
+        "update_state": {
+            "version": "3.0.12.504",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "HardcoreEnderExpansion": {
         "file_path": "../.minecraft/mods/HardcoreEnderExpansion-1.12.1-GTNH.jar",
@@ -485,7 +813,15 @@
         "wants": ["gtnhlib"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.12.1-GTNH"
+        "update_state": {
+            "version": "1.12.1-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "IC2": {
         "file_path": "../.minecraft/mods/industrialcraft-2-2.2.828a-experimental.jar",
@@ -496,7 +832,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.2.828-experimental"
+        "update_state": {
+            "version": "2.2.828-experimental",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "IronChest": {
         "file_path": "../.minecraft/mods/IronChest-6.1.1.jar",
@@ -507,7 +851,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "6.1.1"
+        "update_state": {
+            "version": "6.1.1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "MagicBees": {
         "file_path": "../.minecraft/mods/magicbees-2.9.2-GTNH.jar",
@@ -518,7 +870,15 @@
         "wants": ["Forestry"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.9.2-GTNH"
+        "update_state": {
+            "version": "2.9.2-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "Mantle": {
         "file_path": "../.minecraft/mods/Mantle-0.5.0.jar",
@@ -529,7 +889,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.5.0"
+        "update_state": {
+            "version": "0.5.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "Mekanism": {
         "file_path": "../.minecraft/mods/Mekanism-Community-Edition-1.7.10-9.10.42.jar",
@@ -540,7 +908,15 @@
         "wants": ["ForgeMultipart", "CodeChickenLib", "CodeChickenCore"],
         "enabled": true,
         "other_mod_ids": ["MekanismGenerators", "MekanismTools"],
-        "version": "9.10.42"
+        "update_state": {
+            "version": "9.10.42",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "404",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "MineFactoryReloaded": {
         "file_path": "../.minecraft/mods/MineFactoryReloaded-[1.7.10]2.8.2B1-201.jar",
@@ -577,7 +953,15 @@
             "MFR Compat Forestry Trees",
             "MineFactoryReloaded|CompatTConstruct"
         ],
-        "version": "2.8.2B1"
+        "update_state": {
+            "version": "2.8.2B1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "MineTweaker3": {
         "file_path": "../.minecraft/mods/CraftTweaker-3.4.0.jar",
@@ -588,7 +972,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "3.4.0"
+        "update_state": {
+            "version": "3.4.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "MineTweakerRecipeMaker": {
         "file_path": "../.minecraft/mods/MineTweakerRecipeMaker-1.7.10-1.1.1.jar",
@@ -599,7 +991,15 @@
         "wants": ["MineTweaker3"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.1.1"
+        "update_state": {
+            "version": "1.1.1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "Morpheus": {
         "file_path": "../.minecraft/mods/Morpheus-1.7.10-1.6.21.jar",
@@ -610,7 +1010,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10-1.6.21"
+        "update_state": {
+            "version": "1.6.21",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "MrTJPCoreMod": {
         "file_path": "../.minecraft/mods/1.7.10/MrTJPCore-1.3.0.jar",
@@ -621,7 +1029,15 @@
         "wants": ["CodeChickenCore"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.3.0"
+        "update_state": {
+            "version": "1.3.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "NEIAddons": {
         "file_path": "../.minecraft/mods/NEIAddons-1.16.0.jar",
@@ -641,7 +1057,15 @@
             "NEIAddons|MiscPeripherals",
             "NEIAddons|ExNihilo"
         ],
-        "version": "1.16.0"
+        "update_state": {
+            "version": "1.16.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "Natura": {
         "file_path": "../.minecraft/mods/Natura-2.8.7.jar",
@@ -652,7 +1076,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.8.7"
+        "update_state": {
+            "version": "2.8.7",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "OTHER",
+            "file_pattern": ""
+        }
     },
     "NotEnoughItems": {
         "file_path": "../.minecraft/mods/NotEnoughItems-2.7.29-GTNH.jar",
@@ -663,7 +1095,15 @@
         "wants": ["CodeChickenCore"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.7.29-GTNH"
+        "update_state": {
+            "version": "2.7.29-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "NuclearCraft": {
         "file_path": "../.minecraft/mods/NuclearCraft-1.9h-U25.jar",
@@ -674,7 +1114,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.9h"
+        "update_state": {
+            "version": "1.9h",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "404",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "OilTweak": {
         "file_path": "../.minecraft/mods/BuildCraftOilTweak-1.1.1.jar",
@@ -685,7 +1133,15 @@
         "wants": ["BuildCraft|Core"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.1.1"
+        "update_state": {
+            "version": "1.1.1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "OpenBlocks": {
         "file_path": "../.minecraft/mods/OpenBlocks-1.11.3-GTNH.jar",
@@ -696,7 +1152,15 @@
         "wants": ["OpenMods"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.11.3-GTNH"
+        "update_state": {
+            "version": "1.11.3-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "OpenComputers": {
         "file_path": "../.minecraft/mods/OpenComputers-1.11.10-GTNH.jar",
@@ -707,7 +1171,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.11.10-GTNH"
+        "update_state": {
+            "version": "1.11.10-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "OpenMods": {
         "file_path": "../.minecraft/mods/OpenModsLibs-0.10.9.jar",
@@ -718,7 +1190,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": ["OpenModsCore"],
-        "version": "0.10.9"
+        "update_state": {
+            "version": "0.10.9",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "Opis": {
         "file_path": "../.minecraft/mods/Opis-1.4.5-mapless.jar",
@@ -729,7 +1209,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.4.5-mapless"
+        "update_state": {
+            "version": "1.4.5-mapless",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "PlayerAPI": {
         "file_path": "../.minecraft/mods/PlayerAPI-1.7.10-1.4.1-maka.jar",
@@ -740,7 +1228,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10-1.4.1-maka"
+        "update_state": {
+            "version": "1.4.1-maka",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "PortalGun": {
         "file_path": "../.minecraft/mods/PortalGun-4.0.0-beta-6-fix-1.jar",
@@ -751,7 +1247,15 @@
         "wants": ["iChunUtil"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "4.0.0-beta-6"
+        "update_state": {
+            "version": "4.0.0-beta-6",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "ProjRed|Core": {
         "file_path": "../.minecraft/mods/ProjRed-4.11.1-GTNH.jar",
@@ -771,7 +1275,15 @@
             "ProjRed|Transportation",
             "ProjRed|Exploration"
         ],
-        "version": "4.11.1-GTNH"
+        "update_state": {
+            "version": "4.11.1-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "RArm": {
         "file_path": "../.minecraft/mods/RedstoneArmory-1.7.10-1.2.0-41.jar",
@@ -782,7 +1294,15 @@
         "wants": ["ThermalExpansion", "ThermalFoundation", "RedstoneArsenal", "endercore", "ttCore"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10-1.2.0-41"
+        "update_state": {
+            "version": "1.2.0-41",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "RTG": {
         "file_path": "../.minecraft/mods/RTG-1.1.4-GTNH.jar",
@@ -793,7 +1313,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.1.4-GTNH"
+        "update_state": {
+            "version": "1.1.4-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "OTHER",
+            "file_pattern": ""
+        }
     },
     "ReactorCraft": {
         "file_path": "../.minecraft/mods/ReactorCraft+1.7.10+V33a.jar",
@@ -804,7 +1332,15 @@
         "wants": ["DragonAPI", "RotaryCraft"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "V33a"
+        "update_state": {
+            "version": "V33a",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "RedstoneArsenal": {
         "file_path": "../.minecraft/mods/RedstoneArsenal-[1.7.10]1.1.2-92.jar",
@@ -815,7 +1351,15 @@
         "wants": ["CoFHCore"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.1.2"
+        "update_state": {
+            "version": "1.1.2",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "RelocationFMP": {
         "file_path": "../.minecraft/mods/ForgeRelocationFMP-0.2.0.jar",
@@ -826,7 +1370,15 @@
         "wants": ["ForgeRelocation", "ForgeMultipart"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.2.0"
+        "update_state": {
+            "version": "0.2.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "ResourceLoader": {
         "file_path": "../.minecraft/mods/[CLIENT]ResourceLoader-MC1.7.10-1.3.jar",
@@ -837,7 +1389,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.3"
+        "update_state": {
+            "version": "1.3",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "RotaryCraft": {
         "file_path": "../.minecraft/mods/RotaryCraft+1.7.10+V33a.jar",
@@ -848,7 +1408,15 @@
         "wants": ["DragonAPI"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "V33a"
+        "update_state": {
+            "version": "V33a",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "Satisforestry": {
         "file_path": "../.minecraft/mods/Satisforestry+1.7.10+V33a.jar",
@@ -859,7 +1427,15 @@
         "wants": ["DragonAPI"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "V33a"
+        "update_state": {
+            "version": "V33a",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "SolarExpansion": {
         "file_path": "../.minecraft/mods/SolarExpansion-Basic-1.6a.jar",
@@ -870,7 +1446,15 @@
         "wants": ["CoFHCore"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.6a"
+        "update_state": {
+            "version": "1.6a",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "OTHER",
+            "file_pattern": ""
+        }
     },
     "SonarCore": {
         "file_path": "../.minecraft/mods/SonarCore-1.7.10-1.1.3.jar",
@@ -881,7 +1465,15 @@
         "wants": ["CoFHCore", "Waila", "ForgeMultipart"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10-1.1.3"
+        "update_state": {
+            "version": "1.1.3",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "SpecialMobs": {
         "file_path": "../.minecraft/mods/SpecialMobs-3.6.2.jar",
@@ -892,7 +1484,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "3.6.2"
+        "update_state": {
+            "version": "3.6.2",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "Squidless": {
         "file_path": "../.minecraft/mods/squidless-1.7.10-0.6.1.jar",
@@ -903,7 +1503,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "-1.7.10-0.6.1"
+        "update_state": {
+            "version": "0.6.1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "TCBotaniaExoflame": {
         "file_path": "../.minecraft/mods/TCBotaniaExoflame-1.7.10-1.4.jar",
@@ -914,7 +1522,15 @@
         "wants": ["Thaumcraft", "Botania"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.4"
+        "update_state": {
+            "version": "1.4",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "TConstruct": {
         "file_path": "../.minecraft/mods/TConstruct-1.11.12-GTNH.jar",
@@ -925,7 +1541,15 @@
         "wants": ["Mantle"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.11.12-GTNH"
+        "update_state": {
+            "version": "1.11.12-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "TMechworks": {
         "file_path": "../.minecraft/mods/TMechworks-0.4.0.jar",
@@ -936,7 +1560,15 @@
         "wants": ["TConstruct"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.4.0"
+        "update_state": {
+            "version": "0.4.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "TaintedMagic": {
         "file_path": "../.minecraft/mods/Tainted-Magic-7.6.15-GTNH.jar",
@@ -947,7 +1579,15 @@
         "wants": ["Thaumcraft"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "7.6.15-GTNH"
+        "update_state": {
+            "version": "7.6.15-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "Techguns": {
         "file_path": "../.minecraft/mods/Techguns.beta.1.2_alphatest4.1.jar",
@@ -958,7 +1598,15 @@
         "wants": ["chisel", "CoFHCore"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.1"
+        "update_state": {
+            "version": "0.1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "Thaumcraft": {
         "file_path": "../.minecraft/mods/Thaumcraft-1.7.10-4.2.3.5.jar",
@@ -987,7 +1635,15 @@
         "wants": ["CodeChickenCore", "BaublesExpanded"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10-4.2.3.5"
+        "update_state": {
+            "version": "4.2.3.5",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "ThaumicHorizons": {
         "file_path": "../.minecraft/mods/ThaumicHorizons-1.7.1.jar",
@@ -998,7 +1654,15 @@
         "wants": ["Thaumcraft", "BaublesExpanded"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.1"
+        "update_state": {
+            "version": "1.7.1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "ThaumicTinkerer": {
         "file_path": "../.minecraft/mods/ThaumicTinkerer-2.11.2.jar",
@@ -1009,7 +1673,15 @@
         "wants": ["Thaumcraft", "endlessids"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.11.2"
+        "update_state": {
+            "version": "2.11.2",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "ThermalDynamics": {
         "file_path": "../.minecraft/mods/ThermalDynamics-[1.7.10]1.2.1-172.jar",
@@ -1020,7 +1692,15 @@
         "wants": ["CoFHCore", "ThermalFoundation"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.2.1"
+        "update_state": {
+            "version": "1.2.1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "ThermalExpansion": {
         "file_path": "../.minecraft/mods/ThermalExpansion-[1.7.10]4.1.5-248.jar",
@@ -1031,7 +1711,15 @@
         "wants": ["CoFHCore", "ThermalFoundation"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "4.1.5"
+        "update_state": {
+            "version": "4.1.5",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "ThermalFoundation": {
         "file_path": "../.minecraft/mods/ThermalFoundation-[1.7.10]1.2.6-118.jar",
@@ -1042,7 +1730,15 @@
         "wants": ["CoFHCore"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.2.6"
+        "update_state": {
+            "version": "1.2.6",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "TiCTooltips": {
         "file_path": "../.minecraft/mods/TiCTooltips-1.3.1.jar",
@@ -1053,7 +1749,15 @@
         "wants": ["TConstruct"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.3.1"
+        "update_state": {
+            "version": "1.3.1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "Treecapitator": {
         "file_path": "../.minecraft/mods/Treecapitator-universal-2.0.4.jar",
@@ -1064,7 +1768,15 @@
         "wants": ["bspkrsCore"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.0.4"
+        "update_state": {
+            "version": "2.0.4",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "UniDict": {
         "file_path": "../.minecraft/mods/UniDict-1.7.10-2.9.2.jar",
@@ -1075,7 +1787,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.9.2"
+        "update_state": {
+            "version": "2.9.2",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "VoidMonster": {
         "file_path": "../.minecraft/mods/VoidMonster+1.7.10+V33a.jar",
@@ -1086,7 +1806,15 @@
         "wants": ["DragonAPI"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "V33a"
+        "update_state": {
+            "version": "V33a",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "WR-CBE|Core": {
         "file_path": "../.minecraft/mods/WR-CBE-1.7.0.jar",
@@ -1097,7 +1825,15 @@
         "wants": ["CodeChickenCore", "ForgeMultipart"],
         "enabled": true,
         "other_mod_ids": ["WR-CBE|Addons", "WR-CBE|Logic"],
-        "version": "1.7.0"
+        "update_state": {
+            "version": "1.7.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "Waila": {
         "file_path": "../.minecraft/mods/Waila-1.5.24-master.2+1faac2c976.jar",
@@ -1108,7 +1844,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.5.24-master.2+1faac2c976"
+        "update_state": {
+            "version": "1.5.24-master.2+1faac2c976",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "OTHER",
+            "file_pattern": ""
+        }
     },
     "WarpTheory": {
         "file_path": "../.minecraft/mods/WarpTheory-1.4.3-GTNH.jar",
@@ -1119,7 +1863,15 @@
         "wants": ["Thaumcraft"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.4.3-GTNH"
+        "update_state": {
+            "version": "1.4.3-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "Ztones": {
         "file_path": "../.minecraft/mods/Ztones-1.7.10-2.2.2.jar",
@@ -1130,7 +1882,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.2"
+        "update_state": {
+            "version": "2.2",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "ae2fc": {
         "file_path": "../.minecraft/mods/ae2fc-1.4.32-gtnh.jar",
@@ -1141,7 +1901,15 @@
         "wants": ["appliedenergistics2", "CoFHCore", "BaublesExpanded", "extracells"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.4.32-gtnh"
+        "update_state": {
+            "version": "1.4.32-gtnh",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "ae2stuff": {
         "file_path": "../.minecraft/mods/ae2stuff-0.9.4-GTNH.jar",
@@ -1152,7 +1920,15 @@
         "wants": ["appliedenergistics2", "bdlib"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.9.4-GTNH"
+        "update_state": {
+            "version": "0.9.4-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "alfheim": {
         "file_path": "../.minecraft/mods/Alfheim-60.jar",
@@ -1163,7 +1939,15 @@
         "wants": ["asjpatcher", "Botania"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "60"
+        "update_state": {
+            "version": "60",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "MODRINTH",
+            "file_pattern": ""
+        }
     },
     "angelica": {
         "file_path": "../.minecraft/mods/[CLIENT]angelica-1.0.0-beta45.jar",
@@ -1174,7 +1958,15 @@
         "wants": ["unimixins", "gtnhlib"],
         "enabled": true,
         "other_mod_ids": ["notfine", "embeddium", "mcpatcherforge"],
-        "version": "1.0.0-beta45"
+        "update_state": {
+            "version": "1.0.0-beta45",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "appliedenergistics2": {
         "file_path": "../.minecraft/mods/appliedenergistics2-rv3-beta-548-GTNH.jar",
@@ -1185,7 +1977,15 @@
         "wants": ["gtnhlib"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "rv3-beta-548-GTNH"
+        "update_state": {
+            "version": "rv3-beta-548-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "archaicfix": {
         "file_path": "../.minecraft/mods/archaicfix-0.7.6.jar",
@@ -1196,7 +1996,15 @@
         "wants": ["unimixins"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.7.6"
+        "update_state": {
+            "version": "0.7.6",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "arsmagica2": {
         "file_path": "../.minecraft/mods/AM2.5-LTS-1.6.9-ULT25.jar",
@@ -1207,7 +2015,15 @@
         "wants": ["PlayerAPI", "CoFHCore", "AnimationAPI"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.6.9-ultimate"
+        "update_state": {
+            "version": "1.6.9-ultimate",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "404",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "asjpatcher": {
         "file_path": "../.minecraft/mods/1.7.10-ASJCore-1.4.2.2.jar",
@@ -1218,7 +2034,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.4.2.2"
+        "update_state": {
+            "version": "1.4.2.2",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "MODRINTH",
+            "file_pattern": ""
+        }
     },
     "avaritiaddons": {
         "file_path": "../.minecraft/mods/Avaritiaddons-1.8.4-GTNH.jar",
@@ -1229,7 +2053,15 @@
         "wants": ["Avaritia", "wanionlib"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.8.4-GTNH"
+        "update_state": {
+            "version": "1.8.4-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "battlegear2": {
         "file_path": "../.minecraft/mods/battlegear2-1.4.2.jar",
@@ -1240,7 +2072,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.4.2"
+        "update_state": {
+            "version": "1.4.2",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "bdlib": {
         "file_path": "../.minecraft/mods/bdlib-1.10.0-GTNH.jar",
@@ -1251,7 +2091,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.10.0-GTNH"
+        "update_state": {
+            "version": "1.10.0-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "beebetteratbees": {
         "file_path": "../.minecraft/mods/beebetteratbees-0.4.2-GTNH.jar",
@@ -1262,7 +2110,15 @@
         "wants": ["NotEnoughItems", "Forestry"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.4.2-GTNH"
+        "update_state": {
+            "version": "0.4.2-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "betterp2p": {
         "file_path": "../.minecraft/mods/betterp2p-1.3.0.jar",
@@ -1273,7 +2129,15 @@
         "wants": ["appliedenergistics2", "forgelin"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.3.0"
+        "update_state": {
+            "version": "1.3.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "bogosorter": {
         "file_path": "../.minecraft/mods/bogosorter-1.2.35-GTNH.jar",
@@ -1284,7 +2148,15 @@
         "wants": ["gtnhlib"],
         "enabled": true,
         "other_mod_ids": ["craftingtweaks", "MouseTweaks"],
-        "version": "1.2.35-GTNH"
+        "update_state": {
+            "version": "1.2.35-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "bspkrsCore": {
         "file_path": "../.minecraft/mods/1.7.10/[1.7.10]bspkrsCore-universal-6.16.jar",
@@ -1295,7 +2167,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "6.16"
+        "update_state": {
+            "version": "6.16",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "catwalks": {
         "file_path": "../.minecraft/mods/catwalks-2.0.4.jar",
@@ -1306,7 +2186,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.0.4"
+        "update_state": {
+            "version": "2.0.4",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "chisel": {
         "file_path": "../.minecraft/mods/chisel-2.16.2-GTNH.jar",
@@ -1317,7 +2205,15 @@
         "wants": ["CTMLib"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.16.2-GTNH"
+        "update_state": {
+            "version": "2.16.2-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "chiseltones": {
         "file_path": "../.minecraft/mods/chiseltones-1.2.0-GTNH.jar",
@@ -1328,7 +2224,15 @@
         "wants": ["chisel", "Ztones"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.2.0-GTNH"
+        "update_state": {
+            "version": "1.2.0-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "chunkapi": {
         "file_path": "../.minecraft/mods/chunkapi-mc1.7.10-0.6.3.jar",
@@ -1339,7 +2243,15 @@
         "wants": ["falsepatternlib"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.6.3"
+        "update_state": {
+            "version": "0.6.3",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "climateControl": {
         "file_path": "../.minecraft/mods/ClimateControl-0.10.0-GTNH.jar",
@@ -1350,7 +2262,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.10.0-GTNH"
+        "update_state": {
+            "version": "0.10.0-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "coretweaks": {
         "file_path": "../.minecraft/mods/CoreTweaks-1.7.10-0.3.3.2+nomixin.jar",
@@ -1361,7 +2281,15 @@
         "wants": ["unimixins"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.3.3.2+nomixin"
+        "update_state": {
+            "version": "0.3.3.2+nomixin",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": "\\+nomixin\\.jar$"
+        }
     },
     "cosmeticarmorreworked": {
         "file_path": "../.minecraft/mods/CosmeticArmorReworked-1.7.10-v7.jar",
@@ -1372,7 +2300,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10-v7"
+        "update_state": {
+            "version": "v7",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "custommainmenu": {
         "file_path": "../.minecraft/mods/[CLIENT]custommainmenu-1.11.3.jar",
@@ -1383,7 +2319,15 @@
         "wants": ["ResourceLoader"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.11.3"
+        "update_state": {
+            "version": "1.11.3",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "defaultworldgenerator": {
         "file_path": "../.minecraft/mods/defaultworldgenerator-0.4.0.jar",
@@ -1394,7 +2338,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.4.0"
+        "update_state": {
+            "version": "0.4.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "OTHER",
+            "file_pattern": ""
+        }
     },
     "draconicpatcher": {
         "file_path": "../.minecraft/mods/draconicpatcher-1.0.jar",
@@ -1405,7 +2357,15 @@
         "wants": ["DraconicEvolution"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.0"
+        "update_state": {
+            "version": "1.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "draconicplus": {
         "file_path": "../.minecraft/mods/draconicplus-7ab2092.dirty.jar",
@@ -1416,7 +2376,15 @@
         "wants": ["DraconicEvolution", "NotEnoughItems"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.4"
+        "update_state": {
+            "version": "1.4",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "404",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "dsurround": {
         "file_path": "../.minecraft/mods/DynamicSurroundings-1.7.10-1.0.7.6.jar",
@@ -1427,7 +2395,15 @@
         "wants": ["unimixins"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.0.7.6"
+        "update_state": {
+            "version": "1.0.7.6",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "endercore": {
         "file_path": "../.minecraft/mods/endercore-0.4.6.jar",
@@ -1438,7 +2414,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.4.6"
+        "update_state": {
+            "version": "0.4.6",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "endlessids": {
         "file_path": "../.minecraft/mods/endlessids-mc1.7.10-1.6.9.jar",
@@ -1449,7 +2433,15 @@
         "wants": ["unimixins", "falsepatternlib", "chunkapi"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.6.9"
+        "update_state": {
+            "version": "1.6.9",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "erde": {
         "file_path": "../.minecraft/mods/EntityRenderDistanceExtender-1.0c.jar",
@@ -1460,7 +2452,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.0c"
+        "update_state": {
+            "version": "1.0c",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "eternalsingularity": {
         "file_path": "../.minecraft/mods/eternalsingularity-1.2.1.jar",
@@ -1471,7 +2471,15 @@
         "wants": ["Avaritia", "wanionlib"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.2.1"
+        "update_state": {
+            "version": "1.2.1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "extracells": {
         "file_path": "../.minecraft/mods/ExtraCells-2.5.35.jar",
@@ -1482,7 +2490,15 @@
         "wants": ["appliedenergistics2"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.5.35"
+        "update_state": {
+            "version": "2.5.35",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "exuportalfix": {
         "file_path": "../.minecraft/mods/exuportalfix-1.0.jar",
@@ -1493,7 +2509,15 @@
         "wants": ["ExtraUtilities"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.0"
+        "update_state": {
+            "version": "1.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "falsepatternlib": {
         "file_path": "../.minecraft/mods/falsepatternlib-mc1.7.10-1.7.0.jar",
@@ -1504,7 +2528,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.0"
+        "update_state": {
+            "version": "1.7.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "falsetweaks": {
         "file_path": "../.minecraft/mods/falsetweaks-mc1.7.10-3.9.7.jar",
@@ -1514,7 +2546,16 @@
         "wanted_by": [],
         "wants": [],
         "enabled": true,
-        "other_mod_ids": []
+        "other_mod_ids": [],
+        "update_state": {
+            "version": "",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "OTHER",
+            "file_pattern": ""
+        }
     },
     "fastleafdecay": {
         "file_path": "../.minecraft/mods/FastLeafDecay-1.7.10-1.4.jar",
@@ -1525,7 +2566,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10-1.4"
+        "update_state": {
+            "version": "1.4",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "floatingitems": {
         "file_path": "../.minecraft/mods/FloatingItems-1.7.10-0.1.0.jar",
@@ -1536,7 +2585,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.1.0"
+        "update_state": {
+            "version": "0.1.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "foamfix": {
         "file_path": "../.minecraft/mods/FoamFix-1.7.10-universal-1.0.4.jar",
@@ -1547,7 +2604,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.0.4"
+        "update_state": {
+            "version": "1.0.4",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "forgelin": {
         "file_path": "../.minecraft/mods/forgelin-2.0.0-GTNH.jar",
@@ -1558,7 +2623,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.0.0-GTNH"
+        "update_state": {
+            "version": "2.0.0-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "gadomancy": {
         "file_path": "../.minecraft/mods/gadomancy-1.4.3.jar",
@@ -1569,7 +2642,15 @@
         "wants": ["Thaumcraft"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.4.3"
+        "update_state": {
+            "version": "1.4.3",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "gtnhlib": {
         "file_path": "../.minecraft/mods/gtnhlib-0.6.27.jar",
@@ -1591,7 +2672,15 @@
         "wants": ["unimixins"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.6.27"
+        "update_state": {
+            "version": "0.6.27",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "guideapi": {
         "file_path": "../.minecraft/mods/guideapi-1.1.0.jar",
@@ -1602,7 +2691,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.1.0"
+        "update_state": {
+            "version": "1.1.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "hardcorewither": {
         "file_path": "../.minecraft/mods/Hardcore+Wither-1.7.10-1.1.3-21-universal.jar",
@@ -1613,7 +2710,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.1.3"
+        "update_state": {
+            "version": "1.1.3",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "MODRINTH",
+            "file_pattern": ""
+        }
     },
     "hodgepodge": {
         "file_path": "../.minecraft/mods/hodgepodge-2.6.73-pre.jar",
@@ -1624,7 +2729,15 @@
         "wants": ["unimixins", "gtnhlib"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.6.73-pre"
+        "update_state": {
+            "version": "2.6.73-pre",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "iChunUtil": {
         "file_path": "../.minecraft/mods/iChunUtil-4.2.3.jar",
@@ -1635,7 +2748,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "4.2.3"
+        "update_state": {
+            "version": "4.2.3",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "idekmixintweaks": {
         "file_path": "../.minecraft/mods/IdekMixinTweaks-1.7.10-UNKNOWN-ab1a647+nomixin.jar",
@@ -1646,7 +2767,15 @@
         "wants": ["unimixins"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "UNKNOWN-ab1a647+nomixin"
+        "update_state": {
+            "version": "UNKNOWN-ab1a647+nomixin",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "ironbackpacks": {
         "file_path": "../.minecraft/mods/IronBackpacks-1.7.10-1.2.20.jar",
@@ -1657,7 +2786,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.1.2"
+        "update_state": {
+            "version": "1.1.2",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "itlt": {
         "file_path": "../.minecraft/mods/itlt-1.7.x-1.0.3.jar",
@@ -1668,7 +2805,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.x-1.0.3"
+        "update_state": {
+            "version": "1.7.x-1.0.3",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "journeymap": {
         "file_path": "../.minecraft/mods/[CLIENT]journeymap-1.7.10-5.1.4p2-unlimited.jar",
@@ -1679,7 +2824,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10-5.1.4p2"
+        "update_state": {
+            "version": "5.1.4p2",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "MODRINTH",
+            "file_pattern": ""
+        }
     },
     "laggoggles": {
         "file_path": "../.minecraft/mods/laggoggles-mc1.7.10-4.16.1.jar",
@@ -1690,7 +2843,15 @@
         "wants": ["unimixins", "falsepatternlib"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "4.16.1"
+        "update_state": {
+            "version": "4.16.1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "login_shield": {
         "file_path": "../.minecraft/mods/Login_Shield-1.7.10-2-gf6e21a7.jar",
@@ -1701,7 +2862,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10-2-gf6e21a7"
+        "update_state": {
+            "version": "2-gf6e21a7",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "lumi": {
         "file_path": "../.minecraft/mods/lumi-mc1.7.10-1.2.0.jar",
@@ -1712,7 +2881,15 @@
         "wants": ["unimixins", "falsepatternlib", "chunkapi"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.2.0"
+        "update_state": {
+            "version": "1.2.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "lwjgl3ify": {
         "file_path": "../.minecraft/mods/lwjgl3ify-2.1.12.jar",
@@ -1723,7 +2900,15 @@
         "wants": ["unimixins"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.1.12"
+        "update_state": {
+            "version": "2.1.12",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": "\\d\\.jar$"
+        }
     },
     "mcjtylib": {
         "file_path": "../.minecraft/mods/mcjtylib-1.8.1.jar",
@@ -1734,7 +2919,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.8.1-SNAPSHOT"
+        "update_state": {
+            "version": "1.8.1-SNAPSHOT",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "mkb": {
         "file_path": "../.minecraft/mods/ModernKeyBinding-Forge-1.7.10-2.1.0.jar",
@@ -1745,7 +2938,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.1.0"
+        "update_state": {
+            "version": "2.1.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "MODRINTH",
+            "file_pattern": ""
+        }
     },
     "mo": {
         "file_path": "../.minecraft/mods/MatterOverdrive-1.7.10-0.4.5.jar",
@@ -1756,7 +2957,15 @@
         "wants": ["CoFHCore"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10-0.4.5"
+        "update_state": {
+            "version": "0.4.5",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "mobsinfo": {
         "file_path": "../.minecraft/mods/mobsinfo-0.4.5.jar",
@@ -1767,7 +2976,15 @@
         "wants": ["NotEnoughItems", "forgelin"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.4.5"
+        "update_state": {
+            "version": "0.4.5",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "MODRINTH",
+            "file_pattern": ""
+        }
     },
     "modernsplash": {
         "file_path": "../.minecraft/mods/[CLIENT]modernsplash-1.7.10-1.2.1-d88da6a.dirty.jar",
@@ -1778,7 +2995,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "d88da6a.dirty"
+        "update_state": {
+            "version": "d88da6a.dirty",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "modtweaker2": {
         "file_path": "../.minecraft/mods/ModTweaker2-0.11.0.jar",
@@ -1789,7 +3014,15 @@
         "wants": ["MineTweaker3"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.11.0"
+        "update_state": {
+            "version": "0.11.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "modularui2": {
         "file_path": "../.minecraft/mods/modularui2-2.2.15-1.7.10.jar",
@@ -1800,7 +3033,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.2.15-1.7.10"
+        "update_state": {
+            "version": "2.2.15",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "OTHER",
+            "file_pattern": ""
+        }
     },
     "navigator": {
         "file_path": "../.minecraft/mods/navigator-1.0.16.jar",
@@ -1811,7 +3052,15 @@
         "wants": ["gtnhlib"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.0.16"
+        "update_state": {
+            "version": "1.0.16",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "neenergistics": {
         "file_path": "../.minecraft/mods/NotEnoughEnergistics-1.7.0.jar",
@@ -1822,7 +3071,15 @@
         "wants": ["NotEnoughItems", "appliedenergistics2"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.0"
+        "update_state": {
+            "version": "1.7.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "neiintegration": {
         "file_path": "../.minecraft/mods/NEIIntegration-1.4.0.jar",
@@ -1833,7 +3090,15 @@
         "wants": ["NotEnoughItems"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.4.0"
+        "update_state": {
+            "version": "1.4.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "netherportalfix": {
         "file_path": "../.minecraft/mods/netherportalfix-1.3.0.jar",
@@ -1844,7 +3109,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.3.0"
+        "update_state": {
+            "version": "1.3.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "numina": {
         "file_path": "../.minecraft/mods/Numina-0.4.1.106.jar",
@@ -1855,7 +3128,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.4.1.106"
+        "update_state": {
+            "version": "0.4.1.106",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "openmodularturrets": {
         "file_path": "../.minecraft/mods/OpenModularTurrets-2.4.3.jar",
@@ -1866,7 +3147,15 @@
         "wants": ["CoFHCore", "ThermalExpansion"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.4.3"
+        "update_state": {
+            "version": "2.4.3",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "overloadedarmorbar": {
         "file_path": "../.minecraft/mods/overloadedarmorbar-1.1.0.jar",
@@ -1877,7 +3166,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.1.0"
+        "update_state": {
+            "version": "1.1.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "particlelib": {
         "file_path": "../.minecraft/mods/ParticleLib+-+1.jar",
@@ -1888,7 +3185,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1"
+        "update_state": {
+            "version": "1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "powersuits": {
         "file_path": "../.minecraft/mods/ModularPowersuits-1.7.10-0.11.1.117.jar",
@@ -1899,7 +3204,15 @@
         "wants": ["numina"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10-0.11.1.117"
+        "update_state": {
+            "version": "0.11.1.117",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "prometheus_exporter": {
         "file_path": "../.minecraft/mods/Prometheus-Exporter-1.7.10-forge-1.1.0.jar",
@@ -1910,7 +3223,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.1.0"
+        "update_state": {
+            "version": "1.1.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "quickplant": {
         "file_path": "../.minecraft/mods/QuickPlant-1.7.10-1.0.1.jar",
@@ -1921,7 +3242,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10-1.0.1"
+        "update_state": {
+            "version": "1.0.1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "rftools": {
         "file_path": "../.minecraft/mods/rftools-4.24.jar",
@@ -1932,7 +3261,15 @@
         "wants": ["CoFHCore", "mcjtylib"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10"
+        "update_state": {
+            "version": "4.24",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "rple": {
         "file_path": "../.minecraft/mods/rple-mc1.7.10-1.6.1.jar",
@@ -1942,7 +3279,16 @@
         "wanted_by": [],
         "wants": [],
         "enabled": true,
-        "other_mod_ids": []
+        "other_mod_ids": [],
+        "update_state": {
+            "version": "",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "OTHER",
+            "file_pattern": ""
+        }
     },
     "serverutilities": {
         "file_path": "../.minecraft/mods/ServerUtilities-2.1.54.jar",
@@ -1953,7 +3299,15 @@
         "wants": ["gtnhlib"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "2.1.54"
+        "update_state": {
+            "version": "2.1.54",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "simplyjetpacks": {
         "file_path": "../.minecraft/mods/SimplyJetpacks-MC1.7.10-1.5.3.jar",
@@ -1964,7 +3318,15 @@
         "wants": ["CoFHCore", "EnderIO"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.5.3"
+        "update_state": {
+            "version": "1.5.3",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "404",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "smoothfont": {
         "file_path": "../.minecraft/mods/[CLIENT]SmoothFont-1.7.10-1.15.3.jar",
@@ -1975,7 +3337,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10-1.15.3"
+        "update_state": {
+            "version": "1.15.3",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "spacore": {
         "file_path": "../.minecraft/mods/SpACore-1.7.10-01.05.12.jar",
@@ -1986,7 +3356,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "01.05.12"
+        "update_state": {
+            "version": "01.05.12",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "spark": {
         "file_path": "../.minecraft/mods/spark-1.10.19-forge1710.jar",
@@ -1997,7 +3375,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.10.35"
+        "update_state": {
+            "version": "1.10.35",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "404",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "tc4tweak": {
         "file_path": "../.minecraft/mods/Thaumcraft4Tweaks-1.5.29-beta.4.jar",
@@ -2008,7 +3394,15 @@
         "wants": ["Thaumcraft"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.5.29-beta.4"
+        "update_state": {
+            "version": "1.5.29-beta.4",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "tcneiadditions": {
         "file_path": "../.minecraft/mods/[CLIENT]tcneiadditions-1.3.6.jar",
@@ -2019,7 +3413,15 @@
         "wants": ["Thaumcraft", "thaumcraftneiplugin", "unimixins"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.3.6"
+        "update_state": {
+            "version": "1.3.6",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "tcnodetracker": {
         "file_path": "../.minecraft/mods/[CLIENT]tcnodetracker-1.3.2.jar",
@@ -2030,7 +3432,15 @@
         "wants": ["Thaumcraft"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.3.2"
+        "update_state": {
+            "version": "1.3.2",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "tellme": {
         "file_path": "../.minecraft/mods/tellme-1.7.10-0.2.6a.jar",
@@ -2041,7 +3451,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.2.6a"
+        "update_state": {
+            "version": "0.2.6a",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "testdummy": {
         "file_path": "../.minecraft/mods/MmmMmmMmmMmm-1.7.10-1.9.jar",
@@ -2052,7 +3470,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10-1.9"
+        "update_state": {
+            "version": "1.9",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "thaumcraftneiplugin": {
         "file_path": "../.minecraft/mods/[CLIENT]thaumcraftneiplugin-1.7.10-1.7a.jar",
@@ -2063,7 +3489,15 @@
         "wants": ["Thaumcraft"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10-1.7a"
+        "update_state": {
+            "version": "1.7a",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "thaumicboots": {
         "file_path": "../.minecraft/mods/thaumicboots-1.4.4.jar",
@@ -2074,7 +3508,15 @@
         "wants": ["Thaumcraft"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.4.4"
+        "update_state": {
+            "version": "1.4.4",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "thaumicdyes": {
         "file_path": "../.minecraft/mods/Thaumic-Dyes-[1.7.10]+1.10.5-0.jar",
@@ -2085,7 +3527,15 @@
         "wants": ["Thaumcraft"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.10.5-0"
+        "update_state": {
+            "version": "1.10.5-0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "thaumicenergistics": {
         "file_path": "../.minecraft/mods/thaumicenergistics-1.7.6-GTNH.jar",
@@ -2096,7 +3546,15 @@
         "wants": ["Thaumcraft", "appliedenergistics2"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.6-GTNH"
+        "update_state": {
+            "version": "1.7.6-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "thaumicinsurgence": {
         "file_path": "../.minecraft/mods/thaumicinsurgence-0.4.0.jar",
@@ -2107,7 +3565,15 @@
         "wants": ["Thaumcraft"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.4.0"
+        "update_state": {
+            "version": "0.4.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "tinkersdefense": {
         "file_path": "../.minecraft/mods/tinkersdefense-1.3.1.jar",
@@ -2118,7 +3584,15 @@
         "wants": ["TConstruct", "battlegear2"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.3.1"
+        "update_state": {
+            "version": "1.3.1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "unimixins": {
         "file_path": "../.minecraft/mods/+unimixins-all-1.7.10-0.1.20.jar",
@@ -2152,7 +3626,15 @@
             "gtnhmixins",
             "mixinextras"
         ],
-        "version": "0.1.20"
+        "update_state": {
+            "version": "0.1.20",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": "^\\+unimixins-all"
+        }
     },
     "universalsingularities": {
         "file_path": "../.minecraft/mods/Universal-Singularities-8.10.0.jar",
@@ -2163,7 +3645,15 @@
         "wants": ["Avaritia"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "8.10.0"
+        "update_state": {
+            "version": "8.10.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "wailaplugins": {
         "file_path": "../.minecraft/mods/WAILAPlugins-0.6.0.jar",
@@ -2174,7 +3664,15 @@
         "wants": ["Waila", "endercore"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.6.0"
+        "update_state": {
+            "version": "0.6.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "wanionlib": {
         "file_path": "../.minecraft/mods/WanionLib-1.9.0.jar",
@@ -2185,7 +3683,15 @@
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.9.0"
+        "update_state": {
+            "version": "1.9.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
     },
     "witchery": {
         "file_path": "../.minecraft/mods/witchery-1.7.10-0.24.1.jar",
@@ -2196,7 +3702,15 @@
         "wants": ["BaublesExpanded"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "1.7.10-0.24.1"
+        "update_state": {
+            "version": "0.24.1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
     },
     "zume": {
         "file_path": "../.minecraft/mods/[CLIENT]zume-0.16.0.jar",
@@ -2207,6 +3721,14 @@
         "wants": ["unimixins"],
         "enabled": true,
         "other_mod_ids": [],
-        "version": "0.16.0"
+        "update_state": {
+            "version": "0.16.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "MODRINTH",
+            "file_pattern": ""
+        }
     }
 }
