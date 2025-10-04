@@ -89,6 +89,10 @@ export function isUpdateFrequency(val: any): val is update_frequency {
     return Object.values(UpdateFrequenciesEnum).includes(val as UpdateFrequenciesEnum);
 }
 
+export function getUpdateFrequencyOrdinal(freq: update_frequency): number {
+    return Object.values(UpdateFrequenciesEnum).indexOf(freq as UpdateFrequenciesEnum);
+}
+
 //#region general
 /**
  * Read a map of annotated mods from a json file, and return them as parsed objects
@@ -114,9 +118,11 @@ export async function read_saved_mods(annotated_file: string): Promise<Map<strin
                 version: mod.update_state?.version || default_mod_object.update_state.version,
                 disable_check: mod.update_state?.disable_check || default_mod_object.update_state.disable_check,
                 frequency:
-                    mod.update_state?.frequency || ((mod.source as string) || ('' as string)).startsWith('https://github.com')
-                        ? 'COMMON'
-                        : default_mod_object.update_state.frequency,
+                    mod.update_state?.frequency != undefined
+                        ? mod.update_state?.frequency
+                        : ((mod.source as string) || ('' as string)).startsWith('https://github.com')
+                          ? 'COMMON'
+                          : default_mod_object.update_state.frequency,
                 last_status: mod.update_state?.last_status || default_mod_object.update_state.last_status,
                 last_updated_at: mod.update_state?.last_updated_at || default_mod_object.update_state.last_updated_at,
                 source_type:
@@ -299,7 +305,7 @@ export async function disable_all_mods(mod_map?: Map<string, mod_object>) {
  */
 export async function extract_modinfos(files: Map<string, string>): Promise<Map<string, mod_object_unsafe>> {
     const mods = new Map();
-    for (const [file_path, ] of files) {
+    for (const [file_path] of files) {
         const { id, other_mod_ids, state, version, wants } = await parse_mod_details(file_path);
         if (id != undefined) {
             const mod: mod_object_unsafe = {
@@ -309,8 +315,8 @@ export async function extract_modinfos(files: Map<string, string>): Promise<Map<
                 enabled: state,
                 file_path: file_path,
                 update_state: {
-                    version: version
-                }
+                    version: version,
+                },
             };
             mods.set(file_path, mod);
         } else {

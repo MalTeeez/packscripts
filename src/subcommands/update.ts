@@ -1,5 +1,5 @@
-import { read_saved_mods, type mod_object, type update_frequency } from '../utils/mods';
-import { compare_versions, type JsonObject } from '../utils/utils';
+import { getUpdateFrequencyOrdinal, read_saved_mods, type mod_object, type update_frequency } from '../utils/mods';
+import { CLIColor, compare_versions, rev_replace_all, type JsonObject } from '../utils/utils';
 import { GITHUB_API_KEY } from '../../.env.json';
 import { save_map_to_file } from '../utils/fs';
 
@@ -14,12 +14,23 @@ export async function check_all_mods_for_updates(
     mod_map = mod_map == undefined ? await read_saved_mods('./annotated_mods.json') : mod_map;
     const fetch_map: Map<
         string,
-        { mod_obj: mod_object; res: Promise<{ status: string; version?: string; file_name?: string; file_url?: string } | undefined> }
+        {
+            mod_obj: mod_object;
+            res: Promise<{ status: string; version?: string; file_name?: string; file_url?: string; source_type?: string } | undefined>;
+        }
     > = new Map();
     let longest_mod_id_length = 0;
 
     for (const [mod_id, mod_obj] of mod_map.entries()) {
+        // Skip this mod if errored on a previous check and retry is off
         if (mod_obj.update_state.last_status !== '200' && !options.retry_failed) continue;
+        // Skip this mod if its update frequency is below the provided threshold
+        if (getUpdateFrequencyOrdinal(mod_obj.update_state.frequency) > getUpdateFrequencyOrdinal(options.frequency_range)) continue;
+
+        // console.log(
+        // `mod ${mod_id} has freq \t${mod_obj.update_state.frequency} (${getUpdateFrequencyOrdinal(mod_obj.update_state.frequency)}) for threshold ${options.frequency_range} (${getUpdateFrequencyOrdinal(options.frequency_range)})`,
+        // );
+
         longest_mod_id_length = Math.max(mod_id.length, longest_mod_id_length);
         if (mod_obj.source) {
             fetch_map.set(mod_id, { mod_obj, res: check_url_for_updates(mod_obj.source, mod_obj.update_state.file_pattern) });
@@ -27,30 +38,50 @@ export async function check_all_mods_for_updates(
     }
 
     longest_mod_id_length++;
-    let version_length = 10;
+    let version_length = 20;
+    const to_update_mods: {
+        mod_id: string;
+        mod_obj: mod_object;
+        remote_version: string;
+        file_name: string;
+        file_url: string;
+        source_type: string;
+    }[] = [];
+
     for (const [mod_id, { mod_obj, res }] of fetch_map.entries()) {
         const content = await res;
         if (content != undefined) {
-            const { version: remote_version, status, file_name, file_url } = content;
-            if (mod_obj.update_state.version && remote_version && status && file_name && file_url) {
+            const { version: remote_version, status, file_name, file_url, source_type } = content;
+            if (mod_obj.update_state.version && remote_version && status && file_name && file_url && source_type) {
                 const id_padding_len = longest_mod_id_length - mod_id.length;
                 const vers_padding_len = version_length - Math.min(mod_obj.update_state.version.length, version_length);
                 const version_change = compare_versions(mod_obj.update_state.version, remote_version);
+                let change_string = `${CLIColor.FgBlack}-${CLIColor.Reset}`;
 
                 if (version_change == -1) {
-                    console.log(
-                        `\t${mod_id + ' '.repeat(id_padding_len)}[${version_change}]: ${mod_obj.update_state.version + ' '.repeat(vers_padding_len)} ->\t${remote_version}`,
-                    );
+                    to_update_mods.push({ mod_id, mod_obj, remote_version, file_url, file_name, source_type });
+                    change_string = `${CLIColor.FgGreen}↑${CLIColor.Reset}`;
                 } else if (version_change == 1) {
-                    console.log(
-                        `\tRemote version of mod ${mod_id} (${remote_version}) is older than the local ${mod_obj.update_state.version}?`,
-                    );
+                    change_string = `${CLIColor.FgYellow}↓${CLIColor.Reset}`;
                 }
+
+                console.log(
+                    ` ${CLIColor.FgGray}-${CLIColor.Reset} ${mod_id} ${CLIColor.FgGray}${rev_replace_all(' '.repeat(id_padding_len), '   ', ' . ')}` +
+                        ` ${CLIColor.FgGray}${CLIColor.Bright}${mod_obj.update_state.version}${CLIColor.Reset}${CLIColor.FgGray}${rev_replace_all(' '.repeat(vers_padding_len), '   ', ' . ')}` +
+                        ` ${CLIColor.Reset}${CLIColor.Bright}${change_string}${CLIColor.Reset}${CLIColor.FgGray}  .  ${CLIColor.Reset}${remote_version}`,
+                );
             }
             // Update mod_map with status of request
             mod_obj.update_state.last_status = status;
         }
     }
+    console.log(
+        `\n ${CLIColor.FgWhite}${CLIColor.Bright}${to_update_mods.length}${CLIColor.FgGray} of ${CLIColor.FgWhite}${CLIColor.Bright}${mod_map.size}${CLIColor.FgGray} mods can be upgraded. ` +
+            `${CLIColor.FgGray}(${CLIColor.FgGreen}${to_update_mods.filter(({ source_type }) => source_type === 'GitHub').length}${CLIColor.FgGray} from ${CLIColor.FgWhite}GitHub${CLIColor.FgGray}, ` +
+            `${CLIColor.FgGreen}${to_update_mods.filter(({ source_type }) => source_type === 'CurseForge').length}${CLIColor.FgGray} from ${CLIColor.FgWhite}Curseforge${CLIColor.FgGray}, ` +
+            `${CLIColor.FgGreen}${to_update_mods.filter(({ source_type }) => source_type === 'Modrinth').length}${CLIColor.FgGray} from ${CLIColor.FgWhite}Modrinth${CLIColor.FgGray})${CLIColor.Reset}\n`,
+    );
+
     const rate_limits = (await ((await gh_request('/rate_limit')) as any)?.json()).resources?.core;
     const reset_in = (rate_limits.reset - Date.now() / 1000) / 60;
     console.log(`rate limits - used: ${rate_limits.used}, remaining: ${rate_limits.remaining}, reset in: ${reset_in.toFixed(1)} mins`);
@@ -61,7 +92,10 @@ export async function check_all_mods_for_updates(
 async function check_url_for_updates(
     url: string,
     file_pattern: string | undefined,
-): Promise<{ status: string; version?: string; file_name?: string; file_url?: string } | undefined> {
+): Promise<
+    | { status: string; version?: string; file_name?: string; file_url?: string; source_type?: 'GitHub' | 'CurseForge' | 'Modrinth' }
+    | undefined
+> {
     if (url.startsWith('https://github.com/')) {
         const { status, body } = await check_gh_releases(url);
         if (status == '200' && body != undefined) {
@@ -121,9 +155,9 @@ async function check_url_for_updates(
                 return undefined;
             }
 
-            return { version: version as string, status, file_name: file, file_url: dl_url };
+            return { version: version as string, status, file_name: file, file_url: dl_url, source_type: 'GitHub' };
         } else {
-            return { version: undefined, status, file_name: undefined, file_url: undefined };
+            return { version: undefined, status, file_name: undefined, file_url: undefined, source_type: undefined };
         }
     }
     return undefined;

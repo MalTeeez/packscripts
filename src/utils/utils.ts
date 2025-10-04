@@ -133,7 +133,7 @@ export function print_pretty(...args: [string, string[]][]) {
 
     // Calculate maximum lengths per col
     for (const [header, array] of args) {
-        const full_arr = [...[header], ...array]
+        const full_arr = [...[header], ...array];
         for (const text of full_arr) {
             lengths[i] = Math.max(lengths[i] || 0, text.length);
         }
@@ -141,50 +141,50 @@ export function print_pretty(...args: [string, string[]][]) {
         max_size = Math.max(max_size, array.length);
         i++;
     }
-    
+
     // Header & Footer rows
     i = 0;
-    let output = "┌─";
-    let footer = "└─";
+    let output = '┌─';
+    let footer = '└─';
     for (const arr of lines) {
-        const header = arr[0] || "";
+        const header = arr[0] || '';
         // Header is left-aligned, and uses the first entry in each column
-        output += header + "─".repeat((lengths[i] || header.length) - header.length);
+        output += header + '─'.repeat((lengths[i] || header.length) - header.length);
         // Footer is right-aligned and contains the number of items in its respective column
-        const footer_text = "(" + (arr.length - 1) + " item" + ((arr.length - 1) == 1 ? "" : "s") + ")";
-        footer += "─".repeat((lengths[i] || footer_text.length) - footer_text.length) + footer_text
+        const footer_text = '(' + (arr.length - 1) + ' item' + (arr.length - 1 == 1 ? '' : 's') + ')';
+        footer += '─'.repeat((lengths[i] || footer_text.length) - footer_text.length) + footer_text;
 
         if (i >= lengths.length - 1) {
-            output += "─┐\n";
-            footer += "─┘\n";
+            output += '─┐\n';
+            footer += '─┘\n';
         } else {
-            output += "─┬─";
-            footer += "─┴─";
+            output += '─┬─';
+            footer += '─┴─';
         }
         i++;
     }
-    
+
     // Data rows
     for (i = 1; i <= max_size; i++) {
-        let row = "| ";
+        let row = '| ';
         let col_num = 0;
         for (const arr of lines) {
-            const text = arr[i] || "";
+            const text = arr[i] || '';
             // Align text left, numbers right
             if (Number.isNaN(+text)) {
-                row += text + " ".repeat((lengths[col_num] || text.length) - text.length);
+                row += text + ' '.repeat((lengths[col_num] || text.length) - text.length);
             } else {
-                row += " ".repeat((lengths[col_num] || text.length) - text.length) + text;
+                row += ' '.repeat((lengths[col_num] || text.length) - text.length) + text;
             }
-            
-            if (col_num < lengths.length - 1) row += " | ";
+
+            if (col_num < lengths.length - 1) row += ' | ';
             col_num++;
         }
-        output += row + " |\n"
+        output += row + ' |\n';
     }
 
     output += footer;
-    console.log(output)
+    console.log(output);
 }
 
 /**
@@ -200,6 +200,49 @@ export function delay(t: number | undefined) {
     });
 }
 
-export function SetFrom<T>(input: Array<T>): Set<T> {
-    return new Set(input)
+/**
+ * Basically string.replace(), but start at the back of the string.
+ */
+export function rev_replace_all(input: string, target: string, replacer: string): string {
+    const block_length = target.length - 1;
+    let builder = "";
+    for (let i = input.length - 1; i >= 0; i--) {
+        if (i - block_length >= 0 && input.slice(i - block_length, i + 1) === target) {
+            builder = replacer + builder;
+            i -= block_length;
+        } else {
+            builder = input.at(i) + builder;
+        }
+    }
+    return builder;
+}
+
+export enum CLIColor {
+    Reset = "\x1b[0m",
+    Bright = "\x1b[1m",
+    Dim = "\x1b[2m",
+    Underscore = "\x1b[4m",
+    Blink = "\x1b[5m",
+    Reverse = "\x1b[7m",
+    Hidden = "\x1b[8m",
+
+    FgBlack = "\x1b[30m",
+    FgRed = "\x1b[31m",
+    FgGreen = "\x1b[32m",
+    FgYellow = "\x1b[33m",
+    FgBlue = "\x1b[34m",
+    FgMagenta = "\x1b[35m",
+    FgCyan = "\x1b[36m",
+    FgWhite = "\x1b[37m",
+    FgGray = "\x1b[90m",
+
+    BgBlack = "\x1b[40m",
+    BgRed = "\x1b[41m",
+    BgGreen = "\x1b[42m",
+    BgYellow = "\x1b[43m",
+    BgBlue = "\x1b[44m",
+    BgMagenta = "\x1b[45m",
+    BgCyan = "\x1b[46m",
+    BgWhite = "\x1b[47m",
+    BgGray = "\x1b[100m"
 }

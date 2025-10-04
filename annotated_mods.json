@@ -2284,7 +2284,7 @@
         "update_state": {
             "version": "0.3.3.2+nomixin",
             "disable_check": false,
-            "frequency": "COMMON",
+            "frequency": "RARE",
             "last_status": "200",
             "last_updated_at": "",
             "source_type": "GH_RELEASE",
@@ -3264,7 +3264,7 @@
         "update_state": {
             "version": "4.24",
             "disable_check": false,
-            "frequency": "COMMON",
+            "frequency": "RARE",
             "last_status": "200",
             "last_updated_at": "",
             "source_type": "GH_RELEASE",
