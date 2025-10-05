@@ -190,14 +190,11 @@ export function print_pretty(...args: [string, string[]][]) {
 /**
  * Delay execution by a given time
  * @param {number} t Time in millis
+ * @param return_value An optional value to return once the delay is done
  * @returns A promise to await
  */
-export function delay(t: number | undefined) {
-    return /** @type {Promise<void>} */ new Promise<void>(function (resolve) {
-        setTimeout(function () {
-            resolve();
-        }, t);
-    });
+export function delay(t: number | undefined, return_value?: any) {
+    return new Promise((resolve) => setTimeout(() => resolve(return_value), t));
 }
 
 /**
@@ -205,7 +202,7 @@ export function delay(t: number | undefined) {
  */
 export function rev_replace_all(input: string, target: string, replacer: string): string {
     const block_length = target.length - 1;
-    let builder = "";
+    let builder = '';
     for (let i = input.length - 1; i >= 0; i--) {
         if (i - block_length >= 0 && input.slice(i - block_length, i + 1) === target) {
             builder = replacer + builder;
@@ -218,31 +215,92 @@ export function rev_replace_all(input: string, target: string, replacer: string)
 }
 
 export enum CLIColor {
-    Reset = "\x1b[0m",
-    Bright = "\x1b[1m",
-    Dim = "\x1b[2m",
-    Underscore = "\x1b[4m",
-    Blink = "\x1b[5m",
-    Reverse = "\x1b[7m",
-    Hidden = "\x1b[8m",
+    Reset = '\x1b[0m',
+    Bright = '\x1b[1m',
+    Dim = '\x1b[2m',
+    Underscore = '\x1b[4m',
+    Blink = '\x1b[5m',
+    Reverse = '\x1b[7m',
+    Hidden = '\x1b[8m',
 
-    FgBlack = "\x1b[30m",
-    FgRed = "\x1b[31m",
-    FgGreen = "\x1b[32m",
-    FgYellow = "\x1b[33m",
-    FgBlue = "\x1b[34m",
-    FgMagenta = "\x1b[35m",
-    FgCyan = "\x1b[36m",
-    FgWhite = "\x1b[37m",
-    FgGray = "\x1b[90m",
+    FgBlack = '\x1b[30m',
+    FgRed = '\x1b[31m',
+    FgGreen = '\x1b[32m',
+    FgYellow = '\x1b[33m',
+    FgBlue = '\x1b[34m',
+    FgMagenta = '\x1b[35m',
+    FgCyan = '\x1b[36m',
+    FgWhite = '\x1b[37m',
+    FgGray = '\x1b[90m',
 
-    BgBlack = "\x1b[40m",
-    BgRed = "\x1b[41m",
-    BgGreen = "\x1b[42m",
-    BgYellow = "\x1b[43m",
-    BgBlue = "\x1b[44m",
-    BgMagenta = "\x1b[45m",
-    BgCyan = "\x1b[46m",
-    BgWhite = "\x1b[47m",
-    BgGray = "\x1b[100m"
+    BgBlack = '\x1b[40m',
+    BgRed = '\x1b[41m',
+    BgGreen = '\x1b[42m',
+    BgYellow = '\x1b[43m',
+    BgBlue = '\x1b[44m',
+    BgMagenta = '\x1b[45m',
+    BgCyan = '\x1b[46m',
+    BgWhite = '\x1b[47m',
+    BgGray = '\x1b[100m',
+}
+
+export async function is_resolved(promise: Promise<any>) {
+    return await Promise.race([
+        delay(0, false),
+        promise.then(
+            () => true,
+            () => false,
+        ),
+    ]);
+}
+
+export async function is_rejected(promise: Promise<any>) {
+    return await Promise.race([
+        delay(0, false),
+        promise.then(
+            () => false,
+            () => true,
+        ),
+    ]);
+}
+
+export async function is_finished(promise: Promise<any>) {
+    return await Promise.race([
+        delay(0, false),
+        promise.then(
+            () => true,
+            () => true,
+        ),
+    ]);
+}
+
+export function init_live_zone(live_lines: number) {
+    for (let i = 0; i < live_lines; i++) {
+        console.log('');
+    }
+    // Move cursor back up to above the live zone
+    process.stdout.moveCursor(0, -live_lines);
+}
+
+export function finish_live_zone(live_lines: number) {
+    // Move cursor back down past the live zone
+    process.stdout.moveCursor(0, live_lines);
+    console.log('');
+}
+
+export function update_live_zone(lines: string[]) {
+    const live_lines = lines.length;
+    
+    // Move down to start of live zone
+    process.stdout.moveCursor(0, 0);
+    
+    // Print line updates
+    for (const line of lines) {
+        process.stdout.clearLine(0);
+        process.stdout.cursorTo(0);
+        process.stdout.write(line + '\n');
+    }
+    
+    // Move cursor back up to above the live zone
+    process.stdout.moveCursor(0, -live_lines);
 }

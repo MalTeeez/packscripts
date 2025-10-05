@@ -2,3 +2,4 @@ node_modules/**
 bun.lock
 pnpm-lock.yaml
 .annotate_history.json
+tmp/

@@ -1,7 +1,15 @@
-import { MOD_BASE_DIR } from "../utils/consts";
-import { save_map_to_file, scan_mods_folder } from "../utils/fs";
-import { disable_mod_deep, enable_base_mods, enable_mod_deep, extract_modinfos, read_saved_mods, toggle_mod_deep, type mod_object } from "../utils/mods";
-import { print_pretty } from "../utils/utils";
+import { MOD_BASE_DIR } from '../utils/consts';
+import { save_map_to_file, scan_mods_folder } from '../utils/fs';
+import {
+    disable_mod_deep,
+    enable_base_mods,
+    enable_mod_deep,
+    extract_modinfos,
+    read_saved_mods,
+    toggle_mod_deep,
+    type mod_object,
+} from '../utils/mods';
+import { print_pretty } from '../utils/utils';
 
 /**
  * Enable a list of mods by their id
@@ -56,7 +64,7 @@ export async function disable_atomic_deep(opts_mod_id: string[], mod_map?: Map<s
     }
 }
 
-export async function list_mods() {
+export async function list_mods_folder() {
     // Intialize array with 4 cols, and set their headers
     const mods: Array<[string, string[]]> = [
         ['Enabled Mod Id', []],
@@ -76,6 +84,32 @@ export async function list_mods() {
             mods[2][1].push(mod_object.mod_id);
             //@ts-ignore
             mods[3][1].push(file_path);
+        }
+    }
+
+    print_pretty(...mods);
+}
+
+export async function list_mods() {
+    // Intialize array with 4 cols, and set their headers
+    const mods: Array<[string, string[]]> = [
+        ['Enabled Mod Id', []],
+        ['File Path', []],
+        ['Disabled Mod Id', []],
+        ['File Path', []],
+    ];
+
+    for (const [mod_id, mod_object] of await read_saved_mods('./annotated_mods.json')) {
+        if (mod_object.enabled) {
+            //@ts-ignore
+            mods[0][1].push(mod_id);
+            //@ts-ignore
+            mods[1][1].push(mod_object.file_path);
+        } else {
+            //@ts-ignore
+            mods[2][1].push(mod_id);
+            //@ts-ignore
+            mods[3][1].push(mod_object.file_path);
         }
     }
 

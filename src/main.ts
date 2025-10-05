@@ -3,7 +3,7 @@ import { binary_search_disable } from './subcommands/binary';
 import { enable_all_mods, disable_all_mods, get_details_from_mainclass, type update_frequency, isUpdateFrequency } from './utils/mods';
 import { MOD_BASE_DIR } from './utils/consts';
 import { annotate } from './subcommands/annotate';
-import { disable_atomic_deep, enable_atomic_deep, list_mods, toggle_mod } from './subcommands/simple';
+import { disable_atomic_deep, enable_atomic_deep, list_mods, list_mods_folder, toggle_mod } from './subcommands/simple';
 import { visualize_graph } from './subcommands/graph';
 import { check_all_mods_for_updates } from './subcommands/update';
 
@@ -24,7 +24,12 @@ const commands: Record<string, CommandDefinition> = {
     },
     list: {
         description: 'List all indexed mods',
-        handler: async () => {
+        usage: 'list [--files]',
+        handler: async (args) => {
+            if (args.includes('--files')) {
+                await list_mods_folder();
+                return;
+            }
             await list_mods();
         },
     },
@@ -106,17 +111,21 @@ const commands: Record<string, CommandDefinition> = {
         usage: 'update <COMMON|RARE|EOL> [--retry]',
         handler: async (args) => {
             let frequency: update_frequency = 'COMMON';
-            if (args.length > 0 && !isUpdateFrequency(args[0])) {
+            const freq_provided = args.length > 0 && !args[0]?.startsWith('--');
+            if (freq_provided && !isUpdateFrequency(args[0])) {
                 console.error('Error: Invalid frequency. Must be one of: COMMON, RARE, EOL');
                 return;
-            } else if (args.length > 0 && isUpdateFrequency(args[0])) {
+            } else if (freq_provided && isUpdateFrequency(args[0])) {
                 frequency = args[0];
             }
             console.log('Checking mods for updates...');
-            await check_all_mods_for_updates({
-                frequency_range: frequency,
-                retry_failed: args.includes('--retry'),
-            });
+            await check_all_mods_for_updates(
+                {
+                    frequency_range: frequency,
+                    retry_failed: args.includes('--retry'),
+                },
+                !args.includes('--upgrade'),
+            );
         },
     },
     debug: {
