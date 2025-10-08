@@ -274,33 +274,48 @@ export async function is_finished(promise: Promise<any>) {
     ]);
 }
 
-export function init_live_zone(live_lines: number) {
-    for (let i = 0; i < live_lines; i++) {
-        console.log('');
+let live_lines = 0;
+let live_content: string[] = [];
+
+export function init_live_zone(lines: number) {
+    // Initial empty space above live zone
+    for (let i = 0; i <= lines; i++) {
+        process.stdout.write('\n');
     }
-    // Move cursor back up to above the live zone
-    process.stdout.moveCursor(0, -live_lines);
+    // Move cursor up to above the live zone
+    process.stdout.moveCursor(0, -(lines + 1));
+    live_lines = lines;
 }
 
-export function finish_live_zone(live_lines: number) {
+export function finish_live_zone() {
     // Move cursor back down past the live zone
     process.stdout.moveCursor(0, live_lines);
-    console.log('');
+    process.stdout.write('\n');
+    live_lines = 0;
+    live_content = [];
 }
 
 export function update_live_zone(lines: string[]) {
-    const live_lines = lines.length;
-    
-    // Move down to start of live zone
-    process.stdout.moveCursor(0, 0);
-    
+    live_lines = lines.length;
+
     // Print line updates
     for (const line of lines) {
         process.stdout.clearLine(0);
         process.stdout.cursorTo(0);
         process.stdout.write(line + '\n');
     }
-    
+
     // Move cursor back up to above the live zone
-    process.stdout.moveCursor(0, -live_lines);
+    process.stdout.moveCursor(0, -(live_lines));
+    live_content = lines;
+}
+
+export function set_live_zone(lines: string[]) {
+    live_content = lines;
+}
+
+export function live_log(input: any, func: (message: any) => void = console.log) {
+    process.stdout.clearLine(0);
+    func(input);
+    update_live_zone(live_content)
 }

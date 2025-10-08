@@ -5,15 +5,16 @@ import {
     finish_live_zone,
     init_live_zone,
     is_finished,
+    live_log,
     rev_replace_all,
     update_live_zone,
-    update_stdout,
     type JsonObject,
 } from '../utils/utils';
 import { GITHUB_API_KEY } from '../../.env.json';
-import { save_map_to_file } from '../utils/fs';
-import { mkdir } from 'node:fs/promises';
+import { rename_file, save_map_to_file } from '../utils/fs';
+import { mkdir, rename } from 'node:fs/promises';
 import path from 'node:path';
+import { DOWNLOAD_TEMP_DIR, MOD_BASE_DIR } from '../utils/consts';
 
 export async function check_all_mods_for_updates(
     options: {
@@ -38,6 +39,8 @@ export async function check_all_mods_for_updates(
         if (mod_obj.update_state.last_status !== '200' && !options.retry_failed) continue;
         // Skip this mod if its update frequency is below the provided threshold
         if (getUpdateFrequencyOrdinal(mod_obj.update_state.frequency) > getUpdateFrequencyOrdinal(options.frequency_range)) continue;
+        // Skip this mod if it has updates disabled
+        if (mod_obj.update_state.disable_check) continue;
 
         longest_mod_id_length = Math.max(mod_id.length, longest_mod_id_length);
         if (mod_obj.source) {
@@ -90,10 +93,6 @@ export async function check_all_mods_for_updates(
             `${CLIColor.Reset}${dry ? `${CLIColor.FgGray} -- ${CLIColor.Reset}Upgrade with --upgrade` : ''}\n`,
     );
 
-    const rate_limits = (await ((await gh_request('/rate_limit')) as any)?.json()).resources?.core;
-    const reset_in = (rate_limits.reset - Date.now() / 1000) / 60;
-    console.log(`rate limits - used: ${rate_limits.used}, remaining: ${rate_limits.remaining}, reset in: ${reset_in.toFixed(1)} mins`);
-
     // Save http status codes returned from sources back to map for next time
     await save_map_to_file('./annotated_mods.json', mod_map);
 
@@ -101,7 +100,6 @@ export async function check_all_mods_for_updates(
 
     // If this is not a dry run and there are mods to download, actually download them
     if (to_update_mods.length > 0 && !dry) {
-        const DOWNLOAD_TEMP_DIR = './tmp/downloads';
         const DOWNLOAD_BATCH_SIZE = 5;
 
         // Prepare temp download directory
@@ -113,7 +111,11 @@ export async function check_all_mods_for_updates(
         let running_updates = 0;
         let completed_dls = 0;
         const full_dls = to_update_mods.length;
-        const download_map: Map<string, { response: Promise<string>; remote_version: string; start_time: number }> = new Map();
+        const download_map: Map<string, { response: Promise<string>; remote_version: string; start_time: number; file_name: string }> =
+            new Map();
+        const downloaded_mods: Map<string, { remote_version: string; file_name: string }> = new Map();
+        console.log(`Upgrading ${full_dls} mods...`);
+
         init_live_zone(2);
         while (download_map.size > 0 || to_update_mods.length > 0) {
             const progress = Math.ceil(((completed_dls / full_dls) * 100) / 2);
@@ -137,6 +139,7 @@ export async function check_all_mods_for_updates(
                             ),
                             remote_version: to_download_mod.remote_version,
                             start_time: Date.now(),
+                            file_name: to_download_mod.file_name,
                         });
                         running_updates++;
                     }
@@ -144,7 +147,7 @@ export async function check_all_mods_for_updates(
             }
 
             const finished_dls: string[] = [];
-            for (const [mod_id, { response, remote_version, start_time }] of download_map.entries()) {
+            for (const [mod_id, { response, remote_version, start_time, file_name }] of download_map.entries()) {
                 if (await is_finished(response)) {
                     const id_padding_len = longest_mod_id_length - mod_id.length;
                     let state_string = '?';
@@ -152,34 +155,86 @@ export async function check_all_mods_for_updates(
                     await response
                         .then((status) => (state_string = `${CLIColor.FgGreen}✔`))
                         .catch((status) => {
-                            console.warn(status);
+                            live_log(status, console.warn);
                             state_string = `${CLIColor.FgRed}✖${CLIColor.Reset}`;
                         });
 
-                    console.log(
+                    live_log(
                         ` ${CLIColor.FgGray}-${CLIColor.Reset} ${mod_id} ${CLIColor.FgGray}${rev_replace_all(' '.repeat(id_padding_len), '   ', ' . ')}` +
                             ` ${CLIColor.Reset}${CLIColor.Bright}${state_string}${CLIColor.Reset}`,
                     );
 
+                    downloaded_mods.set(mod_id, { file_name, remote_version });
                     completed_dls++;
                     running_updates--;
                     finished_dls.push(mod_id);
                 } else {
                     if (Date.now() - start_time > 20000) {
-                        console.warn(`W: Mod ${mod_id} has been downloading for more than 20 seconds - stalled?`);
+                        live_log(`W: Mod ${mod_id} has been downloading for more than 20 seconds - stalled?`, console.warn);
                     }
                 }
             }
             finished_dls.forEach((mod_id) => download_map.delete(mod_id));
         }
         const progress = Math.ceil(((completed_dls / full_dls) * 100) / 2);
-            update_live_zone([
-                `${CLIColor.FgWhite}${'='.repeat(progress)}${CLIColor.FgGray}${'-'.repeat(50 - progress)}${CLIColor.Reset}`,
-                `Upgrading mods - ${CLIColor.FgWhite}${completed_dls}${CLIColor.FgGray} of ${CLIColor.FgWhite}${full_dls}${CLIColor.Reset}`,
-            ]);
-        finish_live_zone(2);
-        console.log('Finished downloading all mods!');
+        update_live_zone([
+            `${CLIColor.FgWhite}${'='.repeat(progress)}${CLIColor.FgGray}${'-'.repeat(50 - progress)}${CLIColor.Reset}`,
+            `Upgrading mods${CLIColor.FgGray} - ${CLIColor.FgWhite}${completed_dls}${CLIColor.FgGray} of ${CLIColor.FgWhite}${full_dls}${CLIColor.Reset}`,
+        ]);
+        finish_live_zone();
+
+        console.log('Finished upgrading all mods!');
+
+        for (const [mod_id, { file_name, remote_version }] of downloaded_mods.entries()) {
+            const mod = mod_map.get(mod_id);
+            if (mod) {
+                await replace_mod_file(mod_id, mod, file_name)
+                    .then((new_file_path) => {
+                        mod.file_path = new_file_path;
+                        mod.update_state.version = remote_version;
+                        mod.update_state.last_updated_at = new Date(Date.now()).toISOString();
+                    })
+                    .catch((err) => {
+                        console.warn(err);
+                    });
+            }
+        }
+
+        // Save updated files & versions back to file (only changes when upgrading)
+        await save_map_to_file('./annotated_mods.json', mod_map);
     }
+
+    await print_gh_ratelimits();
+}
+
+/**
+ * Replaces a mods file with a newer file from the downloads folder.
+ * @returns The relative path to the new mod files location in a promise for resolve, an error message for reject.
+ */
+async function replace_mod_file(mod_id: string, mod: mod_object, file_name: string): Promise<string> {
+    return new Promise(async (resolve, reject) => {
+        const new_file = Bun.file(`${DOWNLOAD_TEMP_DIR}/${file_name}`);
+        if ((await new_file.exists()) && new_file.name) {
+            await rename(new_file.name, `${MOD_BASE_DIR}/${file_name}`)
+                .then(async () => {
+                    const old_file = Bun.file(mod.file_path);
+                    if (await old_file.exists()) {
+                        await old_file.delete().catch(() => {
+                            console.warn(`W: Failed to delete older file for mod ${mod_id} as ${mod.file_path}, but we upgraded it.`);
+                        });
+                    } else {
+                        // This is not a full failure, since a state with the old file can still mean that the new mod is there - we need to track that
+                        console.log(`W: Older file for mod "${mod_id}" at ${mod.file_path} does not exist, but we upgraded it.`);
+                    }
+                    return resolve(new_file.name as string);
+                })
+                .catch(() => {
+                    return reject(`W: Failed to move file ${file_name} to mods folder`);
+                });
+        } else {
+            return reject(`W: Failed to move file ${file_name} to mods folder. File is missing.`);
+        }
+    });
 }
 
 async function check_url_for_updates(
@@ -334,4 +389,10 @@ async function gh_request(path: string, method: string = 'GET'): Promise<Respons
     }
 
     return res;
+}
+
+async function print_gh_ratelimits() {
+    const rate_limits = (await ((await gh_request('/rate_limit')) as any)?.json()).resources?.core;
+    const reset_in = (rate_limits.reset - Date.now() / 1000) / 60;
+    console.log(`rate limits - used: ${rate_limits.used}, remaining: ${rate_limits.remaining}, reset in: ${reset_in.toFixed(1)} mins`);
 }

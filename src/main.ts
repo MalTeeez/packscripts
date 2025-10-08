@@ -132,7 +132,7 @@ const commands: Record<string, CommandDefinition> = {
         description: 'Run debug operations',
         handler: async () => {
             console.log('Debug run...');
-            const a = await get_details_from_mainclass(MOD_BASE_DIR + 'buildcraft-7.1.42.jar');
+            const a = await get_details_from_mainclass(`${MOD_BASE_DIR}/buildcraft-7.1.42.jar`);
             console.log(a);
         },
     },
