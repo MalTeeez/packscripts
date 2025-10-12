@@ -12,7 +12,7 @@ import {
 } from '../utils/utils';
 import { GITHUB_API_KEY } from '../../.env.json';
 import { rename_file, save_map_to_file } from '../utils/fs';
-import { mkdir, rename } from 'node:fs/promises';
+import { mkdir, rename, rmdir } from 'node:fs/promises';
 import path from 'node:path';
 import { DOWNLOAD_TEMP_DIR, MOD_BASE_DIR } from '../utils/consts';
 
@@ -204,6 +204,13 @@ export async function check_all_mods_for_updates(
         await save_map_to_file('./annotated_mods.json', mod_map);
     }
 
+    // Clean up temp folder
+    try {
+        // await rmdir(DOWNLOAD_TEMP_DIR, { recursive: true });
+    } catch (err) {
+        // Folder is probably missing, which is fine
+    }
+
     await print_gh_ratelimits();
 }
 
@@ -226,7 +233,7 @@ async function replace_mod_file(mod_id: string, mod: mod_object, file_name: stri
                         // This is not a full failure, since a state with the old file can still mean that the new mod is there - we need to track that
                         console.log(`W: Older file for mod "${mod_id}" at ${mod.file_path} does not exist, but we upgraded it.`);
                     }
-                    return resolve(new_file.name as string);
+                    return resolve(`${MOD_BASE_DIR}/${file_name}`);
                 })
                 .catch(() => {
                     return reject(`W: Failed to move file ${file_name} to mods folder`);
@@ -278,7 +285,8 @@ async function check_url_for_updates(
                             !asset.name.endsWith('-dev.jar') &&
                             !asset.name.endsWith('-api.jar') &&
                             !asset.name.endsWith('-preshadow.jar') &&
-                            !asset.name.endsWith('-prestub.jar')
+                            !asset.name.endsWith('-prestub.jar') &&
+                            !asset.name.endsWith('-javadoc.jar')
                         ) {
                             filtered_assets.push(asset);
                         }

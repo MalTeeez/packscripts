@@ -1,5 +1,5 @@
 import { save_map_to_file } from '../utils/fs';
-import { disable_all_mods, enable_base_mods, read_saved_mods, type mod_object } from '../utils/mods';
+import { disable_all_mods, enable_base_mods, enable_mod_deep, read_saved_mods, type mod_object } from '../utils/mods';
 import { divide_to_full_groups, print_pretty } from '../utils/utils';
 
 type ModGroupOptions = {
@@ -171,8 +171,4 @@ export async function binary_search_disable(target_fractions: string[], dry_run:
     } else {
         console.error('Received faulty fraction.');
     }
-}
-
-function enable_mod_deep(mod_id: string, mod_map: any, changed_list: string[]) {
-    throw new Error('Function not implemented.');
 }

@@ -500,25 +500,6 @@
             "file_pattern": ""
         }
     },
-    "Ding": {
-        "file_path": "../.minecraft/mods/Ding-MC1.7.10v2.jar",
-        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://www.curseforge.com/minecraft/mc-mods/ding/files/2283572",
-        "notes": "",
-        "wanted_by": [],
-        "wants": [],
-        "enabled": true,
-        "other_mod_ids": [],
-        "update_state": {
-            "version": "v2",
-            "disable_check": false,
-            "frequency": "COMMON",
-            "last_status": "200",
-            "last_updated_at": "",
-            "source_type": "CURSEFORGE",
-            "file_pattern": ""
-        }
-    },
     "DraconicEvolution": {
         "file_path": "../.minecraft/mods/Draconic-Evolution-1.2.1-GTNH-U25r.3+add1ed49ec.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER", "CUSTOM"],
@@ -1380,25 +1361,6 @@
             "file_pattern": ""
         }
     },
-    "ResourceLoader": {
-        "file_path": "../.minecraft/mods/[CLIENT]ResourceLoader-MC1.7.10-1.3.jar",
-        "tags": ["SIDE.CLIENT"],
-        "source": "https://www.curseforge.com/minecraft/mc-mods/resource-loader/files/2292845",
-        "notes": "Reponsible for the resources/ directory.",
-        "wanted_by": ["custommainmenu"],
-        "wants": [],
-        "enabled": true,
-        "other_mod_ids": [],
-        "update_state": {
-            "version": "1.3",
-            "disable_check": false,
-            "frequency": "COMMON",
-            "last_status": "200",
-            "last_updated_at": "",
-            "source_type": "CURSEFORGE",
-            "file_pattern": ""
-        }
-    },
     "RotaryCraft": {
         "file_path": "../.minecraft/mods/RotaryCraft+1.7.10+V33a.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
@@ -1845,7 +1807,7 @@
         "enabled": true,
         "other_mod_ids": ["wdmla"],
         "update_state": {
-            "version": "",
+            "version": "2.7.3",
             "disable_check": false,
             "frequency": "COMMON",
             "last_status": "200",
@@ -1950,7 +1912,7 @@
         }
     },
     "angelica": {
-        "file_path": "../.minecraft/mods/angelica-1.0.0-beta59.jar",
+        "file_path": "../.minecraft/mods/angelica-1.0.0-beta60.jar",
         "tags": ["SIDE.CLIENT"],
         "source": "https://github.com/GTNewHorizons/Angelica/releases/tag/1.0.0-beta41",
         "notes": "For IndexOutOfBoundsException crashes when loading worlds, with angelica disabled, make sure render distance is at max 16.",
@@ -1959,11 +1921,11 @@
         "enabled": true,
         "other_mod_ids": ["notfine", "embeddium", "mcpatcherforge"],
         "update_state": {
-            "version": "1.0.0-beta59",
+            "version": "1.0.0-beta60",
             "disable_check": false,
             "frequency": "COMMON",
             "last_status": "200",
-            "last_updated_at": "2025-10-08T22:47:42.261Z",
+            "last_updated_at": "2025-10-12T02:14:38.588Z",
             "source_type": "GH_RELEASE",
             "file_pattern": ""
         }
@@ -1990,7 +1952,7 @@
     "archaicfix": {
         "file_path": "../.minecraft/mods/archaicfix-0.7.7.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/embeddedt/ArchaicFix/releases/tag/0.7.4",
+        "source": "https://github.com/embeddedt/ArchaicFix/releases/tag/0.7.7",
         "notes": "",
         "wanted_by": [],
         "wants": ["unimixins"],
@@ -2063,17 +2025,36 @@
             "file_pattern": ""
         }
     },
-    "battlegear2": {
-        "file_path": "../.minecraft/mods/battlegear2-1.4.3.jar",
+    "backhand": {
+        "file_path": "../.minecraft/mods/backhand-1.8.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/Battlegear2/releases/tag/1.4.2",
+        "source": "https://github.com/GTNewHorizons/Backhand/releases",
+        "notes": "",
+        "wanted_by": [],
+        "wants": [],
+        "enabled": true,
+        "other_mod_ids": [],
+        "update_state": {
+            "version": "1.8.0",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
+    },
+    "battlegear2": {
+        "file_path": "../.minecraft/mods/battlegear2-1.6.3-backhand.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "https://github.com/GTNewHorizons/Battlegear2-for-Backhand/releases/tag/1.6.3-backhand",
         "notes": "",
         "wanted_by": ["tinkersdefense"],
         "wants": [],
         "enabled": true,
         "other_mod_ids": [],
         "update_state": {
-            "version": "1.4.3",
+            "version": "1.6.3-backhand",
             "disable_check": false,
             "frequency": "COMMON",
             "last_status": "200",
@@ -2116,6 +2097,25 @@
             "frequency": "COMMON",
             "last_status": "200",
             "last_updated_at": "2025-10-08T22:47:42.253Z",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
+    },
+    "betterloadingscreen": {
+        "file_path": "../.minecraft/mods/betterloadingscreen-1.7.2-GTNH.jar",
+        "tags": ["SIDE.CLIENT"],
+        "source": "https://github.com/GTNewHorizons/BetterLoadingScreen/releases",
+        "notes": "",
+        "wanted_by": [],
+        "wants": ["txloader"],
+        "enabled": true,
+        "other_mod_ids": [],
+        "update_state": {
+            "version": "1.7.2-GTNH",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
             "source_type": "GH_RELEASE",
             "file_pattern": ""
         }
@@ -2174,6 +2174,25 @@
             "last_status": "200",
             "last_updated_at": "",
             "source_type": "CURSEFORGE",
+            "file_pattern": ""
+        }
+    },
+    "catculling": {
+        "file_path": "../.minecraft/mods/catculling-V1.0.1.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "https://github.com/quentin452/Cat-Culling/releases",
+        "notes": "",
+        "wanted_by": [],
+        "wants": [],
+        "enabled": true,
+        "other_mod_ids": [],
+        "update_state": {
+            "version": "V1.0.1",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "2025-10-11T03:50:14.896Z",
+            "source_type": "GH_RELEASE",
             "file_pattern": ""
         }
     },
@@ -2253,6 +2272,25 @@
             "file_pattern": ""
         }
     },
+    "controlling": {
+        "file_path": "../.minecraft/mods/controlling-2.1.2.jar",
+        "tags": ["SIDE.CLIENT"],
+        "source": "https://github.com/GTNewHorizons/Controlling/releases",
+        "notes": "",
+        "wanted_by": [],
+        "wants": [],
+        "enabled": true,
+        "other_mod_ids": [],
+        "update_state": {
+            "version": "2.1.2",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
+    },
     "coretweaks": {
         "file_path": "../.minecraft/mods/CoreTweaks-1.7.10-0.3.3.2+nomixin.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
@@ -2297,7 +2335,7 @@
         "source": "https://github.com/GTNewHorizons/Custom-Main-Menu/releases/tag/1.11.3",
         "notes": "",
         "wanted_by": [],
-        "wants": ["ResourceLoader"],
+        "wants": [],
         "enabled": true,
         "other_mod_ids": [],
         "update_state": {
@@ -2648,7 +2686,8 @@
             "appliedenergistics2",
             "EnderIO",
             "navigator",
-            "bogosorter"
+            "bogosorter",
+            "prometheus_exporter"
         ],
         "wants": ["unimixins"],
         "enabled": true,
@@ -2967,25 +3006,6 @@
             "file_pattern": ""
         }
     },
-    "modernsplash": {
-        "file_path": "../.minecraft/mods/[CLIENT]modernsplash-1.7.10-1.2.1-d88da6a.dirty.jar",
-        "tags": ["SIDE.CLIENT"],
-        "source": "https://www.curseforge.com/minecraft/mc-mods/modern-splash/files/4347198",
-        "notes": "",
-        "wanted_by": [],
-        "wants": [],
-        "enabled": true,
-        "other_mod_ids": [],
-        "update_state": {
-            "version": "d88da6a.dirty",
-            "disable_check": false,
-            "frequency": "COMMON",
-            "last_status": "200",
-            "last_updated_at": "",
-            "source_type": "CURSEFORGE",
-            "file_pattern": ""
-        }
-    },
     "modtweaker2": {
         "file_path": "../.minecraft/mods/ModTweaker2-0.12.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
@@ -3196,21 +3216,21 @@
         }
     },
     "prometheus_exporter": {
-        "file_path": "../.minecraft/mods/Prometheus-Exporter-1.7.10-forge-1.1.0.jar",
+        "file_path": "../.minecraft/mods/Prometheus-Exporter-1.7.10-forge-2.0.5-GTNH.jar",
         "tags": ["SIDE.SERVER"],
-        "source": "https://www.curseforge.com/minecraft/mc-mods/prometheus-exporter/files/5255430",
+        "source": "https://github.com/GTNewHorizons/minecraft-prometheus-exporter/releases",
         "notes": "",
         "wanted_by": [],
-        "wants": [],
+        "wants": ["gtnhlib"],
         "enabled": true,
         "other_mod_ids": [],
         "update_state": {
-            "version": "1.1.0",
+            "version": "2.0.5-GTNH",
             "disable_check": false,
             "frequency": "COMMON",
             "last_status": "200",
-            "last_updated_at": "",
-            "source_type": "CURSEFORGE",
+            "last_updated_at": "2025-10-12T02:14:38.587Z",
+            "source_type": "GH_RELEASE",
             "file_pattern": ""
         }
     },
@@ -3331,8 +3351,8 @@
     "spark": {
         "file_path": "../.minecraft/mods/spark-1.10.19-forge1710.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/embeddedt/spark-legacy",
-        "notes": "No apparent prebuilt files found (Anymore).",
+        "source": "https://github.com/GTNewHorizons/spark",
+        "notes": "No apparent prebuilt files found (Anymore). Check branch dev.",
         "wanted_by": [],
         "wants": [],
         "enabled": true,
@@ -3556,6 +3576,44 @@
             "file_pattern": ""
         }
     },
+    "txloader": {
+        "file_path": "../.minecraft/mods/txloader-1.8.6-pre.jar",
+        "tags": ["SIDE.CLIENT"],
+        "source": "https://github.com/GTNewHorizons/TX-Loader/releases",
+        "notes": "",
+        "wanted_by": ["betterloadingscreen"],
+        "wants": [],
+        "enabled": true,
+        "other_mod_ids": [],
+        "update_state": {
+            "version": "1.8.6-pre",
+            "disable_check": false,
+            "frequency": "COMMON",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "GH_RELEASE",
+            "file_pattern": ""
+        }
+    },
+    "u25core": {
+        "file_path": "../.minecraft/mods/u25core-1.1-main+b974bfe345-dirty.jar",
+        "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
+        "source": "",
+        "notes": "",
+        "wanted_by": [],
+        "wants": ["unimixins"],
+        "enabled": true,
+        "other_mod_ids": [],
+        "update_state": {
+            "version": "1.1-main+b974bfe345-dirty",
+            "disable_check": false,
+            "frequency": "EOL",
+            "last_status": "200",
+            "last_updated_at": "",
+            "source_type": "OTHER",
+            "file_pattern": ""
+        }
+    },
     "unimixins": {
         "file_path": "../.minecraft/mods/+unimixins-all-1.7.10-0.1.23.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
@@ -3574,7 +3632,8 @@
             "tcneiadditions",
             "endlessids",
             "dsurround",
-            "lumi"
+            "lumi",
+            "u25core"
         ],
         "wants": [],
         "enabled": true,
