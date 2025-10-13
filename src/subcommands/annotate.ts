@@ -28,6 +28,9 @@ export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<
 
         // Did the mod exist in the already annotated mods?
         if (old_mod_obj != undefined) {
+            if (new_mod_obj.mod_id === "bettercaves") {
+                console.log("the heck")
+            }
             // Update properties that we should always set programtically (update each time)
             old_mod_obj.file_path = new_mod_obj.file_path;
             old_mod_obj.enabled = new_mod_obj.enabled;

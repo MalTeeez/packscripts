@@ -319,3 +319,18 @@ export function live_log(input: any, func: (message: any) => void = console.log)
     func(input);
     update_live_zone(live_content)
 }
+
+/**
+ * Deduplicate an array of strings case-insensitive, only keep first occurence of duplicate.
+ */
+export function dedup_array(arr: string[]) {
+    const seen = new Set<string>();
+    arr = arr.filter(dep => {
+        const lower = dep.toLowerCase();
+        if (seen.has(lower)) return false;
+        seen.add(lower);
+        return true;
+    });
+
+    return arr;
+}

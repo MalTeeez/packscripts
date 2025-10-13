@@ -1,5 +1,5 @@
 import { extract_file_from_zip, read_from_file, rename_file, save_map_to_file, search_zip_for_string } from './fs';
-import { type JsonObject } from './utils';
+import { dedup_array, type JsonObject } from './utils';
 
 //#region types
 export enum UpdateFrequenciesEnum {
@@ -596,10 +596,8 @@ function filterForFaultyDependencies(wants: string[], mod_id: string): string[] 
         }
         wants.push(dep.trim());
     }
-    //  Filter out duplicates
-    wants = Array.from(
-        new Set(wants.filter((mod_entry) => !wants.find((sub_mod_entry) => mod_entry.toLowerCase() === sub_mod_entry.toLowerCase()))),
-    );
+    //  Filter out duplicates case-inse
+    wants = dedup_array(wants);
 
     return wants;
 }
