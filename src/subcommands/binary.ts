@@ -1,5 +1,5 @@
 import { save_map_to_file } from '../utils/fs';
-import { disable_all_mods, enable_base_mods, enable_mod_deep, read_saved_mods, type mod_object } from '../utils/mods';
+import { disable_all_mods, enable_base_mods, enable_mod_deep, isNotItself, read_saved_mods, type mod_object } from '../utils/mods';
 import { divide_to_full_groups, print_pretty } from '../utils/utils';
 
 type ModGroupOptions = {
@@ -13,7 +13,7 @@ type ModGroupOptions = {
  * @param {Array<string>} mod_list - Ordered list of mod IDs
  * @param {number[]} groups - Array of even group sizes that sum up to the total number of mods
  * @param {number} section - Zero-based index of the group section to retrieve
- * @param {string} [dep_key="wanted_by"] - Key to use for dependency lookup ("wanted_by" or "wants")
+ * @param {object} options - Options to use for dependency lookup ("wanted_by" or "wants")
  * @returns {string[]} Array of mod IDs in the specified group section including dependencies
  */
 function get_mods_in_group(
@@ -42,8 +42,10 @@ function get_mods_in_group(
             const mod_deps = mod[options.dep_key];
             if (mod_deps != undefined && Array.isArray(mod_deps)) {
                 for (const dep of mod_deps) {
-                    deps.push(...get_deps(dep));
-                    deps.push(dep);
+                    if (isNotItself(dep, mod_id, mod.other_mod_ids || [])) {
+                        deps.push(...get_deps(dep));
+                        deps.push(dep);
+                    }
                 }
             }
         }
@@ -154,7 +156,7 @@ export async function binary_search_disable(target_fractions: string[], dry_run:
 
             for (const { section, scope, groups } of fractions) {
                 console.log(`Enabling fraction ${section + 1}/${scope} .`);
-                // print_pretty(["Enabling Mods:", get_mods_in_group(mod_map, mod_list, groups, safe_section)])
+                // print_pretty(["Enabling Mods:", get_mods_in_group(mod_map, mod_list, groups, section)])
                 for (const mod_id of get_mods_in_group(mod_map, mod_list, groups, section)) {
                     await enable_mod_deep(mod_id, mod_map, changed_list);
                 }

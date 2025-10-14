@@ -761,8 +761,8 @@
         "tags": ["SIDE.CLIENT, SIDE.SERVER"],
         "source": "https://www.curseforge.com/minecraft/mc-mods/galacticraft-legacy/files/4501439",
         "notes": "",
-        "wanted_by": ["ExtraPlanets", "GalacticraftCore"],
-        "wants": ["", "GalacticraftCore", "Micdoodlecore"],
+        "wanted_by": ["ExtraPlanets"],
+        "wants": [],
         "enabled": true,
         "other_mod_ids": ["Micdoodlecore", "GalacticraftMars"],
         "update_state": {
@@ -1214,8 +1214,8 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/ProjectRed/releases/tag/4.11.1-GTNH",
         "notes": "",
-        "wanted_by": ["ProjRed|Core"],
-        "wants": ["ForgeMultipart", "ProjRed|Core", "ProjRed|Integration"],
+        "wanted_by": [],
+        "wants": ["ForgeMultipart"],
         "enabled": true,
         "other_mod_ids": [
             "ProjRed|Compatibility",
@@ -1850,7 +1850,7 @@
         "source": "https://github.com/GTNewHorizons/AE2FluidCraft-Rework/releases/tag/1.4.32-gtnh",
         "notes": "",
         "wanted_by": [],
-        "wants": ["appliedenergistics2", "CoFHCore", "BaublesExpanded", "extracells"],
+        "wants": ["appliedenergistics2", "CoFHCore", "BaublesExpanded", "extracells", "NotEnoughItems"],
         "enabled": true,
         "other_mod_ids": [],
         "update_state": {
@@ -1888,7 +1888,7 @@
         "source": "https://modrinth.com/mod/alfheim/version/60",
         "notes": "",
         "wanted_by": [],
-        "wants": ["asjpatcher", "Botania"],
+        "wants": ["asjpatcher", "Botania", "endlessids"],
         "enabled": true,
         "other_mod_ids": [],
         "update_state": {
@@ -1983,7 +1983,7 @@
         "source": "https://github.com/MalTeeez/ArsMagica2",
         "notes": "Custom ULT25 version.",
         "wanted_by": [],
-        "wants": ["PlayerAPI", "CoFHCore", "AnimationAPI"],
+        "wants": ["PlayerAPI", "CoFHCore", "AnimationAPI", "endlessids"],
         "enabled": true,
         "other_mod_ids": [],
         "update_state": {
@@ -2111,13 +2111,13 @@
         }
     },
     "bettercaves": {
-        "file_path": "../.minecraft/mods/bettercaves-1.0.jar.disabled",
+        "file_path": "../.minecraft/mods/bettercaves-1.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://modrinth.com/mod/better-caves-archaic",
         "notes": "",
         "wanted_by": [],
         "wants": ["mycelium"],
-        "enabled": false,
+        "enabled": true,
         "other_mod_ids": [],
         "update_state": {
             "version": "4.4.13",

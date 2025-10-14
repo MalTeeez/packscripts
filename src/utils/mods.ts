@@ -207,7 +207,9 @@ export async function disable_mod_deep(mod_id: string, mod_map: Map<string, mod_
         // Disable dependents
         if (mod.wanted_by && mod.wanted_by.length > 0) {
             for (const dependency of mod.wanted_by) {
-                change_count += await disable_mod_deep(dependency, mod_map, changed_list);
+                if (isNotItself(dependency, mod_id, mod.other_mod_ids || [])) {
+                    change_count += await disable_mod_deep(dependency, mod_map, changed_list);
+                }
             }
         }
         // Make sure we didnt already touch this mod before & its enabled
@@ -227,6 +229,13 @@ export async function disable_mod_deep(mod_id: string, mod_map: Map<string, mod_
     return change_count;
 }
 
+export function isNotItself(base: string, mod_id: string, other_mod_ids: string[]): boolean {
+    return (
+        base.toLowerCase() != mod_id.toLowerCase() &&
+        other_mod_ids.find((other_id) => other_id.toLowerCase() === mod_id.toLowerCase()) == undefined
+    );
+}
+
 /**
  * Disable a mod, with its dependents
  * @param mod_id The mod to disable
@@ -242,6 +251,7 @@ export async function enable_mod_deep(mod_id: string, mod_map: Map<string, mod_o
         // Enable dependencies
         if (mod.wants && mod.wants.length > 0) {
             for (const dependency of mod.wants) {
+                // console.log(`Enabling dependency of ${mod_id}: ${dependency}`)
                 change_count += await enable_mod_deep(dependency, mod_map, changed_list);
             }
         }
@@ -519,7 +529,7 @@ export async function parse_mod_details(file_path: string): Promise<{
 
     // Expand wants with the ones from the @Mod annotation, filter and deduplicate
     if (mod_id) {
-        wants = filterForFaultyDependencies([...wants, ...main_deps], mod_id);
+        wants = filterForFaultyDependencies([...wants, ...main_deps], mod_id, other_mod_ids || []);
     } else {
         console.warn(`W: Failed to get any mod id for ${file_path}, faulty file?`);
         wants = [];
@@ -571,7 +581,7 @@ export async function get_details_from_mainclass(file_path: string): Promise<{ m
     return { main_deps: Array.from(deps), main_version: version };
 }
 
-function filterForFaultyDependencies(wants: string[], mod_id: string): string[] {
+function filterForFaultyDependencies(wants: string[], mod_id: string, other_mod_ids: string[]): string[] {
     // Filter on the depdencies of a mod
     //  Some mods enter their deps not as a json array, but as a string with commas
     let old_wants = Array.from(wants);
@@ -592,6 +602,9 @@ function filterForFaultyDependencies(wants: string[], mod_id: string): string[] 
             continue;
             // And to the main mod module (from submodules)
         } else if (dep.toLowerCase() === mod_id?.toLowerCase()) {
+            continue;
+            // And to itself
+        } else if (other_mod_ids.find((other_id) => other_id.toLowerCase() === dep.toLowerCase()) != undefined) {
             continue;
         }
         wants.push(dep.trim());

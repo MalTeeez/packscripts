@@ -1,6 +1,13 @@
 import { MOD_BASE_DIR } from '../utils/consts';
 import { save_map_to_file, scan_mods_folder } from '../utils/fs';
-import { default_mod_object, extract_modinfos, isModPropertySafe, read_saved_mods, type mod_object, type mod_object_unsafe } from '../utils/mods';
+import {
+    default_mod_object,
+    extract_modinfos,
+    isModPropertySafe,
+    read_saved_mods,
+    type mod_object,
+    type mod_object_unsafe,
+} from '../utils/mods';
 import { clone } from '../utils/utils';
 
 export async function annotate() {
@@ -28,9 +35,6 @@ export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<
 
         // Did the mod exist in the already annotated mods?
         if (old_mod_obj != undefined) {
-            if (new_mod_obj.mod_id === "bettercaves") {
-                console.log("the heck")
-            }
             // Update properties that we should always set programtically (update each time)
             old_mod_obj.file_path = new_mod_obj.file_path;
             old_mod_obj.enabled = new_mod_obj.enabled;
@@ -72,7 +76,7 @@ function set_new_or_default_property(
     std_object: mod_object | str_obj,
 ) {
     if (typeof std_object[property_name] === 'object' && !Array.isArray(std_object[property_name])) {
-        let sub_prop: str_obj = base_mod[property_name] as str_obj || {};
+        let sub_prop: str_obj = (base_mod[property_name] as str_obj) || {};
         for (const key in std_object[property_name]) {
             set_new_or_default_property(key, sub_prop, new_mod[property_name] as str_obj, std_object[property_name]);
         }
@@ -83,8 +87,8 @@ function set_new_or_default_property(
         const new_prop = new_mod[property_name] as string | string[] | boolean | undefined;
 
         // Is this a new property? If yes take the value from the newer mod if set there
-        if (base_mod[property_name] == undefined || base_mod[property_name] === "") {
-            if (new_prop != undefined && isModPropertySafe(new_prop) && new_prop !== "") {
+        if (base_mod[property_name] == undefined || base_mod[property_name] === '') {
+            if (new_prop != undefined && isModPropertySafe(new_prop) && new_prop !== '') {
                 base_mod[property_name] = new_prop;
             } else {
                 base_mod[property_name] = std_object[property_name];
@@ -103,15 +107,26 @@ function set_new_or_default_property(
 export function trace_deps(mod_list: Map<string, mod_object>) {
     for (const [mod_id, mod_object] of mod_list) {
         if (mod_object.wants != undefined) {
-            for (const dep_id of mod_object.wants || []) {
+            const recursive_deps = new Set();
+            for (const dep_id of mod_object.wants) {
+                // Check for dependencies this mod has, that are unmet
                 const [, dep_obj] = getModDeep(mod_list, dep_id);
                 if (!dep_obj) {
                     console.log(`Mod ${mod_id} might be missing dep "${dep_id}"`);
                 }
 
-                if (!dep_id.match(/((?:Minecraft)?Forge(?:@|$))|(^\s*FML\s*$)/im)) {
+                let continue_with_dep_backtrace = true;
+                // Remove dependencies of this mod to itself (i.e. from submodules)
+                if (mod_object.other_mod_ids?.find((other_id) => other_id.toLowerCase() === dep_id.toLowerCase()) != undefined) {
+                    recursive_deps.add(dep_id.toLowerCase());
+                    continue_with_dep_backtrace = false;
+                }
+
+                // Annotate this mods wanted_by with the mods that depend on this mod
+                if (continue_with_dep_backtrace && !dep_id.match(/((?:Minecraft)?Forge(?:@|$))|(^\s*FML\s*$)/im)) {
                     const [actual_dep_id, dep_obj] = getModDeep(mod_list, dep_id);
                     const wants_idx = mod_object.wants.indexOf(dep_id);
+
                     if (dep_obj && actual_dep_id && wants_idx != -1) {
                         // Check if wanted_by list contains the current mod that wants this mod
                         if (dep_obj.wanted_by != undefined && !dep_obj.wanted_by.includes(mod_id)) {
@@ -126,6 +141,7 @@ export function trace_deps(mod_list: Map<string, mod_object>) {
                     }
                 }
             }
+            mod_object.wants = mod_object.wants.filter((dep_id) => !recursive_deps.has(dep_id.toLowerCase()));
         }
     }
 }
