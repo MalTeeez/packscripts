@@ -1,6 +1,6 @@
 {
     "AWWayofTime": {
-        "file_path": "../.minecraft/mods/BloodMagic-1.8.2-pre.jar",
+        "file_path": "../.minecraft/mods/BloodMagic-1.8.4-pre.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/BloodMagic/releases/tag/1.7.5",
         "notes": "",
@@ -9,11 +9,11 @@
         "enabled": true,
         "other_mod_ids": [],
         "update_state": {
-            "version": "1.8.2-pre",
+            "version": "1.8.4-pre",
             "disable_check": false,
             "frequency": "COMMON",
             "last_status": "200",
-            "last_updated_at": "2025-10-10T22:38:23.671Z",
+            "last_updated_at": "2025-10-14T08:00:56.879Z",
             "source_type": "GH_RELEASE",
             "file_pattern": ""
         }
@@ -567,7 +567,7 @@
         }
     },
     "EnderIO": {
-        "file_path": "../.minecraft/mods/EnderIO-2.10.1-pre.jar",
+        "file_path": "../.minecraft/mods/EnderIO-2.10.2.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/EnderIO/releases/tag/2.9.18",
         "notes": "",
@@ -576,11 +576,11 @@
         "enabled": true,
         "other_mod_ids": [],
         "update_state": {
-            "version": "2.10.1-pre",
+            "version": "2.10.2",
             "disable_check": false,
             "frequency": "COMMON",
             "last_status": "200",
-            "last_updated_at": "2025-10-10T20:32:16.521Z",
+            "last_updated_at": "2025-10-14T08:00:56.878Z",
             "source_type": "GH_RELEASE",
             "file_pattern": ""
         }
@@ -662,7 +662,7 @@
         }
     },
     "ForbiddenMagic": {
-        "file_path": "../.minecraft/mods/Forbidden.Magic-0.9.3-GTNH-pre.jar",
+        "file_path": "../.minecraft/mods/Forbidden.Magic-0.9.4-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/ForbiddenMagic/releases/tag/0.8.0-GTNH",
         "notes": "",
@@ -671,11 +671,11 @@
         "enabled": true,
         "other_mod_ids": [],
         "update_state": {
-            "version": "0.9.3-GTNH-pre",
+            "version": "0.9.4-GTNH",
             "disable_check": false,
             "frequency": "COMMON",
             "last_status": "200",
-            "last_updated_at": "2025-10-10T22:38:23.668Z",
+            "last_updated_at": "2025-10-14T08:00:56.876Z",
             "source_type": "GH_RELEASE",
             "file_pattern": ""
         }
@@ -1039,20 +1039,20 @@
         }
     },
     "NotEnoughItems": {
-        "file_path": "../.minecraft/mods/NotEnoughItems-2.8.10-GTNH-pre.jar",
+        "file_path": "../.minecraft/mods/NotEnoughItems-2.8.14-GTNH.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/NotEnoughItems/releases/tag/2.7.29-GTNH",
         "notes": "",
-        "wanted_by": ["beebetteratbees", "NEIAddons", "neiintegration", "neenergistics", "mobsinfo", "draconicplus"],
+        "wanted_by": ["beebetteratbees", "NEIAddons", "neiintegration", "neenergistics", "mobsinfo", "draconicplus", "ae2fc"],
         "wants": ["CodeChickenCore"],
         "enabled": true,
         "other_mod_ids": [],
         "update_state": {
-            "version": "2.8.10-GTNH-pre",
+            "version": "2.8.14-GTNH",
             "disable_check": false,
             "frequency": "COMMON",
             "last_status": "200",
-            "last_updated_at": "2025-10-10T20:32:16.518Z",
+            "last_updated_at": "2025-10-14T08:00:56.874Z",
             "source_type": "GH_RELEASE",
             "file_pattern": ""
         }
@@ -1579,7 +1579,7 @@
         }
     },
     "ThaumicHorizons": {
-        "file_path": "../.minecraft/mods/ThaumicHorizons-1.8.2-pre.jar",
+        "file_path": "../.minecraft/mods/ThaumicHorizons-1.8.3-pre.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/ThaumicHorizons/releases/tag/1.7.1",
         "notes": "",
@@ -1588,11 +1588,11 @@
         "enabled": true,
         "other_mod_ids": [],
         "update_state": {
-            "version": "1.8.2-pre",
+            "version": "1.8.3-pre",
             "disable_check": false,
             "frequency": "COMMON",
             "last_status": "200",
-            "last_updated_at": "2025-10-10T22:38:23.662Z",
+            "last_updated_at": "2025-10-14T08:00:56.875Z",
             "source_type": "GH_RELEASE",
             "file_pattern": ""
         }
@@ -1902,7 +1902,7 @@
         }
     },
     "angelica": {
-        "file_path": "../.minecraft/mods/angelica-1.0.0-beta60.jar",
+        "file_path": "../.minecraft/mods/angelica-1.0.0-beta62.jar",
         "tags": ["SIDE.CLIENT"],
         "source": "https://github.com/GTNewHorizons/Angelica/releases/tag/1.0.0-beta41",
         "notes": "For IndexOutOfBoundsException crashes when loading worlds, with angelica disabled, make sure render distance is at max 16.",
@@ -1911,11 +1911,11 @@
         "enabled": true,
         "other_mod_ids": ["notfine", "embeddium", "mcpatcherforge"],
         "update_state": {
-            "version": "1.0.0-beta60",
+            "version": "1.0.0-beta62",
             "disable_check": false,
             "frequency": "COMMON",
             "last_status": "200",
-            "last_updated_at": "2025-10-12T02:14:38.588Z",
+            "last_updated_at": "2025-10-14T08:00:56.870Z",
             "source_type": "GH_RELEASE",
             "file_pattern": ""
         }
@@ -2495,7 +2495,7 @@
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTMEGA/EndlessIDs/releases/tag/1.6.9",
         "notes": "",
-        "wanted_by": ["AWWayofTime", "ThaumicTinkerer", "DefenseTech"],
+        "wanted_by": ["AWWayofTime", "ThaumicTinkerer", "DefenseTech", "alfheim", "arsmagica2"],
         "wants": ["unimixins", "falsepatternlib", "chunkapi"],
         "enabled": true,
         "other_mod_ids": [],
@@ -2557,7 +2557,7 @@
         "enabled": true,
         "other_mod_ids": [],
         "update_state": {
-            "version": "4.4.13",
+            "version": "2.6.2.25-GTNH",
             "disable_check": false,
             "frequency": "COMMON",
             "last_status": "200",
@@ -3096,20 +3096,20 @@
         }
     },
     "modularui2": {
-        "file_path": "../.minecraft/mods/modularui2-2.2.15-1.7.10.jar",
+        "file_path": "../.minecraft/mods/modularui2-2.3.2-1.7.10.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
-        "source": "https://github.com/GTNewHorizons/ModularUI",
+        "source": "https://github.com/GTNewHorizons/ModularUI2",
         "notes": "",
         "wanted_by": ["bogosorter"],
         "wants": ["unimixins", "gtnhlib", "gtnhmixins"],
         "enabled": true,
         "other_mod_ids": [],
         "update_state": {
-            "version": "2.2.15",
+            "version": "2.3.2-1.7.10",
             "disable_check": false,
             "frequency": "COMMON",
             "last_status": "200",
-            "last_updated_at": "",
+            "last_updated_at": "2025-10-14T08:00:56.873Z",
             "source_type": "GH_RELEASE",
             "file_pattern": ""
         }
@@ -3787,7 +3787,7 @@
         }
     },
     "universalsingularities": {
-        "file_path": "../.minecraft/mods/Universal-Singularities-8.10.0.jar",
+        "file_path": "../.minecraft/mods/Universal-Singularities-8.11.0.jar",
         "tags": ["SIDE.CLIENT", "SIDE.SERVER"],
         "source": "https://github.com/GTNewHorizons/Universal-Singularities/releases/tag/8.10.0",
         "notes": "",
@@ -3796,11 +3796,11 @@
         "enabled": true,
         "other_mod_ids": [],
         "update_state": {
-            "version": "8.10.0",
+            "version": "8.11.0",
             "disable_check": false,
             "frequency": "COMMON",
             "last_status": "200",
-            "last_updated_at": "",
+            "last_updated_at": "2025-10-14T08:00:56.871Z",
             "source_type": "GH_RELEASE",
             "file_pattern": ""
         }
