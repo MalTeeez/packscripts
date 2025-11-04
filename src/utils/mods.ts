@@ -1,3 +1,4 @@
+import { ANNOTATED_FILE } from './consts';
 import { extract_file_from_zip, read_from_file, rename_file, save_map_to_file, search_zip_for_string } from './fs';
 import { dedup_array, type JsonObject } from './utils';
 
@@ -274,7 +275,7 @@ export async function enable_mod_deep(mod_id: string, mod_map: Map<string, mod_o
 
 export async function enable_all_mods(mod_map?: Map<string, mod_object>) {
     // Initialize map if not provided, since we can't use await in param
-    mod_map = mod_map == undefined ? await read_saved_mods('./annotated_mods.json') : mod_map;
+    mod_map = mod_map == undefined ? await read_saved_mods(ANNOTATED_FILE) : mod_map;
     const change_list: string[] = [];
     let changes = 0;
 
@@ -283,7 +284,7 @@ export async function enable_all_mods(mod_map?: Map<string, mod_object>) {
     }
 
     if (changes > 0) {
-        await save_map_to_file('./annotated_mods.json', mod_map);
+        await save_map_to_file(ANNOTATED_FILE, mod_map);
         console.log('Changed ', changes, ' mods.\n');
     } else {
         console.log('No changes made.');
@@ -292,7 +293,7 @@ export async function enable_all_mods(mod_map?: Map<string, mod_object>) {
 
 export async function disable_all_mods(mod_map?: Map<string, mod_object>) {
     // Initialize map if not provided, since we can't use await in param
-    mod_map = mod_map == undefined ? await read_saved_mods('./annotated_mods.json') : mod_map;
+    mod_map = mod_map == undefined ? await read_saved_mods(ANNOTATED_FILE) : mod_map;
     const change_list: string[] = [];
     let changes = 0;
 
@@ -302,7 +303,7 @@ export async function disable_all_mods(mod_map?: Map<string, mod_object>) {
     await enable_base_mods(mod_map);
 
     if (changes > 0) {
-        await save_map_to_file('./annotated_mods.json', mod_map);
+        await save_map_to_file(ANNOTATED_FILE, mod_map);
         console.log('Changed ', changes, ' mods.\n');
     } else {
         console.log('No changes made.');

@@ -1,5 +1,7 @@
-node_modules/**
+node_modules/
 bun.lock
 pnpm-lock.yaml
 .annotate_history.json
 tmp/
+.env.json
+graph.html

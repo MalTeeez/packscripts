@@ -14,7 +14,7 @@ import { GITHUB_API_KEY } from '../../.env.json';
 import { rename_file, save_map_to_file } from '../utils/fs';
 import { mkdir, rename, rmdir } from 'node:fs/promises';
 import path from 'node:path';
-import { DOWNLOAD_TEMP_DIR, MOD_BASE_DIR } from '../utils/consts';
+import { ANNOTATED_FILE, DOWNLOAD_TEMP_DIR, MOD_BASE_DIR } from '../utils/consts';
 
 export async function check_all_mods_for_updates(
     options: {
@@ -24,7 +24,7 @@ export async function check_all_mods_for_updates(
     dry: boolean = true,
     mod_map?: Map<string, mod_object>,
 ) {
-    mod_map = mod_map == undefined ? await read_saved_mods('./annotated_mods.json') : mod_map;
+    mod_map = mod_map == undefined ? await read_saved_mods(ANNOTATED_FILE) : mod_map;
     const fetch_map: Map<
         string,
         {
@@ -94,7 +94,7 @@ export async function check_all_mods_for_updates(
     );
 
     // Save http status codes returned from sources back to map for next time
-    await save_map_to_file('./annotated_mods.json', mod_map);
+    await save_map_to_file(ANNOTATED_FILE, mod_map);
 
     // to_update_mods = to_update_mods.slice(0, 2);
 
@@ -120,7 +120,7 @@ export async function check_all_mods_for_updates(
         while (download_map.size > 0 || to_update_mods.length > 0) {
             const progress = Math.ceil(((completed_dls / full_dls) * 100) / 2);
             update_live_zone([
-                `${CLIColor.FgWhite}${'='.repeat(progress)}${CLIColor.FgGray}${'-'.repeat(50 - progress)}${CLIColor.Reset}`,
+                `|${CLIColor.FgWhite}${'='.repeat(progress)}${CLIColor.FgGray}${'-'.repeat(50 - progress)}${CLIColor.Reset}|`,
                 `Upgrading mods - ${CLIColor.FgWhite}${completed_dls}${CLIColor.FgGray} of ${CLIColor.FgWhite}${full_dls}${CLIColor.Reset}`,
             ]);
 
@@ -178,7 +178,7 @@ export async function check_all_mods_for_updates(
         }
         const progress = Math.ceil(((completed_dls / full_dls) * 100) / 2);
         update_live_zone([
-            `${CLIColor.FgWhite}${'='.repeat(progress)}${CLIColor.FgGray}${'-'.repeat(50 - progress)}${CLIColor.Reset}`,
+            `|${CLIColor.FgWhite}${'='.repeat(progress)}${CLIColor.FgGray}${'-'.repeat(50 - progress)}${CLIColor.Reset}|`,
             `Upgrading mods${CLIColor.FgGray} - ${CLIColor.FgWhite}${completed_dls}${CLIColor.FgGray} of ${CLIColor.FgWhite}${full_dls}${CLIColor.Reset}`,
         ]);
         finish_live_zone();
@@ -189,7 +189,7 @@ export async function check_all_mods_for_updates(
             const mod = mod_map.get(mod_id);
             if (mod) {
                 await replace_mod_file(mod_id, mod, file_name)
-                    .then((new_file_path) => {
+                    .then(async (new_file_path) => {
                         mod.file_path = new_file_path;
                         mod.update_state.version = remote_version;
                         mod.update_state.last_updated_at = new Date(Date.now()).toISOString();
@@ -201,7 +201,7 @@ export async function check_all_mods_for_updates(
         }
 
         // Save updated files & versions back to file (only changes when upgrading)
-        await save_map_to_file('./annotated_mods.json', mod_map);
+        await save_map_to_file(ANNOTATED_FILE, mod_map);
     }
 
     // Clean up temp folder
@@ -225,13 +225,13 @@ async function replace_mod_file(mod_id: string, mod: mod_object, file_name: stri
             await rename(new_file.name, `${MOD_BASE_DIR}/${file_name}`)
                 .then(async () => {
                     const old_file = Bun.file(mod.file_path);
-                    if (await old_file.exists()) {
+                    if (await old_file.exists() && `${MOD_BASE_DIR}/${file_name}` !== old_file.name) {
                         await old_file.delete().catch(() => {
                             console.warn(`W: Failed to delete older file for mod ${mod_id} as ${mod.file_path}, but we upgraded it.`);
                         });
                     } else {
                         // This is not a full failure, since a state with the old file can still mean that the new mod is there - we need to track that
-                        console.log(`W: Older file for mod "${mod_id}" at ${mod.file_path} does not exist, but we upgraded it.`);
+                        // console.debug(`W: Older file for mod "${mod_id}" at ${mod.file_path} does not exist, but we upgraded it.`);
                     }
                     return resolve(`${MOD_BASE_DIR}/${file_name}`);
                 })
@@ -286,7 +286,9 @@ async function check_url_for_updates(
                             !asset.name.endsWith('-api.jar') &&
                             !asset.name.endsWith('-preshadow.jar') &&
                             !asset.name.endsWith('-prestub.jar') &&
-                            !asset.name.endsWith('-javadoc.jar')
+                            !asset.name.endsWith('-javadoc.jar') &&
+                            !asset.name.endsWith('-reobf.jar') &&
+                            !asset.name.includes('-panama-')
                         ) {
                             filtered_assets.push(asset);
                         }
@@ -389,6 +391,10 @@ async function gh_request(path: string, method: string = 'GET'): Promise<Respons
         },
         redirect: 'follow',
     });
+
+    if (res.status == 403) {
+        console.log(res)
+    }
 
     if (res.status === 403 && res.headers.get('x-ratelimit-remaining') === '0') {
         const reset = res.headers.get('x-ratelimit-reset');

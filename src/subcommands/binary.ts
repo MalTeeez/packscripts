@@ -1,3 +1,4 @@
+import { ANNOTATED_FILE } from '../utils/consts';
 import { save_map_to_file } from '../utils/fs';
 import { disable_all_mods, enable_base_mods, enable_mod_deep, isNotItself, read_saved_mods, type mod_object } from '../utils/mods';
 import { divide_to_full_groups, print_pretty } from '../utils/utils';
@@ -61,7 +62,7 @@ function get_mods_in_group(
 }
 
 export async function binary_search_disable(target_fractions: string[], dry_run: boolean) {
-    const mod_map = await read_saved_mods('./annotated_mods.json');
+    const mod_map = await read_saved_mods(ANNOTATED_FILE);
     const mod_list = Array.from(mod_map.keys());
     const fractions: { section: number; scope: number; groups: number[] }[] = [];
 
@@ -162,7 +163,7 @@ export async function binary_search_disable(target_fractions: string[], dry_run:
                 }
 
                 await enable_base_mods(mod_map);
-                await save_map_to_file('./annotated_mods.json', mod_map);
+                await save_map_to_file(ANNOTATED_FILE, mod_map);
             }
             if (changed_list.length > 0) {
                 console.log('Changed ', changed_list.length, ' mods.\n');

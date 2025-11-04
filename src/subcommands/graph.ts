@@ -1,10 +1,10 @@
 import { exec } from 'child_process';
 import { read_from_file } from '../utils/fs';
 import path from 'path';
+import { ANNOTATED_FILE } from '../utils/consts';
 
 export async function visualize_graph() {
-    const annotated_file = './annotated_mods.json';
-    const file_contents = await read_from_file(annotated_file);
+    const file_contents = await read_from_file(ANNOTATED_FILE);
     const mod_map: Map<string, any> = new Map(Object.entries(file_contents));
 
     // Build Cytoscape elements

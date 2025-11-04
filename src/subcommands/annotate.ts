@@ -1,4 +1,4 @@
-import { MOD_BASE_DIR } from '../utils/consts';
+import { ANNOTATED_FILE, MOD_BASE_DIR } from '../utils/consts';
 import { save_map_to_file, scan_mods_folder } from '../utils/fs';
 import {
     default_mod_object,
@@ -11,15 +11,13 @@ import {
 import { clone } from '../utils/utils';
 
 export async function annotate() {
-    const annotated_file = './annotated_mods.json';
-
     const mod_files = await scan_mods_folder(MOD_BASE_DIR);
-    const old_list = await read_saved_mods(annotated_file);
+    const old_list = await read_saved_mods(ANNOTATED_FILE);
 
     const enriched_mods = await extract_modinfos(mod_files);
 
     if (old_list != undefined && typeof old_list === 'object') {
-        await save_map_to_file(annotated_file, update_list(enriched_mods, old_list));
+        await save_map_to_file(ANNOTATED_FILE, update_list(enriched_mods, old_list));
     } else {
         console.error('Failed to read annotated mods from file.');
     }

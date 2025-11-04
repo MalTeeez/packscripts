@@ -1,4 +1,4 @@
-import { MOD_BASE_DIR } from '../utils/consts';
+import { ANNOTATED_FILE, MOD_BASE_DIR } from '../utils/consts';
 import { save_map_to_file, scan_mods_folder } from '../utils/fs';
 import {
     disable_mod_deep,
@@ -16,7 +16,7 @@ import { print_pretty } from '../utils/utils';
  */
 export async function enable_atomic_deep(opts_mod_id: string[], mod_map?: Map<string, mod_object>) {
     // Initialize map if not provided, since we can't use await in param
-    mod_map = mod_map == undefined ? await read_saved_mods('./annotated_mods.json') : mod_map;
+    mod_map = mod_map == undefined ? await read_saved_mods(ANNOTATED_FILE) : mod_map;
     const change_list: string[] = [];
     let changes = 0;
 
@@ -30,7 +30,7 @@ export async function enable_atomic_deep(opts_mod_id: string[], mod_map?: Map<st
     }
 
     if (changes > 0) {
-        await save_map_to_file('./annotated_mods.json', mod_map);
+        await save_map_to_file(ANNOTATED_FILE, mod_map);
         console.log('Changed ', changes, ' mods.\n');
     } else {
         console.log('No changes made.');
@@ -42,7 +42,7 @@ export async function enable_atomic_deep(opts_mod_id: string[], mod_map?: Map<st
  */
 export async function disable_atomic_deep(opts_mod_id: string[], mod_map?: Map<string, mod_object>) {
     // Initialize map if not provided, since we can't use await in param
-    mod_map = mod_map == undefined ? await read_saved_mods('./annotated_mods.json') : mod_map;
+    mod_map = mod_map == undefined ? await read_saved_mods(ANNOTATED_FILE) : mod_map;
     const change_list: string[] = [];
     let changes = 0;
 
@@ -57,7 +57,7 @@ export async function disable_atomic_deep(opts_mod_id: string[], mod_map?: Map<s
     await enable_base_mods(mod_map);
 
     if (changes > 0) {
-        await save_map_to_file('./annotated_mods.json', mod_map);
+        await save_map_to_file(ANNOTATED_FILE, mod_map);
         console.log('Changed ', changes, ' mods.\n');
     } else {
         console.log('No changes made.');
@@ -99,7 +99,7 @@ export async function list_mods() {
         ['File Path', []],
     ];
 
-    for (const [mod_id, mod_object] of await read_saved_mods('./annotated_mods.json')) {
+    for (const [mod_id, mod_object] of await read_saved_mods(ANNOTATED_FILE)) {
         if (mod_object.enabled) {
             //@ts-ignore
             mods[0][1].push(mod_id);
@@ -117,7 +117,7 @@ export async function list_mods() {
 }
 
 export async function toggle_mod(opts: string | undefined) {
-    const mod_map = await read_saved_mods('./annotated_mods.json');
+    const mod_map = await read_saved_mods(ANNOTATED_FILE);
     if (opts != undefined) {
         opts = opts.toLowerCase();
         const mod_id = mod_map.keys().find((key: string) => key.toLowerCase() === opts);
@@ -127,7 +127,7 @@ export async function toggle_mod(opts: string | undefined) {
             await enable_base_mods(mod_map);
 
             if (changes > 0) {
-                await save_map_to_file('./annotated_mods.json', mod_map);
+                await save_map_to_file(ANNOTATED_FILE, mod_map);
                 console.log('Changed ', changes, ' mods.\n');
             } else {
                 console.log('No changes made.');
