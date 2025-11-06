@@ -120,7 +120,7 @@ export function trace_deps(mod_list: Map<string, mod_object>) {
                     continue_with_dep_backtrace = false;
                 }
 
-                // Annotate this mods wanted_by with the mods that depend on this mod
+                // Annotate this dep's wanted_by with the mods that depend on this mod
                 if (continue_with_dep_backtrace && !dep_id.match(/((?:Minecraft)?Forge(?:@|$))|(^\s*FML\s*$)/im)) {
                     const [actual_dep_id, dep_obj] = getModDeep(mod_list, dep_id);
                     const wants_idx = mod_object.wants.indexOf(dep_id);

@@ -34,12 +34,28 @@ export function divide_to_full_groups(base: number, divisor: number) {
 }
 
 /**
- * Clone an object, mostly to forgo refs.
+ * Deep-Clone an object, mostly to forgo refs.
  * @param {Object} object The object to clone
  * @returns A reference to a new object, duplicate of the input object
  */
 export function clone(object: object): object {
-    return Object.assign({}, object);
+    if (Array.isArray(object)) {
+        const copy: Array<any> = object.slice()
+        for (let i = 0; i < object.length; i++) {
+            if (typeof object[i] === 'object') {
+                copy[i] = clone(object[i]);
+            }
+        }
+        return copy;
+    } else {
+        const copy: { [key: string]: any } = Object.assign({}, object);
+        for (const [key, value] of Object.entries(object)) {
+            if (typeof value === 'object') {
+                copy[key] = clone(value);
+            }
+        }
+        return copy;
+    }
 }
 
 export async function run_prettier(file_path: string) {
@@ -306,7 +322,7 @@ export function update_live_zone(lines: string[]) {
     }
 
     // Move cursor back up to above the live zone
-    process.stdout.moveCursor(0, -(live_lines));
+    process.stdout.moveCursor(0, -live_lines);
     live_content = lines;
 }
 
@@ -317,7 +333,7 @@ export function set_live_zone(lines: string[]) {
 export function live_log(input: any, func: (message: any) => void = console.log) {
     process.stdout.clearLine(0);
     func(input);
-    update_live_zone(live_content)
+    update_live_zone(live_content);
 }
 
 /**
@@ -325,7 +341,7 @@ export function live_log(input: any, func: (message: any) => void = console.log)
  */
 export function dedup_array(arr: string[]) {
     const seen = new Set<string>();
-    arr = arr.filter(dep => {
+    arr = arr.filter((dep) => {
         const lower = dep.toLowerCase();
         if (seen.has(lower)) return false;
         seen.add(lower);

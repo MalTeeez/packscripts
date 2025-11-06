@@ -88,7 +88,7 @@ export async function read_from_file(file_path: string): Promise<JsonObject> {
             return {};
         }
     } else {
-        console.error('File ', file, ' does not exist.');
+        console.info(`File ${file.name} with annotated mods does not yet exist. Building from empty state.`);
         return {};
     }
 }
