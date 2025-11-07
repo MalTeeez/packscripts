@@ -47,6 +47,7 @@ export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<
             old_mod_obj.enabled = new_mod_obj.enabled;
             old_mod_obj.update_state.version = new_mod_obj.update_state?.version;
             old_mod_obj.wants = new_mod_obj.wants;
+            old_mod_obj.other_mod_ids = new_mod_obj.other_mod_ids || [];
 
             mod_map.set(new_mod_obj.mod_id, old_mod_obj);
         }
