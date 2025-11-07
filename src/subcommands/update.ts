@@ -10,11 +10,23 @@ import {
     update_live_zone,
     type JsonObject,
 } from '../utils/utils';
-import { GITHUB_API_KEY } from '../../.env.json';
 import { rename_file, save_map_to_file } from '../utils/fs';
 import { mkdir, rename, rmdir } from 'node:fs/promises';
 import path from 'node:path';
 import { ANNOTATED_FILE, DOWNLOAD_TEMP_DIR, MOD_BASE_DIR } from '../utils/consts';
+
+let GITHUB_API_KEY: string | undefined = undefined;
+if (await Bun.file('./.env.json').exists()) {
+    const env_file = await Bun.file('./.env.json').json()
+    if (env_file?.GITHUB_API_KEY) {
+        GITHUB_API_KEY = env_file.GITHUB_API_KEY as string;
+    } else {
+        console.error("Missing GitHub API Key.")
+    }
+} else {
+    console.error("Missing GitHub API Key.")
+}
+
 
 export async function check_all_mods_for_updates(
     options: {
