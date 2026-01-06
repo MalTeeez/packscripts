@@ -24,7 +24,7 @@ export function download_file(
     source_type: 'GH_RELEASE' | 'CURSEFORGE' | 'MODRINTH' | 'OTHER',
     destination: string,
     file_name: string,
-    source_api_key: string
+    source_api_key: string,
 ): Promise<string> {
     return new Promise(async (resolve, reject) => {
         let res: Response;

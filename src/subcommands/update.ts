@@ -139,9 +139,9 @@ export async function check_all_mods_for_updates(
         let running_updates = 0;
         let completed_dls = 0;
         const full_dls = to_update_mods.length;
-        const download_map: Map<string, { response: Promise<string>; remote_version: string; start_time: number; file_name: string }> =
+        const download_map: Map<string, { response: Promise<string>; remote_version: string; start_time: number; file_name: string, is_base_required: boolean }> =
             new Map();
-        const downloaded_mods: Map<string, { remote_version: string; file_name: string }> = new Map();
+        const downloaded_mods: Map<string, { remote_version: string; file_name: string, is_base_required: boolean }> = new Map();
         console.log(`Upgrading ${full_dls} mods...`);
 
         init_live_zone(2);
@@ -169,6 +169,7 @@ export async function check_all_mods_for_updates(
                             remote_version: to_download_mod.remote_version,
                             start_time: Date.now(),
                             file_name: to_download_mod.file_name,
+                            is_base_required: to_download_mod.mod_obj.tags?.includes("REQUIRED_BASE") || false
                         });
                         running_updates++;
                     }
@@ -176,7 +177,7 @@ export async function check_all_mods_for_updates(
             }
 
             const finished_dls: string[] = [];
-            for (const [mod_id, { response, remote_version, start_time, file_name }] of download_map.entries()) {
+            for (const [mod_id, { response, remote_version, start_time, file_name, is_base_required }] of download_map.entries()) {
                 if (await is_finished(response)) {
                     const id_padding_len = longest_mod_id_length - mod_id.length;
                     let state_string = '?';
@@ -193,7 +194,7 @@ export async function check_all_mods_for_updates(
                             ` ${CLIColor.Reset}${CLIColor.Bright}${state_string}${CLIColor.Reset}`,
                     );
 
-                    downloaded_mods.set(mod_id, { file_name, remote_version });
+                    downloaded_mods.set(mod_id, { file_name, remote_version, is_base_required });
                     completed_dls++;
                     running_updates--;
                     finished_dls.push(mod_id);
@@ -212,9 +213,9 @@ export async function check_all_mods_for_updates(
         ]);
         finish_live_zone();
 
-        console.log('Finished upgrading all mods!');
+        console.log('Finished upgrading all mods!\n');
 
-        for (const [mod_id, { file_name, remote_version }] of downloaded_mods.entries()) {
+        for (const [mod_id, { file_name, remote_version, is_base_required }] of downloaded_mods.entries()) {
             const mod = mod_map.get(mod_id);
             if (mod) {
                 await replace_mod_file(mod_id, mod, file_name)
@@ -222,6 +223,9 @@ export async function check_all_mods_for_updates(
                         mod.file_path = new_file_path;
                         mod.update_state.version = remote_version;
                         mod.update_state.last_updated_at = new Date(Date.now()).toISOString();
+                        if (is_base_required) {
+                            console.info(`Mod required by basegame (${mod_id}) was updated. Don't forget to also update it externally if required.`)
+                        }
                     })
                     .catch((err) => {
                         console.warn(err);
