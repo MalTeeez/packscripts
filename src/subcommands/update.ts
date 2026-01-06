@@ -20,7 +20,8 @@ export async function check_all_mods_for_updates(
     options: {
         retry_failed: boolean;
         frequency_range: update_frequency;
-    } = { retry_failed: false, frequency_range: 'COMMON' },
+        force_downgrade: boolean;
+    } = { retry_failed: false, frequency_range: 'COMMON', force_downgrade: false },
     dry: boolean = true,
     mod_map?: Map<string, mod_object>,
 ) {
@@ -73,6 +74,9 @@ export async function check_all_mods_for_updates(
                     change_string = `${CLIColor.FgGreen}↑${CLIColor.Reset}`;
                 } else if (version_change == 1) {
                     change_string = `${CLIColor.FgYellow}↓${CLIColor.Reset}`;
+                    if (options.force_downgrade) {
+                        to_update_mods.push({ mod_id, mod_obj, remote_version, file_url, file_name });
+                    }
                 }
 
                 console.log(
@@ -288,7 +292,8 @@ async function check_url_for_updates(
                             !asset.name.endsWith('-prestub.jar') &&
                             !asset.name.endsWith('-javadoc.jar') &&
                             !asset.name.endsWith('-reobf.jar') &&
-                            !asset.name.includes('-panama-')
+                            !asset.name.includes('-panama-') &&
+                            !asset.name.includes('-deploader')
                         ) {
                             filtered_assets.push(asset);
                         }

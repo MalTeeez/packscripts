@@ -123,6 +123,7 @@ const commands: Record<string, CommandDefinition> = {
                 {
                     frequency_range: frequency,
                     retry_failed: args.includes('--retry'),
+                    force_downgrade: args.includes('--downgrade')
                 },
                 !args.includes('--upgrade'),
             );

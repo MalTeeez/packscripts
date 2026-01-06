@@ -200,7 +200,7 @@ export async function toggle_mod_deep(mod_id: string, mod_map: Map<string, mod_o
  * @param changed_list A list of mod ids, to keep track of which mods we have already updated
  * @returns The number of mods that were changed
  */
-export async function disable_mod_deep(mod_id: string, mod_map: Map<string, mod_object>, changed_list: Array<string>): Promise<number> {
+export async function disable_mod_deep(mod_id: string, mod_map: Map<string, mod_object>, changed_list: Array<string>, came_from: string | undefined = undefined): Promise<number> {
     let change_count = 0;
 
     const mod = mod_map.get(mod_id);
@@ -209,7 +209,7 @@ export async function disable_mod_deep(mod_id: string, mod_map: Map<string, mod_
         if (mod.wanted_by && mod.wanted_by.length > 0) {
             for (const dependency of mod.wanted_by) {
                 if (isNotItself(dependency, mod_id, mod.other_mod_ids || [])) {
-                    change_count += await disable_mod_deep(dependency, mod_map, changed_list);
+                    change_count += await disable_mod_deep(dependency, mod_map, changed_list, mod_id);
                 }
             }
         }
