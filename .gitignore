@@ -4,4 +4,5 @@ pnpm-lock.yaml
 .annotate_history.json
 tmp/
 .env.json
+config.json
 graph.html

@@ -8,13 +8,27 @@ import {
     live_log,
     rev_replace_all,
     update_live_zone,
-    type JsonObject,
 } from '../utils/utils';
-import { GITHUB_API_KEY } from '../../.env.json';
-import { rename_file, save_map_to_file } from '../utils/fs';
+import { save_map_to_file } from '../utils/fs';
 import { mkdir, rename, rmdir } from 'node:fs/promises';
 import path from 'node:path';
 import { ANNOTATED_FILE, DOWNLOAD_TEMP_DIR, MOD_BASE_DIR } from '../utils/consts';
+import { check_gh_releases, download_file, print_gh_ratelimits } from '../utils/fetch';
+
+const SOURCE_API_KEYS: Map<string, string> = new Map();
+let GITHUB_API_KEY: string | undefined = undefined;
+if (await Bun.file('./.env.json').exists()) {
+    const env_file = await Bun.file('./.env.json').json();
+    if (env_file?.GITHUB_API_KEY) {
+        GITHUB_API_KEY = env_file.GITHUB_API_KEY as string;
+        SOURCE_API_KEYS.set('GH_RELEASE', GITHUB_API_KEY);
+    } else {
+        console.error('Missing GitHub API Key.');
+    }
+} else {
+    console.error('Missing GitHub API Key.');
+    process.exit(1);
+}
 
 export async function check_all_mods_for_updates(
     options: {
@@ -30,7 +44,16 @@ export async function check_all_mods_for_updates(
         string,
         {
             mod_obj: mod_object;
-            res: Promise<{ status: string; version?: string; file_name?: string; file_url?: string } | undefined>;
+            res: Promise<
+                | {
+                      status: string;
+                      version: string;
+                      file_name: string;
+                      file_url: string;
+                      source_api_key: string;
+                  }
+                | undefined
+            >;
         }
     > = new Map();
     let longest_mod_id_length = 0;
@@ -45,7 +68,8 @@ export async function check_all_mods_for_updates(
 
         longest_mod_id_length = Math.max(mod_id.length, longest_mod_id_length);
         if (mod_obj.source) {
-            fetch_map.set(mod_id, { mod_obj, res: check_url_for_updates(mod_obj, mod_obj.source) });
+            const source_api_key = SOURCE_API_KEYS.get(mod_obj.update_state.source_type) || '';
+            fetch_map.set(mod_id, { mod_obj, res: check_url_for_updates(mod_obj, mod_obj.source, source_api_key) });
         }
     }
 
@@ -57,34 +81,34 @@ export async function check_all_mods_for_updates(
         remote_version: string;
         file_name: string;
         file_url: string;
+        source_api_key: string;
     }[] = [];
 
     for (const [mod_id, { mod_obj, res }] of fetch_map.entries()) {
         const content = await res;
         if (content != undefined) {
-            const { version: remote_version, status, file_name, file_url } = content;
-            if (mod_obj.update_state.version && remote_version && status && file_name && file_url) {
-                const id_padding_len = longest_mod_id_length - mod_id.length;
-                const vers_padding_len = version_length - Math.min(mod_obj.update_state.version.length, version_length);
-                const version_change = compare_versions(mod_obj.update_state.version, remote_version);
-                let change_string = `${CLIColor.FgBlack}-${CLIColor.Reset}`;
+            const mod_version = mod_obj.update_state.version || '0';
+            const { version: remote_version, status, file_name, file_url, source_api_key } = content;
+            const id_padding_len = longest_mod_id_length - mod_id.length;
+            const vers_padding_len = version_length - Math.min(mod_version.length, version_length);
+            const version_change = compare_versions(mod_version, remote_version);
+            let change_string = `${CLIColor.FgBlack}-${CLIColor.Reset}`;
 
-                if (version_change == -1) {
-                    to_update_mods.push({ mod_id, mod_obj, remote_version, file_url, file_name });
-                    change_string = `${CLIColor.FgGreen}↑${CLIColor.Reset}`;
-                } else if (version_change == 1) {
-                    change_string = `${CLIColor.FgYellow}↓${CLIColor.Reset}`;
-                    if (options.force_downgrade) {
-                        to_update_mods.push({ mod_id, mod_obj, remote_version, file_url, file_name });
-                    }
+            if (version_change == -1) {
+                to_update_mods.push({ mod_id, mod_obj, remote_version, file_url, file_name, source_api_key });
+                change_string = `${CLIColor.FgGreen}↑${CLIColor.Reset}`;
+            } else if (version_change == 1) {
+                change_string = `${CLIColor.FgYellow}↓${CLIColor.Reset}`;
+                if (options.force_downgrade) {
+                    to_update_mods.push({ mod_id, mod_obj, remote_version, file_url, file_name, source_api_key });
                 }
-
-                console.log(
-                    ` ${CLIColor.FgGray}-${CLIColor.Reset} ${mod_id} ${CLIColor.FgGray}${rev_replace_all(' '.repeat(id_padding_len), '   ', ' . ')}` +
-                        ` ${CLIColor.FgGray}${CLIColor.Bright}${mod_obj.update_state.version}${CLIColor.Reset}${CLIColor.FgGray}${rev_replace_all(' '.repeat(vers_padding_len), '   ', ' . ')}` +
-                        ` ${CLIColor.Reset}${CLIColor.Bright}${change_string}${CLIColor.Reset}${CLIColor.FgGray}  .  ${CLIColor.Reset}${remote_version}`,
-                );
             }
+
+            console.log(
+                ` ${CLIColor.FgGray}-${CLIColor.Reset} ${mod_id} ${CLIColor.FgGray}${rev_replace_all(' '.repeat(id_padding_len), '   ', ' . ')}` +
+                    ` ${CLIColor.FgGray}${CLIColor.Bright}${mod_version}${CLIColor.Reset}${CLIColor.FgGray}${rev_replace_all(' '.repeat(vers_padding_len), '   ', ' . ')}` +
+                    ` ${CLIColor.Reset}${CLIColor.Bright}${change_string}${CLIColor.Reset}${CLIColor.FgGray}  .  ${CLIColor.Reset}${remote_version}`,
+            );
             // Update mod_map with status of request
             mod_obj.update_state.last_status = status;
         }
@@ -140,6 +164,7 @@ export async function check_all_mods_for_updates(
                                 to_download_mod.mod_obj.update_state.source_type,
                                 DOWNLOAD_TEMP_DIR,
                                 to_download_mod.file_name,
+                                to_download_mod.source_api_key,
                             ),
                             remote_version: to_download_mod.remote_version,
                             start_time: Date.now(),
@@ -215,7 +240,7 @@ export async function check_all_mods_for_updates(
         // Folder is probably missing, which is fine
     }
 
-    await print_gh_ratelimits();
+    await print_gh_ratelimits(GITHUB_API_KEY || '');
 }
 
 /**
@@ -229,7 +254,7 @@ async function replace_mod_file(mod_id: string, mod: mod_object, file_name: stri
             await rename(new_file.name, `${MOD_BASE_DIR}/${file_name}`)
                 .then(async () => {
                     const old_file = Bun.file(mod.file_path);
-                    if (await old_file.exists() && `${MOD_BASE_DIR}/${file_name}` !== old_file.name) {
+                    if ((await old_file.exists()) && `${MOD_BASE_DIR}/${file_name}` !== old_file.name) {
                         await old_file.delete().catch(() => {
                             console.warn(`W: Failed to delete older file for mod ${mod_id} as ${mod.file_path}, but we upgraded it.`);
                         });
@@ -251,9 +276,10 @@ async function replace_mod_file(mod_id: string, mod: mod_object, file_name: stri
 async function check_url_for_updates(
     mod_obj: mod_object,
     url: string,
-): Promise<{ status: string; version?: string; file_name?: string; file_url?: string } | undefined> {
+    source_api_key: string,
+): Promise<{ status: string; version: string; file_name: string; file_url: string; source_api_key: string } | undefined> {
     if (mod_obj.update_state.source_type === 'GH_RELEASE') {
-        const { status, body } = await check_gh_releases(url);
+        const { status, body } = await check_gh_releases(url, source_api_key);
         if (status == '200' && body != undefined) {
             const version = body.tag_name;
             let assets: Array<{ url: string; name: string }> = (body.assets as Array<{ [key: string]: string }>).map((asset) => {
@@ -315,103 +341,10 @@ async function check_url_for_updates(
                 return undefined;
             }
 
-            return { version: version as string, status, file_name: file, file_url: dl_url };
+            return { version: version as string, status, file_name: file, file_url: dl_url, source_api_key };
         } else {
-            return { version: undefined, status, file_name: undefined, file_url: undefined };
+            return undefined;
         }
     }
     return undefined;
-}
-
-async function check_gh_releases(url: string): Promise<{ status: string; body: JsonObject | undefined }> {
-    const project = url.match(/(?:github.com\/(.+?\/.+?))(?:\/|$)/m)?.at(1);
-    if (project) {
-        const res: Response | undefined = await gh_request(`/repos/${project}/releases/latest`, 'GET');
-        if (res == undefined || !res.ok) {
-            console.warn(`W: Failed to get releases with ${res.status} | ${res.statusText} for ${project}`);
-            return { body: undefined, status: String(res.status) };
-        } else {
-            if (res.headers.get('content-type')?.includes('application/json')) {
-                const body = (await res.json()) as JsonObject;
-                return { body, status: String(res.status) };
-            }
-        }
-    } else {
-        console.warn(`W: GitHub URL ${url} is fauly, can't check..`);
-    }
-    return { body: undefined, status: '400' };
-}
-
-function download_file(
-    source: string,
-    source_type: 'GH_RELEASE' | 'CURSEFORGE' | 'MODRINTH' | 'OTHER',
-    destination: string,
-    file_name: string,
-): Promise<string> {
-    return new Promise(async (resolve, reject) => {
-        let res: Response;
-        if (source_type === 'GH_RELEASE') {
-            res = await gh_request(source, 'GET');
-        } else {
-            res = await fetch(source, { method: 'GET', redirect: 'follow' });
-        }
-        let content_length: string | number | null = res.headers.get('Content-Length');
-        if (!res.ok || !content_length || (content_length && Number(content_length) < 1) || !res.body) {
-            return reject(
-                `W: Failed to download file ${file_name} from ${source_type} with ${res.status} | ${res.statusText}. Headers: ${JSON.stringify(res.headers.toJSON())}`,
-            );
-        }
-        content_length = Number(content_length);
-
-        const file = Bun.file(`${destination}/${file_name}`);
-        const writer = file.writer({ highWaterMark: 1024 * 1024 });
-
-        let written_bytes = 0;
-        for await (const chunk of res.body) {
-            // Await is actually needed here, since .write() returns a promise
-            written_bytes += await (writer.write(chunk) as unknown as Promise<number>).catch(() => {
-                reject(`W: Failed to write chunk of ${destination}/${file_name} to disk`);
-                return 0;
-            });
-        }
-
-        await writer.flush();
-
-        if (written_bytes == content_length) {
-            resolve(`Wrote ${written_bytes} bytes to disk for ${file_name}`);
-        } else {
-            reject(`W: Failed to write filestream to disk. Wrote ${written_bytes} bytes, expected ${content_length}`);
-        }
-    });
-}
-
-async function gh_request(path: string, method: string = 'GET'): Promise<Response> {
-    const url = path.startsWith('http://') || path.startsWith('https://') ? path : `https://api.github.com${path}`;
-    const res = await fetch(url, {
-        method,
-        headers: {
-            Accept: 'application/vnd.github+json',
-            'User-Agent': 'mod-updater-script',
-            Authorization: `Bearer ${GITHUB_API_KEY}`,
-        },
-        redirect: 'follow',
-    });
-
-    if (res.status == 403) {
-        console.log(res)
-    }
-
-    if (res.status === 403 && res.headers.get('x-ratelimit-remaining') === '0') {
-        const reset = res.headers.get('x-ratelimit-reset');
-        const secs = reset ? Math.max(0, parseInt(reset) * 1000 - Date.now()) / 1000 : undefined;
-        console.warn(`W: GitHub rate limit exceeded. Resets in ~${secs?.toFixed(0)}s`);
-    }
-
-    return res;
-}
-
-async function print_gh_ratelimits() {
-    const rate_limits = (await ((await gh_request('/rate_limit')) as any)?.json()).resources?.core;
-    const reset_in = (rate_limits.reset - Date.now() / 1000) / 60;
-    console.log(`rate limits - used: ${rate_limits.used}, remaining: ${rate_limits.remaining}, reset in: ${reset_in.toFixed(1)} mins`);
 }
