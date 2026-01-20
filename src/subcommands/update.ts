@@ -9,10 +9,10 @@ import {
     rev_replace_all,
     update_live_zone,
 } from '../utils/utils';
-import { save_map_to_file } from '../utils/fs';
+import { glob_files_in_dir, read_arr_from_file, save_list_to_file, save_map_to_file } from '../utils/fs';
 import { mkdir, rename, rmdir } from 'node:fs/promises';
 import path from 'node:path';
-import { ANNOTATED_FILE, DOWNLOAD_TEMP_DIR, MOD_BASE_DIR } from '../utils/consts';
+import { ANNOTATED_FILE, DOWNLOAD_TEMP_DIR, DOWNLOAD_UNDO_DIR, MOD_BASE_DIR } from '../utils/consts';
 import { check_gh_releases, download_file, print_gh_ratelimits } from '../utils/fetch';
 
 const SOURCE_API_KEYS: Map<string, string> = new Map();
@@ -130,18 +130,24 @@ export async function check_all_mods_for_updates(
     if (to_update_mods.length > 0 && !dry) {
         const DOWNLOAD_BATCH_SIZE = 5;
 
-        // Prepare temp download directory
-        await mkdir(DOWNLOAD_TEMP_DIR, { recursive: true }).catch(() => {
+        // Prepare temp directories
+        await mkdir(DOWNLOAD_TEMP_DIR, { recursive: true }).catch((err) => {
             console.error(`Failed to create temporary download directory at ${path.toNamespacedPath(DOWNLOAD_TEMP_DIR)}`);
-            return;
+            throw err;
+        });
+        await mkdir(DOWNLOAD_UNDO_DIR, { recursive: true }).catch((err) => {
+            console.error(`Failed to create temporary download directory at ${path.toNamespacedPath(DOWNLOAD_TEMP_DIR)}`);
+            throw err;
         });
 
         let running_updates = 0;
         let completed_dls = 0;
         const full_dls = to_update_mods.length;
-        const download_map: Map<string, { response: Promise<string>; remote_version: string; start_time: number; file_name: string, is_base_required: boolean }> =
-            new Map();
-        const downloaded_mods: Map<string, { remote_version: string; file_name: string, is_base_required: boolean }> = new Map();
+        const download_map: Map<
+            string,
+            { response: Promise<string>; remote_version: string; start_time: number; file_name: string; is_base_required: boolean }
+        > = new Map();
+        const downloaded_mods: Map<string, { remote_version: string; file_name: string; is_base_required: boolean }> = new Map();
         console.log(`Upgrading ${full_dls} mods...`);
 
         init_live_zone(2);
@@ -169,7 +175,7 @@ export async function check_all_mods_for_updates(
                             remote_version: to_download_mod.remote_version,
                             start_time: Date.now(),
                             file_name: to_download_mod.file_name,
-                            is_base_required: to_download_mod.mod_obj.tags?.includes("REQUIRED_BASE") || false
+                            is_base_required: to_download_mod.mod_obj.tags?.includes('REQUIRED_BASE') || false,
                         });
                         running_updates++;
                     }
@@ -209,28 +215,54 @@ export async function check_all_mods_for_updates(
         const progress = Math.ceil(((completed_dls / full_dls) * 100) / 2);
         update_live_zone([
             `|${CLIColor.FgWhite}${'='.repeat(progress)}${CLIColor.FgGray}${'-'.repeat(50 - progress)}${CLIColor.Reset}|`,
-            `Upgrading mods${CLIColor.FgGray} - ${CLIColor.FgWhite}${completed_dls}${CLIColor.FgGray} of ${CLIColor.FgWhite}${full_dls}${CLIColor.Reset}`,
+            `Downloading mods${CLIColor.FgGray} - ${CLIColor.FgWhite}${completed_dls}${CLIColor.FgGray} of ${CLIColor.FgWhite}${full_dls}${CLIColor.Reset}`,
         ]);
         finish_live_zone();
 
-        console.log('Finished upgrading all mods!\n');
+        console.log('Finished downloading all mods!\n');
 
-        for (const [mod_id, { file_name, remote_version, is_base_required }] of downloaded_mods.entries()) {
-            const mod = mod_map.get(mod_id);
-            if (mod) {
-                await replace_mod_file(mod_id, mod, file_name)
-                    .then(async (new_file_path) => {
-                        mod.file_path = new_file_path;
-                        mod.update_state.version = remote_version;
-                        mod.update_state.last_updated_at = new Date(Date.now()).toISOString();
-                        if (is_base_required) {
-                            console.info(`Mod required by basegame (${mod_id}) was updated. Don't forget to also update it externally if required.`)
-                        }
-                    })
-                    .catch((err) => {
-                        console.warn(err);
-                    });
+        // Replace the mod jars
+        if (downloaded_mods.size > 0) {
+            const undo_list: Array<{ mod_id: string; old_file: string; new_file: string; old_version: string }> = [];
+            // Clear old update undo jars
+            (await glob_files_in_dir(DOWNLOAD_UNDO_DIR, '.jar', false)).forEach(
+                async (file) =>
+                    await Bun.file(file)
+                        .delete()
+                        .catch(() => console.warn('W: Failed to delete leftover update-undo mod ' + file)),
+            );
+
+            for (const [mod_id, { file_name, remote_version, is_base_required }] of downloaded_mods.entries()) {
+                const mod = mod_map.get(mod_id);
+                if (mod) {
+                    const old_mod_jar = mod.file_path.replace(MOD_BASE_DIR + '/', '');
+                    const new_mod_path = `${MOD_BASE_DIR}/${file_name + (mod.enabled ? '' : '.disabled')}`;
+                    await rename(`${DOWNLOAD_TEMP_DIR}/${file_name}`, new_mod_path)
+                        .then(async () => {
+                            await rename(mod.file_path, `${DOWNLOAD_UNDO_DIR}/${old_mod_jar}`).catch((err) => {
+                                console.warn(`W: Failed to move the older jar for mod ${mod_id} from the mod dir into the undo dir.`);
+                            });
+
+                            undo_list.push({
+                                mod_id,
+                                new_file: file_name + (mod.enabled ? '' : '.disabled'),
+                                old_file: old_mod_jar,
+                                old_version: mod.update_state?.version || '',
+                            });
+
+                            mod.file_path = new_mod_path;
+                            mod.update_state.version = remote_version;
+                            mod.update_state.last_updated_at = new Date(Date.now()).toISOString();
+                            if (is_base_required) {
+                                console.info(
+                                    `Mod required by basegame (${mod_id}) was updated. Don't forget to also update it externally if required.`,
+                                );
+                            }
+                        })
+                        .catch(() => console.warn(`W: Failed to move updated jar for mod ${mod_id} into the mod directory.`));
+                }
             }
+            await save_list_to_file(DOWNLOAD_UNDO_DIR + '/update_undo.json', undo_list);
         }
 
         // Save updated files & versions back to file (only changes when upgrading)
@@ -247,34 +279,53 @@ export async function check_all_mods_for_updates(
     await print_gh_ratelimits(GITHUB_API_KEY || '');
 }
 
-/**
- * Replaces a mods file with a newer file from the downloads folder.
- * @returns The relative path to the new mod files location in a promise for resolve, an error message for reject.
- */
-async function replace_mod_file(mod_id: string, mod: mod_object, file_name: string): Promise<string> {
-    return new Promise(async (resolve, reject) => {
-        const new_file = Bun.file(`${DOWNLOAD_TEMP_DIR}/${file_name}`);
-        if ((await new_file.exists()) && new_file.name) {
-            await rename(new_file.name, `${MOD_BASE_DIR}/${file_name}`)
-                .then(async () => {
-                    const old_file = Bun.file(mod.file_path);
-                    if ((await old_file.exists()) && `${MOD_BASE_DIR}/${file_name}` !== old_file.name) {
-                        await old_file.delete().catch(() => {
-                            console.warn(`W: Failed to delete older file for mod ${mod_id} as ${mod.file_path}, but we upgraded it.`);
-                        });
-                    } else {
-                        // This is not a full failure, since a state with the old file can still mean that the new mod is there - we need to track that
-                        // console.debug(`W: Older file for mod "${mod_id}" at ${mod.file_path} does not exist, but we upgraded it.`);
-                    }
-                    return resolve(`${MOD_BASE_DIR}/${file_name}`);
-                })
-                .catch(() => {
-                    return reject(`W: Failed to move file ${file_name} to mods folder`);
-                });
-        } else {
-            return reject(`W: Failed to move file ${file_name} to mods folder. File is missing.`);
-        }
+export async function undo_last_update(mod_map?: Map<string, mod_object>) {
+    // Load undo list from undo folder
+    const undo_list: Array<{ mod_id: string; old_file: string; new_file: string; old_version: string }> = await read_arr_from_file(
+        DOWNLOAD_UNDO_DIR + '/update_undo.json',
+    ).catch(() => {
+        console.warn('W: Failed to read previous update undo state.');
+        return [];
     });
+
+    if (undo_list.length > 0) {
+        const undoed_mods: Set<string> = new Set();
+        mod_map = mod_map == undefined ? await read_saved_mods(ANNOTATED_FILE) : mod_map;
+        for (const { mod_id, new_file, old_file, old_version } of undo_list) {
+            const mod = mod_map.get(mod_id);
+            if (mod) {
+                const restored_old_path = `${MOD_BASE_DIR}/${old_file}`;
+                await rename(`${DOWNLOAD_UNDO_DIR}/${old_file}`, `${MOD_BASE_DIR}/${old_file}`)
+                    .then(async () => {
+                        console.info(`Restored mod ${mod_id} to version ${old_version}.`);
+                        await Bun.file(`${MOD_BASE_DIR}/${new_file}`)
+                            .delete()
+                            .catch(() => console.warn(`W: Failed to delete newer mod file for mod ${mod_id}.`));
+                        mod.file_path = restored_old_path;
+                        mod.update_state.version = old_version;
+                        mod.update_state.last_updated_at = new Date(Date.now()).toISOString();
+                        if (mod.is_base_required) {
+                            console.info(
+                                `Mod required by basegame (${mod_id}) was un-upgraded. Don't forget to also change it externally if required.`,
+                            );
+                        }
+
+                        undoed_mods.add(mod_id);
+                    })
+                    .catch(() => console.warn(`W: Failed to move back the older jar for mod ${mod_id} into the mod directory.`));
+            }
+        }
+
+        // Save updated files & versions back to file
+        await save_map_to_file(ANNOTATED_FILE, mod_map);
+        // Remove undoed mods from undo list in file
+        await save_list_to_file(
+            DOWNLOAD_UNDO_DIR + '/update_undo.json',
+            undo_list.filter((entry) => !undoed_mods.has(entry.mod_id)),
+        );
+    } else {
+        console.log("No mods found in last update state, won't be able to undo anything.");
+    }
 }
 
 async function check_url_for_updates(

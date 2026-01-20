@@ -5,7 +5,7 @@ import { MOD_BASE_DIR } from './utils/consts';
 import { annotate } from './subcommands/annotate';
 import { disable_atomic_deep, enable_atomic_deep, list_mods, list_mods_folder, toggle_mod } from './subcommands/simple';
 import { visualize_graph } from './subcommands/graph';
-import { check_all_mods_for_updates } from './subcommands/update';
+import { check_all_mods_for_updates, undo_last_update } from './subcommands/update';
 
 //#region Command Framework
 interface CommandDefinition {
@@ -127,6 +127,24 @@ const commands: Record<string, CommandDefinition> = {
                 },
                 !args.includes('--upgrade'),
             );
+        },
+    },
+    undo: {
+        description: 'Undo certain previously run commands',
+        usage: 'undo <UPGRADE>',
+        handler: async (args) => {
+            if (args.length === 0) {
+                console.error('Error: Missing action to undo');
+                return;
+            }
+            const mode = args[0]?.toLowerCase();
+            if (mode != undefined) {
+                if (mode == "update") {
+                    await undo_last_update();
+                    return;
+                }
+            }
+            console.error("Mode", mode, "did not match any known modes.")
         },
     },
     debug: {

@@ -30,6 +30,21 @@ export async function scan_mods_folder(directory: string): Promise<Map<string, s
 }
 
 /**
+ * Glob all files of a specified extension (.jar, .exe, ...) from a target directory
+ */
+export async function glob_files_in_dir(directory: string, file_ext: string, recursive: boolean): Promise<string[]> {
+    const dirty_files = fg.sync(directory + '**/*', { onlyFiles: true, deep: 4, globstar: recursive });
+    file_ext = !file_ext.startsWith(".") ? "." + file_ext : file_ext
+    const files: string[] = [];
+    for (const file_path of dirty_files) {
+        if (file_path.endsWith(file_ext)) {
+            files.push(file_path);
+        }
+    }
+    return files;
+}
+
+/**
  * Save a javascript map object to a file
  * @param {string} file_path Path of the file to save in
  * @param {*} data Data to save. Must be parseable by JSON.stringify
@@ -57,7 +72,7 @@ export async function save_map_to_file(file_path: string, data: Map<string, { [k
  * @param {string} file_path Path of the file to save in
  * @param {*} data Data to save. Must be parseable by JSON.stringify
  */
-export async function save_list_to_file(file_path: string, data: Array<string>) {
+export async function save_list_to_file(file_path: string, data: Array<any>) {
     try {
         await Bun.write(file_path, JSON.stringify(data));
     } catch (err) {
@@ -65,10 +80,14 @@ export async function save_list_to_file(file_path: string, data: Array<string>) 
     }
 }
 
-export async function read_arr_from_file(file_path: string): Promise<Array<string>> {
-    const string_list = Array.from(Object.values(await read_from_file(file_path)));
-    if (string_list != undefined && Array.isArray(string_list)) {
-        return string_list.filter((item): item is string => typeof item === 'string');
+export async function read_string_arr_from_file(file_path: string): Promise<Array<string>> {
+    return (await read_arr_from_file(file_path)).filter((item): item is string => typeof item === 'string');
+}
+
+export async function read_arr_from_file(file_path: string): Promise<Array<any>> {
+    const array = Array.from(Object.values(await read_from_file(file_path)));
+    if (array != undefined && Array.isArray(array)) {
+        return array;
     } else {
         return [];
     }
