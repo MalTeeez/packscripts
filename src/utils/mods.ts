@@ -9,12 +9,13 @@ export enum UpdateFrequenciesEnum {
     EOL = 'EOL',
 }
 export type update_frequency = keyof typeof UpdateFrequenciesEnum;
+export type SourceType = 'GH_RELEASE' | 'CURSEFORGE' | 'MODRINTH' | 'OTHER';
 
 export interface update_state {
     version: string | undefined;
     disable_check: boolean;
     frequency: update_frequency;
-    source_type: 'GH_RELEASE' | 'CURSEFORGE' | 'MODRINTH' | 'OTHER';
+    source_type: SourceType;
     last_status: string;
     last_updated_at: string | undefined;
     file_pattern: string | undefined;

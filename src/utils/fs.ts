@@ -32,12 +32,11 @@ export async function scan_mods_folder(directory: string): Promise<Map<string, s
 /**
  * Glob all files of a specified extension (.jar, .exe, ...) from a target directory
  */
-export async function glob_files_in_dir(directory: string, file_ext: string, recursive: boolean): Promise<string[]> {
+export async function glob_files_in_dir(directory: string, file_ext_pattern: RegExp, recursive: boolean): Promise<string[]> {
     const dirty_files = fg.sync(directory + '**/*', { onlyFiles: true, deep: 4, globstar: recursive });
-    file_ext = !file_ext.startsWith(".") ? "." + file_ext : file_ext
     const files: string[] = [];
     for (const file_path of dirty_files) {
-        if (file_path.endsWith(file_ext)) {
+        if (file_path.match(file_ext_pattern)) {
             files.push(file_path);
         }
     }

@@ -1,22 +1,25 @@
 import type { JsonObject } from "./utils";
 
-export async function check_gh_releases(url: string, gh_api_key: string): Promise<{ status: string; body: JsonObject | undefined }> {
+export async function query_gh_project_by_url(url: string, gh_api_key: string, sub_repo_api_path: string, ignore_codes: number[] = []): Promise<{ headers?: Headers, status: string; body: JsonObject | undefined }> {
     const project = url.match(/(?:github.com\/(.+?\/.+?))(?:\/|$)/m)?.at(1);
     if (project) {
-        const res: Response | undefined = await gh_request(`/repos/${project}/releases/latest`, gh_api_key, 'GET');
+        const url = `/repos/${project}${sub_repo_api_path}`;
+        const res: Response | undefined = await gh_request(url, gh_api_key, 'GET');
         if (res == undefined || !res.ok) {
-            console.warn(`W: Failed to get releases with ${res.status} | ${res.statusText} for ${project}`);
-            return { body: undefined, status: String(res.status) };
+            if (res && !ignore_codes.includes(res.status)) {
+                console.warn(`W: Failed to get releases with ${res.status} | ${res.statusText} for ${project} (${url})`);
+            }
+            return { headers: res.headers, body: undefined, status: String(res.status) };
         } else {
             if (res.headers.get('content-type')?.includes('application/json')) {
                 const body = (await res.json()) as JsonObject;
-                return { body, status: String(res.status) };
+                return { headers: res.headers, body, status: String(res.status) };
             }
         }
     } else {
         console.warn(`W: GitHub URL ${url} is fauly, can't check..`);
     }
-    return { body: undefined, status: '400' };
+    return { headers: undefined, body: undefined, status: '400' };
 }
 
 export function download_file(
@@ -91,5 +94,5 @@ export async function gh_request(path: string, api_key: string, method: string =
 export async function print_gh_ratelimits(gh_api_key: string) {
     const rate_limits = (await ((await gh_request('/rate_limit', gh_api_key)) as any)?.json()).resources?.core;
     const reset_in = (rate_limits.reset - Date.now() / 1000) / 60;
-    console.log(`rate limits - used: ${rate_limits.used}, remaining: ${rate_limits.remaining}, reset in: ${reset_in.toFixed(1)} mins`);
+    console.log(`\nrate limits - used: ${rate_limits.used}, remaining: ${rate_limits.remaining}, reset in: ${reset_in.toFixed(1)} mins`);
 }

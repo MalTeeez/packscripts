@@ -9,7 +9,7 @@ import {
     toggle_mod_deep,
     type mod_object,
 } from '../utils/mods';
-import { print_pretty } from '../utils/utils';
+import { CLIColor, print_pretty, rev_replace_all } from '../utils/utils';
 
 /**
  * Enable a list of mods by their id
@@ -64,14 +64,15 @@ export async function disable_atomic_deep(opts_mod_id: string[], mod_map?: Map<s
     }
 }
 
-export async function list_mods_folder() {
+export async function list_mods_folder(only_show_enabled: boolean = false) {
     // Intialize array with 4 cols, and set their headers
     const mods: Array<[string, string[]]> = [
         ['Enabled Mod Id', []],
         ['File Path', []],
-        ['Disabled Mod Id', []],
-        ['File Path', []],
     ];
+    if (only_show_enabled) {
+        mods.push(['Disabled Mod Id', []], ['File Path', []]);
+    }
 
     for (const [file_path, mod_object] of await extract_modinfos(await scan_mods_folder(MOD_BASE_DIR))) {
         if (mod_object.enabled && typeof mod_object.mod_id === 'string') {
@@ -79,7 +80,7 @@ export async function list_mods_folder() {
             mods[0][1].push(mod_object.mod_id);
             //@ts-ignore
             mods[1][1].push(file_path);
-        } else if (typeof mod_object.mod_id === 'string') {
+        } else if (!mod_object.enabled && !only_show_enabled && typeof mod_object.mod_id === 'string') {
             //@ts-ignore
             mods[2][1].push(mod_object.mod_id);
             //@ts-ignore
@@ -114,6 +115,37 @@ export async function list_mods() {
     }
 
     print_pretty(...mods);
+}
+
+export async function list_mods_wide(only_show_enabled: boolean = false) {
+    const mod_map = await read_saved_mods(ANNOTATED_FILE);
+
+    let longest_mod_id_length = 0;
+    let longest_mod_version_length = 0;
+    mod_map.keys().forEach((id) => (longest_mod_id_length = Math.max(id.length, longest_mod_id_length)));
+    mod_map
+        .values()
+        .forEach((obj) => (longest_mod_version_length = Math.max(obj.update_state?.version?.length || 0, longest_mod_version_length)));
+    let excluded_mods = 0;
+
+    for (const mod_id of Array.from(mod_map.keys()).sort((a, b) => a.localeCompare(b, undefined, { "sensitivity": "base"}))) {
+        const mod = mod_map.get(mod_id);
+        if (mod == undefined || (!mod.enabled && only_show_enabled)) {
+            excluded_mods++;
+            continue;
+        };
+
+        const id_padding_len = longest_mod_id_length - mod_id.length;
+        const vers_padding_len = longest_mod_version_length - (mod.update_state.version?.length || 0);
+
+        console.log(
+            ` ${CLIColor.FgGray}-${CLIColor.Reset} ${mod_id} ${CLIColor.FgGray}${rev_replace_all(' '.repeat(id_padding_len), '   ', ' . ')}` +
+                ` ${CLIColor.BgBlue0}${CLIColor.FgWhite1}${CLIColor.Bright} ${mod.update_state.version} ${CLIColor.Reset}`,
+        );
+    }
+    if (excluded_mods > 0) {
+        console.info("\nNote: " ,excluded_mods, " of ", mod_map.size, " mods were exclude due to --enabled.")
+    }
 }
 
 export async function toggle_mod(opts: string | undefined) {

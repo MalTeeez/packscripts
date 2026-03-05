@@ -3,14 +3,16 @@ import { binary_search_disable } from './subcommands/binary';
 import { enable_all_mods, disable_all_mods, get_details_from_mainclass, type update_frequency, isUpdateFrequency } from './utils/mods';
 import { MOD_BASE_DIR } from './utils/consts';
 import { annotate } from './subcommands/annotate';
-import { disable_atomic_deep, enable_atomic_deep, list_mods, list_mods_folder, toggle_mod } from './subcommands/simple';
+import { disable_atomic_deep, enable_atomic_deep, list_mods, list_mods_folder, list_mods_wide, toggle_mod } from './subcommands/simple';
 import { visualize_graph } from './subcommands/graph';
 import { check_all_mods_for_updates, undo_last_update } from './subcommands/update';
+import { list_all_versions_for_mod, switch_version_of_mod } from './subcommands/version';
 
 //#region Command Framework
 interface CommandDefinition {
     description: string;
     usage?: string;
+    is_subcommand?: boolean;
     handler: (args: string[]) => Promise<void>;
 }
 
@@ -24,13 +26,16 @@ const commands: Record<string, CommandDefinition> = {
     },
     list: {
         description: 'List all indexed mods',
-        usage: 'list [--files]',
+        usage: 'list [--files] [--enabled] [--wide]',
         handler: async (args) => {
             if (args.includes('--files')) {
-                await list_mods_folder();
+                await list_mods_folder(args.includes('--enabled'));
                 return;
+            } else if (args.includes('--wide')) {
+                await list_mods_wide(args.includes('--enabled'));
+            } else {
+                await list_mods();
             }
-            await list_mods();
         },
     },
     binary: {
@@ -108,7 +113,7 @@ const commands: Record<string, CommandDefinition> = {
     },
     update: {
         description: 'Check for mod updates down to a given frequency',
-        usage: 'update <COMMON|RARE|EOL> [--retry]',
+        usage: 'update <COMMON|RARE|EOL> [--retry] [--upgrade] [--downgrade]',
         handler: async (args) => {
             let frequency: update_frequency = 'COMMON';
             const freq_provided = args.length > 0 && !args[0]?.startsWith('--');
@@ -123,7 +128,7 @@ const commands: Record<string, CommandDefinition> = {
                 {
                     frequency_range: frequency,
                     retry_failed: args.includes('--retry'),
-                    force_downgrade: args.includes('--downgrade')
+                    force_downgrade: args.includes('--downgrade'),
                 },
                 !args.includes('--upgrade'),
             );
@@ -139,12 +144,81 @@ const commands: Record<string, CommandDefinition> = {
             }
             const mode = args[0]?.toLowerCase();
             if (mode != undefined) {
-                if (mode == "update") {
+                if (mode.toLowerCase() === 'upgrade') {
                     await undo_last_update();
                     return;
                 }
             }
-            console.error("Mode", mode, "did not match any known modes.")
+            console.error('Mode', mode, 'did not match any known modes.');
+        },
+    },
+    version: {
+        description: 'Interact with remote versions of a mod',
+        usage: 'version <list|set> <mod_id>',
+        handler: async (args) => {
+            const mode = args[0]?.toLowerCase();
+            const cmdArgs = args.slice(1);
+
+            if (!mode || mode === 'help' || mode === '--help' || mode === '-h') {
+                console.log(commands["version"]?.usage);
+                return;
+            }
+
+            const command = commands['version_' + mode];
+            if (command) {
+                await command.handler(cmdArgs);
+            } else {
+                console.error(`Error: Unknown subcommand '${mode}'`);
+                console.log(commands["version"]?.usage);
+                process.exit(1);
+            }
+        },
+    },
+    version_list: {
+        description: 'List remote version of a mod',
+        usage: 'version list <mod_id> [--all] [--wide] [-c=X]',
+        is_subcommand: true,
+        handler: async (args) => {
+            if (args.includes("--help")) {
+                console.log(commands["version_list"]?.usage);
+                return;
+            }
+            if (args.length == 0) {
+                console.error('Error: Missing mod id');
+                return;
+            }
+
+            const mod_id = args[0];
+            if (mod_id != undefined) {
+                const count = args.filter((arg) => arg.startsWith("-c="))[0]?.split("=", 2)[1];
+                await list_all_versions_for_mod(mod_id, { all_pages: args.includes('--all'), wide: args.includes('--wide'), count: count });
+                return;
+            }
+        },
+    },
+    version_set: {
+        description: 'Switch an already indexed mod to a specified version, from its remote release',
+        usage: 'version set <mod_id> <version> [--dry]',
+        is_subcommand: true,
+        handler: async (args) => {
+            if (args.includes("--help")) {
+                console.log(commands["version_set"]?.usage);
+                return;
+            }
+            if (args.length == 0) {
+                console.error('Error: Missing mod id and version');
+                return;
+            } else if (args.length == 1) {
+                console.error('Error: Missing remote mod version');
+                return;
+            }
+
+            const mod_id = args[0];
+            const mod_vers = args[1];
+            if (mod_id != undefined && mod_vers != undefined) {
+                await switch_version_of_mod(mod_id, mod_vers, { dry: args.includes("--dry") });
+                return;
+            }
         },
     },
     debug: {
@@ -158,7 +232,7 @@ const commands: Record<string, CommandDefinition> = {
 };
 
 function showHelp() {
-    console.log('Usage: node main.js <command> [arguments]\n');
+    console.log('Usage: bun main <command> [arguments]\n');
     console.log('Available commands:\n');
 
     const maxCmdLength = Math.max(...Object.keys(commands).map((k) => k.length));

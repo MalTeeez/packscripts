@@ -1,4 +1,4 @@
-import { getUpdateFrequencyOrdinal, read_saved_mods, type mod_object, type update_frequency } from '../utils/mods';
+import { getUpdateFrequencyOrdinal, read_saved_mods, type mod_object, type SourceType, type update_frequency } from '../utils/mods';
 import {
     CLIColor,
     compare_versions,
@@ -10,35 +10,33 @@ import {
     update_live_zone,
 } from '../utils/utils';
 import { glob_files_in_dir, read_arr_from_file, save_list_to_file, save_map_to_file } from '../utils/fs';
-import { mkdir, rename, rmdir } from 'node:fs/promises';
+import { mkdir, rename } from 'node:fs/promises';
 import path from 'node:path';
-import { ANNOTATED_FILE, DOWNLOAD_TEMP_DIR, DOWNLOAD_UNDO_DIR, MOD_BASE_DIR } from '../utils/consts';
-import { check_gh_releases, download_file, print_gh_ratelimits } from '../utils/fetch';
+import { ANNOTATED_FILE, DOWNLOAD_TEMP_DIR, DOWNLOAD_UNDO_DIR, GITHUB_API_KEY, MOD_BASE_DIR } from '../utils/consts';
+import { download_file, print_gh_ratelimits, query_gh_project_by_url } from '../utils/fetch';
 
-const SOURCE_API_KEYS: Map<string, string> = new Map();
-let GITHUB_API_KEY: string | undefined = undefined;
-if (await Bun.file('./.env.json').exists()) {
-    const env_file = await Bun.file('./.env.json').json();
-    if (env_file?.GITHUB_API_KEY) {
-        GITHUB_API_KEY = env_file.GITHUB_API_KEY as string;
-        SOURCE_API_KEYS.set('GH_RELEASE', GITHUB_API_KEY);
-    } else {
-        console.error('Missing GitHub API Key.');
-    }
-} else {
-    console.error('Missing GitHub API Key.');
-    process.exit(1);
-}
+const SOURCE_API_KEYS: Map<SourceType, string> = new Map();
 
 export async function check_all_mods_for_updates(
     options: {
         retry_failed: boolean;
         frequency_range: update_frequency;
         force_downgrade: boolean;
-    } = { retry_failed: false, frequency_range: 'COMMON', force_downgrade: false },
+    } = { 
+        retry_failed: false, 
+        frequency_range: 'COMMON', 
+        force_downgrade: false 
+    },
     dry: boolean = true,
     mod_map?: Map<string, mod_object>,
 ) {
+    if (GITHUB_API_KEY == undefined) {
+        // can't throw in ternary
+        throw Error("Missing GITHUB_API_KEY.");
+    } else {
+        SOURCE_API_KEYS.set("GH_RELEASE", GITHUB_API_KEY)
+    }
+
     mod_map = mod_map == undefined ? await read_saved_mods(ANNOTATED_FILE) : mod_map;
     const fetch_map: Map<
         string,
@@ -68,8 +66,10 @@ export async function check_all_mods_for_updates(
 
         longest_mod_id_length = Math.max(mod_id.length, longest_mod_id_length);
         if (mod_obj.source) {
-            const source_api_key = SOURCE_API_KEYS.get(mod_obj.update_state.source_type) || '';
-            fetch_map.set(mod_id, { mod_obj, res: check_url_for_updates(mod_obj, mod_obj.source, source_api_key) });
+            const source_api_key = SOURCE_API_KEYS.get(mod_obj.update_state.source_type);
+            if (source_api_key) {
+                fetch_map.set(mod_id, { mod_obj, res: check_url_for_updates(mod_obj, mod_obj.source, source_api_key) });
+            }
         }
     }
 
@@ -118,7 +118,7 @@ export async function check_all_mods_for_updates(
             `${CLIColor.FgGray}(${CLIColor.FgGreen}${to_update_mods.filter(({ mod_obj }) => mod_obj.update_state.source_type === 'GH_RELEASE').length}${CLIColor.FgGray} from ${CLIColor.FgWhite}GitHub${CLIColor.FgGray}, ` +
             `${CLIColor.FgGreen}${to_update_mods.filter(({ mod_obj }) => mod_obj.update_state.source_type === 'CURSEFORGE').length}${CLIColor.FgGray} from ${CLIColor.FgWhite}Curseforge${CLIColor.FgGray}, ` +
             `${CLIColor.FgGreen}${to_update_mods.filter(({ mod_obj }) => mod_obj.update_state.source_type === 'MODRINTH').length}${CLIColor.FgGray} from ${CLIColor.FgWhite}Modrinth${CLIColor.FgGray})` +
-            `${CLIColor.Reset}${dry ? `${CLIColor.FgGray} -- ${CLIColor.Reset}Upgrade with --upgrade` : ''}\n`,
+            `${CLIColor.Reset}${dry ? `${CLIColor.FgGray}  -  ${CLIColor.Reset}Upgrade with ${CLIColor.FgCyan9}--upgrade${CLIColor.Reset}` : ''}\n`,
     );
 
     // Save http status codes returned from sources back to map for next time
@@ -225,7 +225,7 @@ export async function check_all_mods_for_updates(
         if (downloaded_mods.size > 0) {
             const undo_list: Array<{ mod_id: string; old_file: string; new_file: string; old_version: string }> = [];
             // Clear old update undo jars
-            (await glob_files_in_dir(DOWNLOAD_UNDO_DIR, '.jar', false)).forEach(
+            (await glob_files_in_dir(DOWNLOAD_UNDO_DIR, /\.jar(?:\.disabled)?$/m, false)).forEach(
                 async (file) =>
                     await Bun.file(file)
                         .delete()
@@ -255,7 +255,7 @@ export async function check_all_mods_for_updates(
                             mod.update_state.last_updated_at = new Date(Date.now()).toISOString();
                             if (is_base_required) {
                                 console.info(
-                                    `Mod required by basegame (${mod_id}) was updated. Don't forget to also update it externally if required.`,
+                                    `Mod required by basegame (${mod_id}) was updated. Don't forget to also update it externally, if required.`,
                                 );
                             }
                         })
@@ -276,7 +276,7 @@ export async function check_all_mods_for_updates(
         // Folder is probably missing, which is fine
     }
 
-    await print_gh_ratelimits(GITHUB_API_KEY || '');
+    await print_gh_ratelimits(GITHUB_API_KEY);
 }
 
 export async function undo_last_update(mod_map?: Map<string, mod_object>) {
@@ -334,7 +334,7 @@ async function check_url_for_updates(
     source_api_key: string,
 ): Promise<{ status: string; version: string; file_name: string; file_url: string; source_api_key: string } | undefined> {
     if (mod_obj.update_state.source_type === 'GH_RELEASE') {
-        const { status, body } = await check_gh_releases(url, source_api_key);
+        const { status, body } = await query_gh_project_by_url(url, source_api_key, "/releases/latest");
         if (status == '200' && body != undefined) {
             const version = body.tag_name;
             let assets: Array<{ url: string; name: string }> = (body.assets as Array<{ [key: string]: string }>).map((asset) => {
