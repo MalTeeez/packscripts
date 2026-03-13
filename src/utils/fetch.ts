@@ -1,6 +1,11 @@
-import type { JsonObject } from "./utils";
+import type { JsonObject } from './utils';
 
-export async function query_gh_project_by_url(url: string, gh_api_key: string, sub_repo_api_path: string, ignore_codes: number[] = []): Promise<{ headers?: Headers, status: string; body: JsonObject | undefined }> {
+export async function query_gh_project_by_url(
+    url: string,
+    gh_api_key: string,
+    sub_repo_api_path: string,
+    ignore_codes: number[] = [],
+): Promise<{ headers?: Headers; status: string; body: JsonObject | undefined }> {
     const project = url.match(/(?:github.com\/(.+?\/.+?))(?:\/|$)/m)?.at(1);
     if (project) {
         const url = `/repos/${project}${sub_repo_api_path}`;
@@ -79,7 +84,7 @@ export async function gh_request(path: string, api_key: string, method: string =
     });
 
     if (res.status == 403) {
-        console.log(res)
+        console.log(res);
     }
 
     if (res.status === 403 && res.headers.get('x-ratelimit-remaining') === '0') {
@@ -91,7 +96,56 @@ export async function gh_request(path: string, api_key: string, method: string =
     return res;
 }
 
-export async function print_gh_ratelimits(gh_api_key: string) {
+export function filter_assets(assets: Array<{ browser_download_url: string; name: string, size: any }>, file_pattern?: string): [string | undefined, string | undefined, any | undefined] {
+    let filtered_assets: Array<{ browser_download_url: string; name: string, size: any }> = [];
+
+    // Use file_pattern if available
+    if (assets.length > 1 && file_pattern != undefined && file_pattern.length > 0) {
+        const pattern = new RegExp(file_pattern, 'gm');
+        for (const asset of assets) {
+            if (asset.name.match(pattern)) {
+                filtered_assets.push(asset);
+            }
+        }
+        assets = filtered_assets;
+        filtered_assets = [];
+    }
+    // If no file pattern was set, or we still matched multiple jars, remove common suffixes
+    if (assets.length > 1) {
+        for (const asset of assets) {
+            if (asset.name.endsWith('.jar')) {
+                if (
+                    !asset.name.endsWith('-sources.jar') &&
+                    !asset.name.endsWith('-dev.jar') &&
+                    !asset.name.endsWith('-api.jar') &&
+                    !asset.name.endsWith('-preshadow.jar') &&
+                    !asset.name.endsWith('-prestub.jar') &&
+                    !asset.name.endsWith('-javadoc.jar') &&
+                    !asset.name.endsWith('-reobf.jar') &&
+                    !asset.name.includes('-panama-') &&
+                    !asset.name.includes('-deploader')
+                ) {
+                    filtered_assets.push(asset);
+                }
+            }
+        }
+        assets = filtered_assets;
+    }
+
+    let file_name: string;
+    let dl_url: string;
+    if (assets.length === 1) {
+        file_name = assets[0]?.name as string;
+        dl_url = assets[0]?.browser_download_url as string;
+        return [file_name, dl_url, assets[0]?.size]
+    } else {
+        return [undefined, undefined, undefined];
+    }
+}
+
+export async function print_gh_ratelimits(gh_api_key?: string) {
+    if (gh_api_key == undefined) return;
+
     const rate_limits = (await ((await gh_request('/rate_limit', gh_api_key)) as any)?.json()).resources?.core;
     const reset_in = (rate_limits.reset - Date.now() / 1000) / 60;
     console.log(`\nrate limits - used: ${rate_limits.used}, remaining: ${rate_limits.remaining}, reset in: ${reset_in.toFixed(1)} mins`);

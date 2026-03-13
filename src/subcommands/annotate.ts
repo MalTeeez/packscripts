@@ -9,8 +9,14 @@ import {
     type mod_object_unsafe,
 } from '../utils/mods';
 import { clone } from '../utils/utils';
+import { exists } from 'node:fs/promises';
 
 export async function annotate() {
+    if (!await exists(MOD_BASE_DIR)) {
+        console.warn(`W: Mod directoy at ${MOD_BASE_DIR} does not exist. If it is located somewhere else, make sure to specify this in your config.json under "MOD_BASE_DIR".`)
+        return;
+    }
+
     const mod_files = await scan_mods_folder(MOD_BASE_DIR);
     const old_list = await read_saved_mods(ANNOTATED_FILE);
 

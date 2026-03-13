@@ -11,9 +11,9 @@ import {
 } from '../utils/utils';
 import { glob_files_in_dir, read_arr_from_file, save_list_to_file, save_map_to_file } from '../utils/fs';
 import { mkdir, rename } from 'node:fs/promises';
-import path from 'node:path';
 import { ANNOTATED_FILE, DOWNLOAD_TEMP_DIR, DOWNLOAD_UNDO_DIR, GITHUB_API_KEY, MOD_BASE_DIR } from '../utils/consts';
 import { download_file, print_gh_ratelimits, query_gh_project_by_url } from '../utils/fetch';
+import { toNamespacedPath } from 'node:path';
 
 const SOURCE_API_KEYS: Map<SourceType, string> = new Map();
 
@@ -22,19 +22,19 @@ export async function check_all_mods_for_updates(
         retry_failed: boolean;
         frequency_range: update_frequency;
         force_downgrade: boolean;
-    } = { 
-        retry_failed: false, 
-        frequency_range: 'COMMON', 
-        force_downgrade: false 
+    } = {
+        retry_failed: false,
+        frequency_range: 'COMMON',
+        force_downgrade: false,
     },
     dry: boolean = true,
     mod_map?: Map<string, mod_object>,
 ) {
     if (GITHUB_API_KEY == undefined) {
         // can't throw in ternary
-        throw Error("Missing GITHUB_API_KEY.");
+        throw Error('Missing GITHUB_API_KEY.');
     } else {
-        SOURCE_API_KEYS.set("GH_RELEASE", GITHUB_API_KEY)
+        SOURCE_API_KEYS.set('GH_RELEASE', GITHUB_API_KEY);
     }
 
     mod_map = mod_map == undefined ? await read_saved_mods(ANNOTATED_FILE) : mod_map;
@@ -132,11 +132,11 @@ export async function check_all_mods_for_updates(
 
         // Prepare temp directories
         await mkdir(DOWNLOAD_TEMP_DIR, { recursive: true }).catch((err) => {
-            console.error(`Failed to create temporary download directory at ${path.toNamespacedPath(DOWNLOAD_TEMP_DIR)}`);
+            console.error(`Failed to create temporary download directory at ${toNamespacedPath(DOWNLOAD_TEMP_DIR)}`);
             throw err;
         });
         await mkdir(DOWNLOAD_UNDO_DIR, { recursive: true }).catch((err) => {
-            console.error(`Failed to create temporary download directory at ${path.toNamespacedPath(DOWNLOAD_TEMP_DIR)}`);
+            console.error(`Failed to create temporary download directory at ${toNamespacedPath(DOWNLOAD_TEMP_DIR)}`);
             throw err;
         });
 
@@ -234,32 +234,46 @@ export async function check_all_mods_for_updates(
 
             for (const [mod_id, { file_name, remote_version, is_base_required }] of downloaded_mods.entries()) {
                 const mod = mod_map.get(mod_id);
-                if (mod) {
-                    const old_mod_jar = mod.file_path.replace(MOD_BASE_DIR + '/', '');
+                if (mod && (await Bun.file(`${DOWNLOAD_TEMP_DIR}/${file_name}`).exists())) {
+                    const old_mod_jar = mod.file_path.replace(RegExp(String.raw`${MOD_BASE_DIR}.*\/`), '');
                     const new_mod_path = `${MOD_BASE_DIR}/${file_name + (mod.enabled ? '' : '.disabled')}`;
+
+                    await rename(mod.file_path, `${DOWNLOAD_UNDO_DIR}/${old_mod_jar}`).catch((err) => {
+                        console.warn(`W: Failed to move the older jar for mod ${mod_id} from the mod dir into the undo dir. Won't be able to undo changes for this mod.`);
+                    });
+
                     await rename(`${DOWNLOAD_TEMP_DIR}/${file_name}`, new_mod_path)
                         .then(async () => {
-                            await rename(mod.file_path, `${DOWNLOAD_UNDO_DIR}/${old_mod_jar}`).catch((err) => {
-                                console.warn(`W: Failed to move the older jar for mod ${mod_id} from the mod dir into the undo dir.`);
-                            });
-
-                            undo_list.push({
-                                mod_id,
-                                new_file: file_name + (mod.enabled ? '' : '.disabled'),
-                                old_file: old_mod_jar,
-                                old_version: mod.update_state?.version || '',
-                            });
-
-                            mod.file_path = new_mod_path;
-                            mod.update_state.version = remote_version;
-                            mod.update_state.last_updated_at = new Date(Date.now()).toISOString();
-                            if (is_base_required) {
-                                console.info(
-                                    `Mod required by basegame (${mod_id}) was updated. Don't forget to also update it externally, if required.`,
+                            if (!(await Bun.file(new_mod_path).exists())) {
+                                console.warn(
+                                    `W: Failed to move newer file for ${mod_id} (${file_name}) to mod directory. Reverting to previous version.`,
                                 );
+                                await rename(`${DOWNLOAD_UNDO_DIR}/${old_mod_jar}`, mod.file_path).catch((err) => {
+                                    console.warn(`W: Failed to move the older jar for mod ${mod_id} back from the undo dir into the mod dir.`);
+                                });
+                            } else {
+                                if (await Bun.file(`${DOWNLOAD_UNDO_DIR}/${old_mod_jar}`).exists()) {
+                                    undo_list.push({
+                                        mod_id,
+                                        new_file: file_name + (mod.enabled ? '' : '.disabled'),
+                                        old_file: old_mod_jar,
+                                        old_version: mod.update_state?.version || '',
+                                    });
+                                }
+
+                                mod.file_path = new_mod_path;
+                                mod.update_state.version = remote_version;
+                                mod.update_state.last_updated_at = new Date(Date.now()).toISOString();
+                                if (is_base_required) {
+                                    console.info(
+                                        `Mod required by basegame (${mod_id}) was updated. Don't forget to also update it externally, if required.`,
+                                    );
+                                }
                             }
                         })
                         .catch(() => console.warn(`W: Failed to move updated jar for mod ${mod_id} into the mod directory.`));
+                } else if (mod != undefined) {
+                    console.warn(`W: Failed to download mod for ${mod_id} for remote asset ${file_name}!`);
                 }
             }
             await save_list_to_file(DOWNLOAD_UNDO_DIR + '/update_undo.json', undo_list);
@@ -295,7 +309,7 @@ export async function undo_last_update(mod_map?: Map<string, mod_object>) {
             const mod = mod_map.get(mod_id);
             if (mod) {
                 const restored_old_path = `${MOD_BASE_DIR}/${old_file}`;
-                await rename(`${DOWNLOAD_UNDO_DIR}/${old_file}`, `${MOD_BASE_DIR}/${old_file}`)
+                await rename(`${DOWNLOAD_UNDO_DIR}/${old_file}`, restored_old_path)
                     .then(async () => {
                         console.info(`Restored mod ${mod_id} to version ${old_version}.`);
                         await Bun.file(`${MOD_BASE_DIR}/${new_file}`)
@@ -304,7 +318,7 @@ export async function undo_last_update(mod_map?: Map<string, mod_object>) {
                         mod.file_path = restored_old_path;
                         mod.update_state.version = old_version;
                         mod.update_state.last_updated_at = new Date(Date.now()).toISOString();
-                        if (mod.is_base_required) {
+                        if (mod.tags?.includes('REQUIRED_BASE')) {
                             console.info(
                                 `Mod required by basegame (${mod_id}) was un-upgraded. Don't forget to also change it externally if required.`,
                             );
@@ -334,7 +348,7 @@ async function check_url_for_updates(
     source_api_key: string,
 ): Promise<{ status: string; version: string; file_name: string; file_url: string; source_api_key: string } | undefined> {
     if (mod_obj.update_state.source_type === 'GH_RELEASE') {
-        const { status, body } = await query_gh_project_by_url(url, source_api_key, "/releases/latest");
+        const { status, body } = await query_gh_project_by_url(url, source_api_key, '/releases/latest');
         if (status == '200' && body != undefined) {
             const version = body.tag_name;
             let assets: Array<{ url: string; name: string }> = (body.assets as Array<{ [key: string]: string }>).map((asset) => {

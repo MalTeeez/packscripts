@@ -122,10 +122,14 @@ export async function list_mods_wide(only_show_enabled: boolean = false) {
 
     let longest_mod_id_length = 0;
     let longest_mod_version_length = 0;
+    let longest_mod_filename_length = 0;
     mod_map.keys().forEach((id) => (longest_mod_id_length = Math.max(id.length, longest_mod_id_length)));
     mod_map
         .values()
-        .forEach((obj) => (longest_mod_version_length = Math.max(obj.update_state?.version?.length || 0, longest_mod_version_length)));
+        .forEach((obj) => {
+            longest_mod_version_length = Math.max(obj.update_state?.version?.length || 0, longest_mod_version_length);
+            longest_mod_filename_length = Math.max((obj.file_path.split(/[\\/]/).pop() ?? '').length, longest_mod_filename_length);
+        });
     let excluded_mods = 0;
 
     for (const mod_id of Array.from(mod_map.keys()).sort((a, b) => a.localeCompare(b, undefined, { "sensitivity": "base"}))) {
@@ -137,10 +141,13 @@ export async function list_mods_wide(only_show_enabled: boolean = false) {
 
         const id_padding_len = longest_mod_id_length - mod_id.length;
         const vers_padding_len = longest_mod_version_length - (mod.update_state.version?.length || 0);
+        const filename = mod.file_path.split(/[\\/]/).pop() ?? mod.file_path;
+        const filename_padding_len = longest_mod_filename_length - filename.length;
 
         console.log(
             ` ${CLIColor.FgGray}-${CLIColor.Reset} ${mod_id} ${CLIColor.FgGray}${rev_replace_all(' '.repeat(id_padding_len), '   ', ' . ')}` +
-                ` ${CLIColor.BgBlue0}${CLIColor.FgWhite1}${CLIColor.Bright} ${mod.update_state.version} ${CLIColor.Reset}`,
+                ` ${CLIColor.BgBlue0}${CLIColor.FgWhite1}${CLIColor.Bright} ${mod.update_state.version} ${CLIColor.Reset}` +
+                ` ${CLIColor.FgGray}${rev_replace_all(' '.repeat(vers_padding_len), '   ', ' . ')} ${CLIColor.FgGray9}(${CLIColor.FgGray19}${filename}${CLIColor.FgGray14})${CLIColor.Reset}${CLIColor.Reset}`,
         );
     }
     if (excluded_mods > 0) {

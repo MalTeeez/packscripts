@@ -6,7 +6,7 @@ import { annotate } from './subcommands/annotate';
 import { disable_atomic_deep, enable_atomic_deep, list_mods, list_mods_folder, list_mods_wide, toggle_mod } from './subcommands/simple';
 import { visualize_graph } from './subcommands/graph';
 import { check_all_mods_for_updates, undo_last_update } from './subcommands/update';
-import { list_all_versions_for_mod, switch_version_of_mod } from './subcommands/version';
+import { list_all_versions_for_mod, restore_to_asset_versions, switch_version_of_mod } from './subcommands/version';
 
 //#region Command Framework
 interface CommandDefinition {
@@ -154,13 +154,13 @@ const commands: Record<string, CommandDefinition> = {
     },
     version: {
         description: 'Interact with remote versions of a mod',
-        usage: 'version <list|set> <mod_id>',
+        usage: 'version <list|set|restore_all> <mod_id>',
         handler: async (args) => {
             const mode = args[0]?.toLowerCase();
             const cmdArgs = args.slice(1);
 
             if (!mode || mode === 'help' || mode === '--help' || mode === '-h') {
-                console.log(commands["version"]?.usage);
+                console.log(commands['version']?.usage);
                 return;
             }
 
@@ -169,7 +169,7 @@ const commands: Record<string, CommandDefinition> = {
                 await command.handler(cmdArgs);
             } else {
                 console.error(`Error: Unknown subcommand '${mode}'`);
-                console.log(commands["version"]?.usage);
+                console.log(commands['version']?.usage);
                 process.exit(1);
             }
         },
@@ -179,8 +179,8 @@ const commands: Record<string, CommandDefinition> = {
         usage: 'version list <mod_id> [--all] [--wide] [-c=X]',
         is_subcommand: true,
         handler: async (args) => {
-            if (args.includes("--help")) {
-                console.log(commands["version_list"]?.usage);
+            if (args.includes('--help')) {
+                console.log(commands['version_list']?.usage);
                 return;
             }
             if (args.length == 0) {
@@ -190,7 +190,7 @@ const commands: Record<string, CommandDefinition> = {
 
             const mod_id = args[0];
             if (mod_id != undefined) {
-                const count = args.filter((arg) => arg.startsWith("-c="))[0]?.split("=", 2)[1];
+                const count = args.filter((arg) => arg.startsWith('-c='))[0]?.split('=', 2)[1];
                 await list_all_versions_for_mod(mod_id, { all_pages: args.includes('--all'), wide: args.includes('--wide'), count: count });
                 return;
             }
@@ -201,8 +201,8 @@ const commands: Record<string, CommandDefinition> = {
         usage: 'version set <mod_id> <version> [--dry]',
         is_subcommand: true,
         handler: async (args) => {
-            if (args.includes("--help")) {
-                console.log(commands["version_set"]?.usage);
+            if (args.includes('--help')) {
+                console.log(commands['version_set']?.usage);
                 return;
             }
             if (args.length == 0) {
@@ -216,9 +216,23 @@ const commands: Record<string, CommandDefinition> = {
             const mod_id = args[0];
             const mod_vers = args[1];
             if (mod_id != undefined && mod_vers != undefined) {
-                await switch_version_of_mod(mod_id, mod_vers, { dry: args.includes("--dry") });
+                await switch_version_of_mod(mod_id, mod_vers, { dry: args.includes('--dry') });
                 return;
             }
+        },
+    },
+    version_restore_all: {
+        description:
+            'Restore all mods, which can be downloaded from a remote asset, to that remote asset if it differs from the currently stored file.\n\t\t\tWill redownload if the file on disk is missing, renamed or has a different size',
+        usage: 'version restore_all [--dry]',
+        is_subcommand: true,
+        handler: async (args) => {
+            if (args.includes('--help')) {
+                console.log(commands['version_restore_all']?.usage);
+                return;
+            }
+            await restore_to_asset_versions({ dry: args.includes('--dry') });
+            return;
         },
     },
     debug: {

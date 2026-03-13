@@ -201,16 +201,30 @@ export async function toggle_mod_deep(mod_id: string, mod_map: Map<string, mod_o
  * @param changed_list A list of mod ids, to keep track of which mods we have already updated
  * @returns The number of mods that were changed
  */
-export async function disable_mod_deep(mod_id: string, mod_map: Map<string, mod_object>, changed_list: Array<string>, came_from: string | undefined = undefined): Promise<number> {
+export async function disable_mod_deep(
+    mod_id: string,
+    mod_map: Map<string, mod_object>,
+    changed_list: Array<string>,
+    ancestor_chain: Array<string> = [],
+): Promise<number> {
     let change_count = 0;
+
+    // Cycle detection via an ancester chain that contains the id of the all deps we've visited before.
+    // Will be empty for the top level of each chain because we only pass a new array with spread downwards
+    if (ancestor_chain.includes(mod_id)) {
+        console.warn(`W: Dependency cycle detected, please fix your deps for these mods: 
+            ${[...ancestor_chain, mod_id].join(' -> ')}`);
+        return 0;
+    }
 
     const mod = mod_map.get(mod_id);
     if (mod != undefined) {
         // Disable dependents
         if (mod.wanted_by && mod.wanted_by.length > 0) {
+            const next_chain = [...ancestor_chain, mod_id];
             for (const dependency of mod.wanted_by) {
                 if (isNotItself(dependency, mod_id, mod.other_mod_ids || [])) {
-                    change_count += await disable_mod_deep(dependency, mod_map, changed_list, mod_id);
+                    change_count += await disable_mod_deep(dependency, mod_map, changed_list, next_chain);
                 }
             }
         }
@@ -243,18 +257,33 @@ export function isNotItself(base: string, mod_id: string, other_mod_ids: string[
  * @param mod_id The mod to disable
  * @param mod_map A mod map, from read_saved_mods()
  * @param changed_list A list of mod ids, to keep track of which mods we have already updated
+ * @param ancestor_chain A list of mod id deps we have already visited, not be set by the top level
  * @returns The number of mods that were changed
  */
-export async function enable_mod_deep(mod_id: string, mod_map: Map<string, mod_object>, changed_list: Array<string>): Promise<number> {
+export async function enable_mod_deep(
+    mod_id: string,
+    mod_map: Map<string, mod_object>,
+    changed_list: Array<string>,
+    ancestor_chain: Array<string> = [],
+): Promise<number> {
     let change_count = 0;
+
+    // Cycle detection via an ancester chain that contains the id of the all deps we've visited before.
+    // Will be empty for the top level of each chain because we only pass a new array with spread downwards
+    if (ancestor_chain.includes(mod_id)) {
+        console.warn(`W: Dependency cycle detected, please fix your deps for these mods: 
+            ${[...ancestor_chain, mod_id].join(' -> ')}`);
+        return 0;
+    }
 
     const mod = mod_map.get(mod_id);
     if (mod != undefined) {
         // Enable dependencies
         if (mod.wants && mod.wants.length > 0) {
+            const next_chain = [...ancestor_chain, mod_id];
             for (const dependency of mod.wants) {
                 // console.log(`Enabling dependency of ${mod_id}: ${dependency}`)
-                change_count += await enable_mod_deep(dependency, mod_map, changed_list);
+                change_count += await enable_mod_deep(dependency, mod_map, changed_list, next_chain);
             }
         }
         // Make sure we didnt already touch this mod before & its disabled
