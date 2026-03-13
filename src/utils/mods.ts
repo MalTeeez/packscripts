@@ -1,5 +1,5 @@
-import { ANNOTATED_FILE } from './consts';
-import { extract_file_from_zip, read_from_file, rename_file, save_map_to_file, search_zip_for_string } from './fs';
+import { ANNOTATED_FILE, MOD_BASE_DIR } from './consts';
+import { extract_file_from_zip, is_file_locked, read_from_file, rename_file, save_map_to_file, scan_mods_folder, search_zip_for_string } from './fs';
 import { dedup_array, type JsonObject } from './utils';
 
 //#region types
@@ -304,6 +304,11 @@ export async function enable_mod_deep(
 }
 
 export async function enable_all_mods(mod_map?: Map<string, mod_object>) {
+    if (!await are_all_mods_unlocked()) {
+        console.warn("W: Something is locking a file in the mods directory. Is the game still running?")
+        return;
+    }
+    
     // Initialize map if not provided, since we can't use await in param
     mod_map = mod_map == undefined ? await read_saved_mods(ANNOTATED_FILE) : mod_map;
     const change_list: string[] = [];
@@ -322,6 +327,11 @@ export async function enable_all_mods(mod_map?: Map<string, mod_object>) {
 }
 
 export async function disable_all_mods(mod_map?: Map<string, mod_object>) {
+    if (!await are_all_mods_unlocked()) {
+        console.warn("W: Something is locking a file in the mods directory. Is the game still running?")
+        return;
+    }
+    
     // Initialize map if not provided, since we can't use await in param
     mod_map = mod_map == undefined ? await read_saved_mods(ANNOTATED_FILE) : mod_map;
     const change_list: string[] = [];
@@ -644,4 +654,16 @@ function filterForFaultyDependencies(wants: string[], mod_id: string, other_mod_
     wants = dedup_array(wants);
 
     return wants;
+}
+
+export async function are_all_mods_unlocked(): Promise<boolean> {
+    for (const file_name of (await scan_mods_folder(MOD_BASE_DIR)).keys()) {
+        const file = Bun.file(file_name);
+        if (await file.exists()) {
+            if (is_file_locked(file_name)) {
+                return false;
+            }
+        }
+    }
+    return true;
 }

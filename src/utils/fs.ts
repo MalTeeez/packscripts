@@ -1,7 +1,8 @@
 import fg from 'fast-glob';
 import yauzl from 'yauzl';
-import { rename } from "node:fs/promises";
+import { rename } from 'node:fs/promises';
 import { run_prettier, type JsonObject } from './utils';
+import { closeSync, openSync } from 'node:fs';
 
 /**
  * Scan a folder of mods
@@ -147,18 +148,19 @@ export async function search_zip_for_string(zipFilePath: string, target: string)
             });
             zipfile.on('end', () => {
                 if (results.size > 0) {
-                    resolve(results)
+                    resolve(results);
                 } else {
-                    reject('Failed to find target string in zip file.')
+                    reject('Failed to find target string in zip file.');
                 }
             });
         });
-    }).then((results) => results).catch((err) => undefined);
+    })
+        .then((results) => results)
+        .catch((err) => undefined);
 
     //@ts-ignore
-    return results
+    return results;
 }
-
 
 /**
  * Extract the content of a file inside a zip archive
@@ -213,4 +215,14 @@ export async function rename_file(old_path: string, new_path: string) {
     } else {
         console.log('File ', old_path, ' does not exist, but we tried to rename it.');
     }
+}
+
+export function is_file_locked(path: string) {
+    let fileAccess = true;
+    try {
+        closeSync(openSync(path, 'r+'));
+        fileAccess = false;
+    } catch (ignored) {
+    }
+    return fileAccess;
 }

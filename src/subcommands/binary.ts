@@ -1,6 +1,6 @@
 import { ANNOTATED_FILE } from '../utils/consts';
 import { save_map_to_file } from '../utils/fs';
-import { disable_all_mods, enable_base_mods, enable_mod_deep, isNotItself, read_saved_mods, type mod_object } from '../utils/mods';
+import { are_all_mods_unlocked, disable_all_mods, enable_base_mods, enable_mod_deep, isNotItself, read_saved_mods, type mod_object } from '../utils/mods';
 import { divide_to_full_groups, print_pretty } from '../utils/utils';
 
 type ModGroupOptions = {
@@ -62,6 +62,11 @@ function get_mods_in_group(
 }
 
 export async function binary_search_disable(target_fractions: string[], dry_run: boolean) {
+    if (!await are_all_mods_unlocked()) {
+        console.warn("W: Something is locking a file in the mods directory. Is the game still running?")
+        return;
+    }
+    
     const mod_map = await read_saved_mods(ANNOTATED_FILE);
     const mod_list = Array.from(mod_map.keys());
     const fractions: { section: number; scope: number; groups: number[] }[] = [];

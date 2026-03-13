@@ -1,6 +1,7 @@
 import { ANNOTATED_FILE, MOD_BASE_DIR } from '../utils/consts';
 import { save_map_to_file, scan_mods_folder } from '../utils/fs';
 import {
+    are_all_mods_unlocked,
     default_mod_object,
     extract_modinfos,
     isModPropertySafe,
@@ -14,6 +15,10 @@ import { exists } from 'node:fs/promises';
 export async function annotate() {
     if (!await exists(MOD_BASE_DIR)) {
         console.warn(`W: Mod directoy at ${MOD_BASE_DIR} does not exist. If it is located somewhere else, make sure to specify this in your config.json under "MOD_BASE_DIR".`)
+        return;
+    }
+    if (!await are_all_mods_unlocked()) {
+        console.warn("W: Something is locking a file in the mods directory. Is the game still running?")
         return;
     }
 

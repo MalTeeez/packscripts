@@ -1,7 +1,7 @@
 import { ANNOTATED_FILE, DOWNLOAD_TEMP_DIR, DOWNLOAD_UNDO_DIR, GITHUB_API_KEY, MOD_BASE_DIR } from '../utils/consts';
 import { download_file, filter_assets, print_gh_ratelimits, query_gh_project_by_url } from '../utils/fetch';
 import { glob_files_in_dir, save_list_to_file, save_map_to_file } from '../utils/fs';
-import { read_saved_mods, type mod_object, type SourceType } from '../utils/mods';
+import { are_all_mods_unlocked, read_saved_mods, type mod_object, type SourceType } from '../utils/mods';
 import {
     CLIColor,
     finish_live_zone,
@@ -120,8 +120,13 @@ export async function switch_version_of_mod(
     mod_map?: Map<string, mod_object>,
 ) {
     assert_gh_key();
+    if (!await are_all_mods_unlocked()) {
+        console.warn("W: Something is locking a file in the mods directory. Is the game still running?")
+        return;
+    }
 
     mod_map = mod_map == undefined ? await read_saved_mods(ANNOTATED_FILE) : mod_map;
+
 
     // Resolve input mod_id to actual mod
     const lower_mod_id = mod_id.toLowerCase();
@@ -222,8 +227,12 @@ export async function restore_to_asset_versions(
     mod_map?: Map<string, mod_object>,
 ) {
     assert_gh_key();
+    if (!await are_all_mods_unlocked()) {
+        console.warn("W: Something is locking a file in the mods directory. Is the game still running?")
+        return;
+    }
+    
     mod_map = mod_map == undefined ? await read_saved_mods(ANNOTATED_FILE) : mod_map;
-
     let to_update_mods: {
         mod_id: string;
         mod_obj: mod_object;

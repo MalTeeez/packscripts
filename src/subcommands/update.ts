@@ -1,4 +1,4 @@
-import { getUpdateFrequencyOrdinal, read_saved_mods, type mod_object, type SourceType, type update_frequency } from '../utils/mods';
+import { are_all_mods_unlocked, getUpdateFrequencyOrdinal, read_saved_mods, type mod_object, type SourceType, type update_frequency } from '../utils/mods';
 import {
     CLIColor,
     compare_versions,
@@ -36,8 +36,15 @@ export async function check_all_mods_for_updates(
     } else {
         SOURCE_API_KEYS.set('GH_RELEASE', GITHUB_API_KEY);
     }
-
+    
+    if (!await are_all_mods_unlocked()) {
+        console.warn("W: Something is locking a file in the mods directory. Is the game still running?")
+        return;
+    }
+    
     mod_map = mod_map == undefined ? await read_saved_mods(ANNOTATED_FILE) : mod_map;
+
+
     const fetch_map: Map<
         string,
         {

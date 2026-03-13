@@ -1,7 +1,7 @@
 //@ts-check
 import { binary_search_disable } from './subcommands/binary';
-import { enable_all_mods, disable_all_mods, get_details_from_mainclass, type update_frequency, isUpdateFrequency } from './utils/mods';
-import { MOD_BASE_DIR } from './utils/consts';
+import { enable_all_mods, disable_all_mods, get_details_from_mainclass, type update_frequency, isUpdateFrequency, read_saved_mods, are_all_mods_unlocked } from './utils/mods';
+import { ANNOTATED_FILE, MOD_BASE_DIR } from './utils/consts';
 import { annotate } from './subcommands/annotate';
 import { disable_atomic_deep, enable_atomic_deep, list_mods, list_mods_folder, list_mods_wide, toggle_mod } from './subcommands/simple';
 import { visualize_graph } from './subcommands/graph';
@@ -238,9 +238,7 @@ const commands: Record<string, CommandDefinition> = {
     debug: {
         description: 'Run debug operations',
         handler: async () => {
-            console.log('Debug run...');
-            const a = await get_details_from_mainclass(`${MOD_BASE_DIR}/buildcraft-7.1.42.jar`);
-            console.log(a);
+            console.log("Unlocked?", await are_all_mods_unlocked())
         },
     },
 };
