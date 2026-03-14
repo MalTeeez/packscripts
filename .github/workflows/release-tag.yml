@@ -17,11 +17,9 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        working-directory: packscripts
         run: bun install --frozen-lockfile
 
       - name: Build all targets
-        working-directory: packscripts
         run: |
           bun run build_win
           bun run build_nix
@@ -33,8 +31,8 @@ jobs:
         if: github.ref_type == 'tag'
         with:
           files: |
-            packscripts/packscripts-win.exe
-            packscripts/packscripts-nix
-            packscripts/packscripts-osx
-            packscripts/packscripts-arm
+            ./packscripts-win.exe
+            ./packscripts-nix
+            ./packscripts-osx
+            ./packscripts-arm
           generate_release_notes: true
