@@ -6,3 +6,5 @@ tmp/
 .env.json
 config.json
 graph.html
+packscripts-win.exe
+main.js.map

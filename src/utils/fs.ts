@@ -2,7 +2,10 @@ import fg from 'fast-glob';
 import yauzl from 'yauzl';
 import { rename } from 'node:fs/promises';
 import { run_prettier, type JsonObject } from './utils';
-import { closeSync, openSync } from 'node:fs';
+import { closeSync, openSync, readdirSync, statSync } from 'node:fs';
+import { exec, execFile, execFileSync } from 'node:child_process';
+import { join, resolve } from 'node:path';
+import { text } from 'node:stream/consumers';
 
 /**
  * Scan a folder of mods
@@ -217,12 +220,81 @@ export async function rename_file(old_path: string, new_path: string) {
     }
 }
 
-export function is_file_locked(path: string) {
-    let fileAccess = true;
-    try {
-        closeSync(openSync(path, 'r+'));
-        fileAccess = false;
-    } catch (ignored) {
+export async function is_folder_locked(folderPath: string): Promise<boolean> {
+    const abs_path = resolve(folderPath);
+
+    switch (process.platform) {
+        case 'linux':
+        case 'darwin':
+            return await is_folder_locked_lsof(abs_path);
+        case 'win32':
+            return await is_folder_locked_windows(abs_path);
+        default:
+            return is_folder_locked_fallback(abs_path);
     }
-    return fileAccess;
+}
+
+async function is_folder_locked_lsof(abs_path: string): Promise<boolean> {
+    try {
+        const { stdout } = execFile('lsof', ['+D', abs_path]);
+        if (stdout != null) {
+            const out = await text(stdout);
+            const other_procs = out.trim().split('\n')
+                .slice(1) // skip header
+                .filter(line => {
+                    const pid = parseInt(line.split(/\s+/)[1] as string);
+                    return pid !== process.pid;
+                });
+            return other_procs.length > 0;
+        }
+    } catch (err: any) {
+        if (err.code === 1) return false;
+        //console.warn('lsof failed, falling back:', err.message);
+    }
+    return is_folder_locked_fallback(abs_path);
+}
+
+async function is_folder_locked_windows(abs_path: string): Promise<boolean> {
+    const escaped = abs_path.replace(/'/g, "''");
+    const script = `
+    $locked = $false
+    Get-ChildItem -Path '${escaped}' -Recurse -File | ForEach-Object {
+      try {
+        $f = [System.IO.File]::Open($_.FullName, 'Open', 'ReadWrite', 'None')
+        $f.Close()
+      } catch {
+        $locked = $true
+      }
+    }
+    Write-Output $locked
+  `;
+    try {
+        const { stdout } = execFile('powershell', ['-NoProfile', '-NonInteractive', '-Command', script]);
+        if (stdout != null) {
+            const out = await text(stdout);
+            return out.trim().toLowerCase() === 'true';
+        }
+    } catch (err: any) {
+        //console.warn('PowerShell failed:', err.message);
+    }
+    return false;
+}
+
+function is_folder_locked_fallback(abs_path: string): boolean {
+    const walk = (dir: string): boolean => {
+        for (const entry of readdirSync(dir)) {
+            const full = join(dir, entry);
+            if (statSync(full).isDirectory()) {
+                if (walk(full)) return true;
+            } else {
+                try {
+                    closeSync(openSync(full, 'r+'));
+                } catch (err: any) {
+                    if (err.code === 'EBUSY') return true; // only flag actual busy errors
+                }
+            }
+        }
+        return false;
+    };
+    return walk(abs_path);
 }

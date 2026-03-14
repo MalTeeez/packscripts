@@ -1,16 +1,21 @@
 {
   "name": "packscripts",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "",
-  "main": "annotate.js",
+  "main": "src/main.ts",
   "scripts": {
-    "main": "bun run src/main.ts"
+    "main": "bun run src/main.ts",
+    "build_win": "bun build --target=bun-windows-x64 --compile --minify --sourcemap --windows-icon=./icon.ico ./src/main.ts --outfile packscripts-win",
+    "build_nix": "bun build --target=bun-linux-x64 --compile --minify --sourcemap ./src/main.ts --outfile packscripts-nix",
+    "build_osx": "bun build --target=bun-darwin-x64 --compile --minify --sourcemap ./src/main.ts --outfile packscripts-osx",
+    "build_arm": "bun build --target=bun-linux-arm64 --compile --minify --sourcemap ./src/main.ts --outfile packscripts-arm"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "fast-glob": "^3.3.3",
+    "inquirer": "^13.3.0",
     "yauzl": "^3.2.0"
   },
   "type": "module",

@@ -1,12 +1,21 @@
 //@ts-check
 import { binary_search_disable } from './subcommands/binary';
-import { enable_all_mods, disable_all_mods, get_details_from_mainclass, type update_frequency, isUpdateFrequency, read_saved_mods, are_all_mods_unlocked } from './utils/mods';
+import {
+    enable_all_mods,
+    disable_all_mods,
+    get_details_from_mainclass,
+    type update_frequency,
+    isUpdateFrequency,
+    read_saved_mods,
+    are_all_mods_unlocked,
+} from './utils/mods';
 import { ANNOTATED_FILE, MOD_BASE_DIR } from './utils/consts';
 import { annotate } from './subcommands/annotate';
 import { disable_atomic_deep, enable_atomic_deep, list_mods, list_mods_folder, list_mods_wide, toggle_mod } from './subcommands/simple';
 import { visualize_graph } from './subcommands/graph';
 import { check_all_mods_for_updates, undo_last_update } from './subcommands/update';
 import { list_all_versions_for_mod, restore_to_asset_versions, switch_version_of_mod } from './subcommands/version';
+import { initHandler } from './subcommands/init';
 
 //#region Command Framework
 interface CommandDefinition {
@@ -17,6 +26,12 @@ interface CommandDefinition {
 }
 
 const commands: Record<string, CommandDefinition> = {
+    init: {
+        description: 'Initialize packscripts by setting up your mod folder',
+        handler: async () => {
+            await initHandler();
+        },
+    },
     refresh: {
         description: 'Update annotated mod list',
         handler: async () => {
@@ -74,6 +89,10 @@ const commands: Record<string, CommandDefinition> = {
                 console.error('Error: Missing mod ID to toggle');
                 return;
             }
+            if (!(await are_all_mods_unlocked())) {
+                console.warn('W: Something is locking a file in the mods directory. Is the game still running?');
+                return;
+            }
             await toggle_mod(args[0]);
         },
     },
@@ -97,6 +116,10 @@ const commands: Record<string, CommandDefinition> = {
                 console.error('Error: Missing mod ID(s) to enable');
                 return;
             }
+            if (!(await are_all_mods_unlocked())) {
+                console.warn('W: Something is locking a file in the mods directory. Is the game still running?');
+                return;
+            }
             await enable_atomic_deep(args);
         },
     },
@@ -106,6 +129,10 @@ const commands: Record<string, CommandDefinition> = {
         handler: async (args) => {
             if (args.length === 0) {
                 console.error('Error: Missing mod ID(s) to disable');
+                return;
+            }
+            if (!(await are_all_mods_unlocked())) {
+                console.warn('W: Something is locking a file in the mods directory. Is the game still running?');
                 return;
             }
             await disable_atomic_deep(args);
@@ -238,13 +265,13 @@ const commands: Record<string, CommandDefinition> = {
     debug: {
         description: 'Run debug operations',
         handler: async () => {
-            console.log("Unlocked?", await are_all_mods_unlocked())
+            console.log('Unlocked?', await are_all_mods_unlocked());
         },
     },
 };
 
 function showHelp() {
-    console.log('Usage: bun main <command> [arguments]\n');
+    console.log('Usage: packscripts <command> [arguments]\n');
     console.log('Available commands:\n');
 
     const maxCmdLength = Math.max(...Object.keys(commands).map((k) => k.length));
@@ -283,5 +310,7 @@ async function main() {
 
 // Forward to main function with arguments
 if (import.meta.url === import.meta.resolve('file://' + process.argv[1])) {
+    main().catch(console.error);
+} else {
     main().catch(console.error);
 }

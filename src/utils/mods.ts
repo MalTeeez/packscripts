@@ -1,5 +1,5 @@
 import { ANNOTATED_FILE, MOD_BASE_DIR } from './consts';
-import { extract_file_from_zip, is_file_locked, read_from_file, rename_file, save_map_to_file, scan_mods_folder, search_zip_for_string } from './fs';
+import { extract_file_from_zip, is_file_locked, is_folder_locked, read_from_file, rename_file, save_map_to_file, scan_mods_folder, search_zip_for_string } from './fs';
 import { dedup_array, type JsonObject } from './utils';
 
 //#region types
@@ -657,13 +657,5 @@ function filterForFaultyDependencies(wants: string[], mod_id: string, other_mod_
 }
 
 export async function are_all_mods_unlocked(): Promise<boolean> {
-    for (const file_name of (await scan_mods_folder(MOD_BASE_DIR)).keys()) {
-        const file = Bun.file(file_name);
-        if (await file.exists()) {
-            if (is_file_locked(file_name)) {
-                return false;
-            }
-        }
-    }
-    return true;
+    return !await is_folder_locked(MOD_BASE_DIR);
 }
