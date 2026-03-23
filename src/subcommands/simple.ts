@@ -52,6 +52,8 @@ export async function disable_atomic_deep(opts_mod_id: string[], mod_map?: Map<s
 
         if (matched_mod_id != undefined) {
             changes += await disable_mod_deep(matched_mod_id, mod_map, change_list);
+        } else {
+            console.warn("W: Failed to resolve ", mod_id, " to any annotated mod, skipping it.")
         }
     }
     await enable_base_mods(mod_map);

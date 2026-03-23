@@ -8,6 +8,7 @@ import {
     isUpdateFrequency,
     read_saved_mods,
     are_all_mods_unlocked,
+    filter_for_faulty_dependencies,
 } from './utils/mods';
 import { ANNOTATED_FILE, MOD_BASE_DIR } from './utils/consts';
 import { annotate } from './subcommands/annotate';
@@ -264,8 +265,8 @@ const commands: Record<string, CommandDefinition> = {
     },
     debug: {
         description: 'Run debug operations',
-        handler: async () => {
-            console.log('Unlocked?', await are_all_mods_unlocked());
+        handler: async (args) => {
+            console.log(filter_for_faulty_dependencies((await get_details_from_mainclass(MOD_BASE_DIR + "/" + args[0])).main_deps, args[1] as string, []))
         },
     },
 };

@@ -271,11 +271,18 @@ async function is_folder_locked_windows(abs_path: string): Promise<boolean> {
     try {
         const { stdout } = execFile('powershell', ['-NoProfile', '-NonInteractive', '-Command', script]);
         if (stdout != null) {
-            const out = await text(stdout);
+            const timeout = setTimeout(() => {
+                console.warn('W: Failed to check if mods folder is locked within 10 seconds, assuming yes.');
+                throw Error("Raise of Folder Lock Check Timeout.")
+            }, 10000)
+
+            const out = await text(stdout).finally(() => {
+                timeout.close()
+            });
             return out.trim().toLowerCase() === 'true';
         }
     } catch (err: any) {
-        //console.warn('PowerShell failed:', err.message);
+        console.warn('W: Failed to check if mods folder is locked:', err.message);
     }
     return false;
 }

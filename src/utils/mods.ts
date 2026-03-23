@@ -570,7 +570,7 @@ export async function parse_mod_details(file_path: string): Promise<{
 
     // Expand wants with the ones from the @Mod annotation, filter and deduplicate
     if (mod_id) {
-        wants = filterForFaultyDependencies([...wants, ...main_deps], mod_id, other_mod_ids || []);
+        wants = filter_for_faulty_dependencies([...wants, ...main_deps], mod_id, other_mod_ids || []);
     } else {
         console.warn(`W: Failed to get any mod id for ${file_path}, faulty file?`);
         wants = [];
@@ -591,7 +591,7 @@ export async function get_details_from_mainclass(file_path: string): Promise<{ m
     // Mod Annotation terminators (not very reliable): (?:\u0001\u0000(?:\u0023|\u0011|(?:\u0005bytes)))/);
     const dep_version_pattern = new RegExp(/(?:\u0007|\u000c|\u000a)version\u0001\u0000(?:[\u0003-\u000c])(.+?)\u0001\u0000/);
     const dep_entry_pattern = new RegExp(
-        /required-after:(?<mod_id>(?<first_char>[a-zA-Z])(?:[a-zA-Z]|\d{1}|[\+\-\|](?:(?!mc|MC)[a-zA-Z]{2}|[aI]))+?)(?:[ \n\r;@]|$)/gm,
+        /required-after:(?<mod_id>(?<first_char>[a-zA-Z])(?:[a-zA-Z]|\d{1}|[\+\-\|](?:(?!mc|MC)[a-zA-Z]{2}|[aI]))+?)(?:[ \n\r;@\u0001]|$)/gm,
     );
     const search_result = await search_zip_for_string(file_path, 'Lcpw/mods/fml/common/Mod;');
     if (search_result != undefined) {
@@ -622,7 +622,7 @@ export async function get_details_from_mainclass(file_path: string): Promise<{ m
     return { main_deps: Array.from(deps), main_version: version };
 }
 
-function filterForFaultyDependencies(wants: string[], mod_id: string, other_mod_ids: string[]): string[] {
+export function filter_for_faulty_dependencies(wants: string[], mod_id: string, other_mod_ids: string[]): string[] {
     // Filter on the depdencies of a mod
     //  Some mods enter their deps not as a json array, but as a string with commas
     let old_wants = Array.from(wants);
@@ -647,6 +647,8 @@ function filterForFaultyDependencies(wants: string[], mod_id: string, other_mod_
             // And to itself
         } else if (other_mod_ids.find((other_id) => other_id.toLowerCase() === dep.toLowerCase()) != undefined) {
             continue;
+        } else {
+            dep = dep.replace(/^required-after:/m, "")
         }
         wants.push(dep.trim());
     }
