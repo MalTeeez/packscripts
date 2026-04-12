@@ -1,4 +1,4 @@
-import { ANNOTATED_FILE } from '../utils/consts';
+import { ANNOTATED_FILE } from '../utils/config';
 import { save_map_to_file } from '../utils/fs';
 import { are_all_mods_unlocked, disable_all_mods, enable_base_mods, enable_mod_deep, isNotItself, read_saved_mods, type mod_object } from '../utils/mods';
 import { divide_to_full_groups, print_pretty } from '../utils/utils';

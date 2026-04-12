@@ -32,13 +32,17 @@ export function download_file(
     source_type: 'GH_RELEASE' | 'CURSEFORGE' | 'MODRINTH' | 'OTHER',
     destination: string,
     file_name: string,
-    source_api_key: string,
+    source_api_key?: string,
 ): Promise<string> {
     return new Promise(async (resolve, reject) => {
         let res: Response;
-        if (source_type === 'GH_RELEASE') {
-            res = await gh_request(source, source_api_key, 'GET');
-        } else {
+        if (source_type !== 'OTHER' && source_api_key) {
+            if (source_type === 'GH_RELEASE') {
+                res = await gh_request(source, source_api_key, 'GET');
+            } else {
+                throw Error("Downloads for source type " + source + " not yet implemented.")
+            }
+        } else  {
             res = await fetch(source, { method: 'GET', redirect: 'follow' });
         }
         let content_length: string | number | null = res.headers.get('Content-Length');

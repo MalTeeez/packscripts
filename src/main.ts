@@ -10,7 +10,7 @@ import {
     are_all_mods_unlocked,
     filter_for_faulty_dependencies,
 } from './utils/mods';
-import { ANNOTATED_FILE, MOD_BASE_DIR } from './utils/consts';
+import { ANNOTATED_FILE, MOD_BASE_DIR } from './utils/config';
 import { annotate } from './subcommands/annotate';
 import { disable_atomic_deep, enable_atomic_deep, list_mods, list_mods_folder, list_mods_wide, toggle_mod } from './subcommands/simple';
 import { visualize_graph } from './subcommands/graph';

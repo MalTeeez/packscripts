@@ -3,7 +3,7 @@ import yauzl from 'yauzl';
 import { rename } from 'node:fs/promises';
 import { run_prettier, type JsonObject } from './utils';
 import { closeSync, openSync, readdirSync, statSync } from 'node:fs';
-import { exec, execFile, execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { text } from 'node:stream/consumers';
 
@@ -271,13 +271,16 @@ async function is_folder_locked_windows(abs_path: string): Promise<boolean> {
     try {
         const { stdout } = execFile('powershell', ['-NoProfile', '-NonInteractive', '-Command', script]);
         if (stdout != null) {
-            const timeout = setTimeout(() => {
-                console.warn('W: Failed to check if mods folder is locked within 10 seconds, assuming yes.');
-                throw Error("Raise of Folder Lock Check Timeout.")
+            const firstTimeout = setTimeout(() => {
+                console.warn('W: Still checking lock of mods folder, waiting 20 more seconds (should be faster on following runs).');
             }, 10000)
+            const secondTimeout = setTimeout(() => {
+                console.warn('W: Failed to check if mods folder is locked within 30 seconds, assuming its safe to proceed.');
+            }, 30000)
 
             const out = await text(stdout).finally(() => {
-                timeout.close()
+                firstTimeout.close()
+                secondTimeout.close()
             });
             return out.trim().toLowerCase() === 'true';
         }
@@ -304,4 +307,8 @@ function is_folder_locked_fallback(abs_path: string): boolean {
         return false;
     };
     return walk(abs_path);
+}
+
+export function path_is_directory(path: string) {
+    return statSync(path).isDirectory();
 }

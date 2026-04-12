@@ -1,4 +1,4 @@
-import { ANNOTATED_FILE, MOD_BASE_DIR } from '../utils/consts';
+import { ANNOTATED_FILE, MOD_BASE_DIR } from '../utils/config';
 import { save_map_to_file, scan_mods_folder } from '../utils/fs';
 import {
     disable_mod_deep,

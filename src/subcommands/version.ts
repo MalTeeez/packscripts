@@ -1,4 +1,4 @@
-import { ANNOTATED_FILE, DOWNLOAD_TEMP_DIR, DOWNLOAD_UNDO_DIR, GITHUB_API_KEY, MOD_BASE_DIR } from '../utils/consts';
+import { ANNOTATED_FILE, DOWNLOAD_TEMP_DIR, DOWNLOAD_UNDO_DIR, GITHUB_API_KEY, MOD_BASE_DIR } from '../utils/config';
 import { download_file, filter_assets, print_gh_ratelimits, query_gh_project_by_url } from '../utils/fetch';
 import { glob_files_in_dir, save_list_to_file, save_map_to_file } from '../utils/fs';
 import { are_all_mods_unlocked, read_saved_mods, type mod_object, type SourceType } from '../utils/mods';

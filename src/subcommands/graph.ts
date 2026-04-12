@@ -1,7 +1,7 @@
 import { exec } from 'child_process';
 import { read_from_file } from '../utils/fs';
 import path from 'path';
-import { ANNOTATED_FILE } from '../utils/consts';
+import { ANNOTATED_FILE } from '../utils/config';
 
 export async function visualize_graph() {
     const file_contents = await read_from_file(ANNOTATED_FILE);
