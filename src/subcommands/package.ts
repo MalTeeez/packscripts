@@ -152,7 +152,7 @@ use_parent_directory=true`,
 }`,
     );
 
-    await Bun.file(answers.PACKAGE_DIRECTORY.replace(/\/$/m, '') + '/instance.cfg').write(
+    await Bun.file(relative_instance_directory + answers.PACKAGE_DIRECTORY.replace(/\/$/m, '') + '/instance.cfg').write(
         `[General]
 ConfigVersion=1.3
 iconKey=default
