@@ -220,7 +220,7 @@ export async function build_bootstrap(commit_sha: string) {
                 path: direct_path,
                 hash: await hash_file(plan_item.relative_path),
                 size: file.size,
-                url: PACKAGING.REMOTE_MANIFEST_PROJECT + '/' + encodeURIComponent(direct_path),
+                url: PACKAGING.REMOTE_MANIFEST_PROJECT + '/' + encodeURI(direct_path),
             });
         } else {
             console.warn('W: Tracked file ', plan_item.relative_path, ' is not actually present on disk, skipping.');
