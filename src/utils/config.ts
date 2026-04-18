@@ -7,6 +7,7 @@ let config: {
         | {
               PACK_NAME: string;
               PACKAGE_DIRECTORY: string;
+              RELATIVE_INSTANCE_DIRECTORY: string;
               REMOTE_MANIFEST_PROJECT: string;
               TRACK_INCLUDE_PATHS: Array<{
                   relative_path: string;
@@ -17,6 +18,7 @@ let config: {
                   include_as: string;
               }>;
               EXCLUDE_FROM_INCLUDE_PATHS: Array<string>;
+              EXCLUDE_PATTERNS: Array<string>;
           }
         | undefined;
 } = (await Bun.file('./config.json').exists()) ? await Bun.file('./config.json').json() : undefined;

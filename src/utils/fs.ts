@@ -1,11 +1,13 @@
 import fg from 'fast-glob';
 import yauzl from 'yauzl';
-import { rename } from 'node:fs/promises';
+import yazl from 'yazl';
+import { open, rename } from 'node:fs/promises';
 import { run_prettier, type JsonObject } from './utils';
 import { closeSync, openSync, readdirSync, statSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { text } from 'node:stream/consumers';
+import type { SupportedCryptoAlgorithms } from 'bun';
 
 /**
  * Scan a folder of mods
@@ -209,6 +211,28 @@ export function extract_file_from_zip(zipFilePath: string, fileName: string): Pr
 }
 
 /**
+ * Bundles a list of files into a zip archive written to disk.
+ * @param files - Array of file descriptors, each specifying a `relative_path` (source on disk) and `path_inside_zip` (destination path within the archive).
+ * @param output_path - The file path where the resulting zip will be written.
+ */
+export async function bundle_files_to_zip(files: { relative_path: string; path_inside_zip: string }[], output_path: string): Promise<void> {
+    const zip_file = new yazl.ZipFile();
+
+    for (const { relative_path, path_inside_zip } of files) {
+        zip_file.addFile(relative_path, path_inside_zip);
+    }
+
+    zip_file.end();
+
+    const chunks: Buffer[] = [];
+    for await (const chunk of zip_file.outputStream) {
+        chunks.push(chunk as Buffer);
+    }
+
+    await Bun.write(output_path, Buffer.concat(chunks));
+}
+
+/**
  * Rename a file to a new file
  */
 export async function rename_file(old_path: string, new_path: string) {
@@ -239,9 +263,11 @@ async function is_folder_locked_lsof(abs_path: string): Promise<boolean> {
         const { stdout } = execFile('lsof', ['+D', abs_path]);
         if (stdout != null) {
             const out = await text(stdout);
-            const other_procs = out.trim().split('\n')
+            const other_procs = out
+                .trim()
+                .split('\n')
                 .slice(1) // skip header
-                .filter(line => {
+                .filter((line) => {
                     const pid = parseInt(line.split(/\s+/)[1] as string);
                     return pid !== process.pid;
                 });
@@ -273,14 +299,14 @@ async function is_folder_locked_windows(abs_path: string): Promise<boolean> {
         if (stdout != null) {
             const firstTimeout = setTimeout(() => {
                 console.warn('W: Still checking lock of mods folder, waiting 20 more seconds (should be faster on following runs).');
-            }, 10000)
+            }, 10000);
             const secondTimeout = setTimeout(() => {
                 console.warn('W: Failed to check if mods folder is locked within 30 seconds, assuming its safe to proceed.');
-            }, 30000)
+            }, 30000);
 
             const out = await text(stdout).finally(() => {
-                firstTimeout.close()
-                secondTimeout.close()
+                firstTimeout.close();
+                secondTimeout.close();
             });
             return out.trim().toLowerCase() === 'true';
         }
@@ -309,6 +335,25 @@ function is_folder_locked_fallback(abs_path: string): boolean {
     return walk(abs_path);
 }
 
-export function path_is_directory(path: string) {
-    return statSync(path).isDirectory();
+export function path_is_directory(path: string): boolean {
+    try {
+        return statSync(path).isDirectory();
+    } catch {
+        return false;
+    }
+}
+
+export async function hash_file(path: string, algorithm: SupportedCryptoAlgorithms = 'sha256'): Promise<string> {
+    const hasher = new Bun.CryptoHasher(algorithm);
+    const file = await open(path, 'r');
+
+    try {
+        for await (const chunk of file.createReadStream()) {
+            hasher.update(chunk);
+        }
+    } finally {
+        await file.close();
+    }
+
+    return hasher.digest('hex');
 }

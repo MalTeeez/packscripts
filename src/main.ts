@@ -6,17 +6,17 @@ import {
     get_details_from_mainclass,
     type update_frequency,
     isUpdateFrequency,
-    read_saved_mods,
     are_all_mods_unlocked,
     filter_for_faulty_dependencies,
 } from './utils/mods';
-import { ANNOTATED_FILE, MOD_BASE_DIR } from './utils/config';
+import { MOD_BASE_DIR } from './utils/config';
 import { annotate } from './subcommands/annotate';
 import { disable_atomic_deep, enable_atomic_deep, list_mods, list_mods_folder, list_mods_wide, toggle_mod } from './subcommands/simple';
 import { visualize_graph } from './subcommands/graph';
 import { check_all_mods_for_updates, undo_last_update } from './subcommands/update';
 import { list_all_versions_for_mod, restore_to_asset_versions, switch_version_of_mod } from './subcommands/version';
 import { initHandler } from './subcommands/init';
+import { bundle_pack_into_starter, initialize_packaging } from './subcommands/package';
 
 //#region Command Framework
 interface CommandDefinition {
@@ -263,10 +263,86 @@ const commands: Record<string, CommandDefinition> = {
             return;
         },
     },
+    package: {
+        description: 'Package your modpack into prism zips & provide them with updates via unsup',
+        usage: 'version <init|build>',
+        handler: async (args) => {
+            const mode = args[0]?.toLowerCase();
+            const cmdArgs = args.slice(1);
+
+            if (!mode || mode === 'help' || mode === '--help' || mode === '-h') {
+                console.log(commands['package']?.usage);
+                return;
+            }
+
+            const command = commands['package_' + mode];
+            if (command) {
+                await command.handler(cmdArgs);
+            } else {
+                console.error(`Error: Unknown subcommand '${mode}'`);
+                console.log(commands['package']?.usage);
+                process.exit(1);
+            }
+        },
+    },
+    package_init: {
+        description: 'Setup packaging for a modpack via config settings and a few starter files.',
+        usage: 'package init [--overwrite]',
+        is_subcommand: true,
+        handler: async (args) => {
+            if (args.includes('--help') || args.includes('-h')) {
+                console.log(commands['package_init']?.usage);
+                return;
+            }
+            await initialize_packaging(args.includes("--overwrite"));
+            return;
+        },
+    },
+    package_build: {
+        description: 'Build the changes since the last built version and the provided git commit sha (or HEAD if none were provided) into manifests that will propagate the update. Optionally just build a bootstrap for the current state (also assumes HEAD if no commit sha is provided).',
+        usage: 'package build [--bootstrap] <commit sha>',
+        is_subcommand: true,
+        handler: async (args) => {
+            if (args.includes('--help') || args.includes('-h')) {
+                console.log(commands['package_build']?.usage);
+                return;
+            }
+            
+            const filtered_args = args.filter((arg) => arg !== "--bootstrap");
+            const commit_sha = (filtered_args[-1] !== "build" && filtered_args[-1] != undefined) ? filtered_args[-1] : undefined;
+            if (args.includes("--bootstrap")) {
+                await build_bootstrap_for_current(commit_sha || "HEAD");
+            } else  {
+                
+            }
+            return;
+        },
+    },
+    package_bundle: {
+        description: 'Bundle the current pack into a zip.',
+        usage: 'package bundle',
+        is_subcommand: true,
+        handler: async (args) => {
+            if (args.includes('--help') || args.includes('-h')) {
+                console.log(commands['package_bundle']?.usage);
+                return;
+            }
+            
+            await bundle_pack_into_starter();
+
+            return;
+        },
+    },
     debug: {
         description: 'Run debug operations',
         handler: async (args) => {
-            console.log(filter_for_faulty_dependencies((await get_details_from_mainclass(MOD_BASE_DIR + "/" + args[0])).main_deps, args[1] as string, []))
+            console.log(
+                filter_for_faulty_dependencies(
+                    (await get_details_from_mainclass(MOD_BASE_DIR + '/' + args[0])).main_deps,
+                    args[1] as string,
+                    [],
+                ),
+            );
         },
     },
 };

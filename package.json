@@ -16,8 +16,10 @@
   "dependencies": {
     "fast-glob": "^3.3.3",
     "inquirer": "^13.3.0",
+    "isomorphic-git": "^1.37.4",
+    "prettier": "3.5.3",
     "yauzl": "^3.2.0",
-    "prettier": "3.5.3"
+    "yazl": "^3.3.1"
   },
   "type": "module",
   "private": true,
