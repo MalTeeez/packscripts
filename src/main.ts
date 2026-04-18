@@ -16,7 +16,7 @@ import { visualize_graph } from './subcommands/graph';
 import { check_all_mods_for_updates, undo_last_update } from './subcommands/update';
 import { list_all_versions_for_mod, restore_to_asset_versions, switch_version_of_mod } from './subcommands/version';
 import { initHandler } from './subcommands/init';
-import { bundle_pack_into_starter, initialize_packaging } from './subcommands/package';
+import { build_bootstrap, bundle_pack_into_starter, initialize_packaging } from './subcommands/package';
 
 //#region Command Framework
 interface CommandDefinition {
@@ -311,7 +311,7 @@ const commands: Record<string, CommandDefinition> = {
             const filtered_args = args.filter((arg) => arg !== "--bootstrap");
             const commit_sha = (filtered_args[-1] !== "build" && filtered_args[-1] != undefined) ? filtered_args[-1] : undefined;
             if (args.includes("--bootstrap")) {
-                await build_bootstrap_for_current(commit_sha || "HEAD");
+                await build_bootstrap(commit_sha || "HEAD");
             } else  {
                 
             }
