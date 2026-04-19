@@ -1,11 +1,12 @@
 import inquirer from 'inquirer';
+import fs from 'fs';
 import { MOD_BASE_DIR, PACKAGING, setConfigKeys } from '../utils/config';
 import { mkdir } from 'node:fs/promises';
 import { download_file } from '../utils/fetch';
-import { listFiles } from 'isomorphic-git';
-import fs from 'fs';
-import { bundle_files_to_zip, hash_file, path_is_directory } from '../utils/fs';
+import { listFiles, readBlob } from 'isomorphic-git';
+import { bundle_files_to_zip, path_is_directory } from '../utils/fs';
 import { sync } from 'fast-glob';
+import { hash_buffer } from '../utils/utils';
 
 interface bootstrap_json {
     unsup_manifest: string;
@@ -20,6 +21,21 @@ interface bootstrap_json {
         size: number;
         url: string;
     }>;
+}
+
+interface manifest_json {
+    unsup_manifest: string;
+    name: string;
+    versions: {
+        current: {
+            name: string;
+            code: number;
+        };
+        history: {
+            name: string;
+            code: number;
+        }[];
+    };
 }
 
 //#region initialization
@@ -163,8 +179,8 @@ JvmArgs=-javaagent:unsup.jar
 
 [Java]
 OverrideJava=true
-JvmArgs=-javaagent:unsup.jar`
-    )
+JvmArgs=-javaagent:unsup.jar`,
+    );
 
     //TODO: remove this when versions are done
     await Bun.file(packaging_dir + '/versions/1.json').write(
@@ -201,6 +217,7 @@ export async function build_bootstrap(commit_sha: string) {
         ref: commit_sha,
     });
 
+    console.info('Building bootstrap for git ref ', commit_sha);
     const packaging_plan = filter_and_plan_files(files);
     const bootstrap_manifest: bootstrap_json = {
         unsup_manifest: 'bootstrap-1',
@@ -213,20 +230,23 @@ export async function build_bootstrap(commit_sha: string) {
     };
 
     for (const plan_item of packaging_plan) {
-        const file = Bun.file(plan_item.relative_path);
-        if (await file.exists()) {
-            const direct_path = plan_item.relative_path.replace(PACKAGING.RELATIVE_INSTANCE_DIRECTORY, '');
-            bootstrap_manifest.files.push({
-                path: direct_path,
-                hash: await hash_file(plan_item.relative_path),
-                size: file.size,
-                url: PACKAGING.REMOTE_MANIFEST_PROJECT + '/' + encodeURI(direct_path),
-            });
-        } else {
-            console.warn('W: Tracked file ', plan_item.relative_path, ' is not actually present on disk, skipping.');
-        }
+        const direct_path = plan_item.relative_path.replace(PACKAGING.RELATIVE_INSTANCE_DIRECTORY, '');
+        const { blob } = await readBlob({
+            fs: fs,
+            dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
+            oid: commit_sha,
+            filepath: direct_path,
+        });
+
+        bootstrap_manifest.files.push({
+            path: direct_path,
+            hash: await hash_buffer(blob),
+            size: blob.byteLength,
+            url: PACKAGING.REMOTE_MANIFEST_PROJECT + '/' + encodeURI(direct_path),
+        });
     }
 
+    console.info(`Saving bootstrap with ${packaging_plan.length} items...`);
     await Bun.write(PACKAGING.PACKAGE_DIRECTORY + '/bootstrap.json', JSON.stringify(bootstrap_manifest, null, 4));
 }
 
@@ -313,7 +333,10 @@ async function collect_mmc_component_versions(optional_early_instance_dir: strin
 
 //#region bundling
 export async function bundle_pack_into_starter() {
-    if (PACKAGING == undefined) throw Error('Config not yet initialized.');
+    if (PACKAGING == undefined) {
+        console.error("ERR: Missing config settings for packaging. Make sure to run 'packscripts package init' first.");
+        return;
+    }
 
     const files: {
         relative_path: string;
@@ -339,6 +362,60 @@ export async function bundle_pack_into_starter() {
         }
     }
 
-    console.info(`Writing ${files.length} files to zip at ${PACKAGING.RELATIVE_INSTANCE_DIRECTORY + 'starter.zip'} ...`)
+    console.info(`Writing ${files.length} files to zip at ${PACKAGING.RELATIVE_INSTANCE_DIRECTORY + 'starter.zip'} ...`);
     await bundle_files_to_zip(files, PACKAGING.RELATIVE_INSTANCE_DIRECTORY + 'starter.zip');
+}
+
+//#region building
+export async function build_version_for_diff(target_commit_sha: string, base_commit_sha: string | undefined = undefined) {
+    if (PACKAGING == undefined) {
+        console.error("ERR: Missing config settings for packaging. Make sure to run 'packscripts package init' first.");
+        return;
+    }
+
+    const versions = await read_unsup_versions_from_manifest();
+
+}
+
+interface PackVersion {
+    actual_name: string;
+    name: string;
+    code: number;
+    hash: string;
+}
+
+async function read_unsup_versions_from_manifest(): Promise<{ current: PackVersion; history: PackVersion[] }> {
+    if (PACKAGING == undefined) throw Error('Config not yet initialized.');
+
+    const file = Bun.file(PACKAGING.PACKAGE_DIRECTORY + '/manifest.json');
+    if (!(await file.exists())) {
+        throw Error(`Unsup manifest at ${file.name} is missing.`);
+    }
+
+    const manifest_content: manifest_json = await file.json();
+    function get_version_obj_from_entry(entry: { name: string; code: number }): PackVersion | undefined {
+        const match = entry.name.match(/(.)+? \((\w+)\)/m);
+        if (match && match.length == 2 && match[1] && match[2]) {
+            return {
+                actual_name: entry.name,
+                code: entry.code,
+                name: match[1],
+                hash: match[2],
+            };
+        }
+    }
+
+    const current_version = get_version_obj_from_entry(manifest_content.versions.current);
+    const history_versions = manifest_content.versions.history.map(get_version_obj_from_entry);
+
+    [current_version, ...history_versions].forEach((version) => {
+        if (version == undefined) {
+            throw Error("Unsup manifest has faulty versions - format should be of 'version (short commit sha)'");
+        }
+    });
+
+    return {
+        current: current_version as PackVersion,
+        history: history_versions as PackVersion[]
+    };
 }

@@ -265,7 +265,7 @@ const commands: Record<string, CommandDefinition> = {
     },
     package: {
         description: 'Package your modpack into prism zips & provide them with updates via unsup',
-        usage: 'version <init|build>',
+        usage: 'version <init|build|bundle>',
         handler: async (args) => {
             const mode = args[0]?.toLowerCase();
             const cmdArgs = args.slice(1);

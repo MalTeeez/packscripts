@@ -1,3 +1,5 @@
+import type { SupportedCryptoAlgorithms } from "bun";
+
 export type JsonObject = { [key: string]: JsonObject | Array<JsonObject> | string | undefined };
 
 /**
@@ -58,7 +60,7 @@ export function clone(object: object): object {
     }
 }
 
-export async function run_prettier(file_path: string) {
+export async function run_prettier_on_file(file_path: string) {
     try {
         const proc = Bun.spawn(['bunx', 'prettier', '--write', file_path]);
         const output = await new Response(proc.stdout).text();
@@ -1140,4 +1142,10 @@ export function dedup_array(arr: string[]) {
     });
 
     return arr;
+}
+
+export async function hash_buffer(buffer: Uint8Array, algorithm: SupportedCryptoAlgorithms = 'sha256'): Promise<string> {
+    const hasher = new Bun.CryptoHasher(algorithm);
+    hasher.update(buffer);
+    return hasher.digest('hex');
 }

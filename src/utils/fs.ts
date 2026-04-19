@@ -2,7 +2,7 @@ import fg from 'fast-glob';
 import yauzl from 'yauzl';
 import yazl from 'yazl';
 import { open, rename } from 'node:fs/promises';
-import { run_prettier, type JsonObject } from './utils';
+import { type JsonObject } from './utils';
 import { closeSync, openSync, readdirSync, statSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { join, resolve } from 'node:path';
@@ -65,8 +65,7 @@ export async function save_map_to_file(file_path: string, data: Map<string, { [k
                 map_obj[key] = data.get(key);
             });
 
-        await Bun.write(file_path, JSON.stringify(map_obj));
-        await run_prettier(file_path);
+        await Bun.write(file_path, JSON.stringify(map_obj, null, 4));
     } catch (err) {
         console.error(err);
     }
