@@ -3,7 +3,7 @@ import fs from 'fs';
 import { MOD_BASE_DIR, PACKAGING, setConfigKeys } from '../utils/config';
 import { mkdir } from 'node:fs/promises';
 import { download_file } from '../utils/fetch';
-import { listFiles, readBlob } from 'isomorphic-git';
+import { expandOid, listFiles, log, readBlob, resolveRef, TREE, walk } from 'isomorphic-git';
 import { bundle_files_to_zip, path_is_directory } from '../utils/fs';
 import { sync } from 'fast-glob';
 import { hash_buffer } from '../utils/utils';
@@ -35,6 +35,22 @@ interface manifest_json {
             name: string;
             code: number;
         }[];
+    };
+}
+
+interface version_json {
+    unsup_manifest: string;
+    hash_function: string;
+    changes: {
+        path: string;
+        from_hash: string | null;
+        from_size: number;
+        to_hash: string | null;
+        to_size: number;
+        url?: string;
+    }[];
+    component_versions: {
+        [key: string]: string;
     };
 }
 
@@ -99,10 +115,7 @@ export async function initialize_packaging(overwrite: boolean) {
         PACKAGE_DIRECTORY: string;
         RELATIVE_INSTANCE_DIRECTORY: string;
         REMOTE_MANIFEST_PROJECT: string;
-        TRACK_INCLUDE_PATHS: Array<{
-            relative_path: string;
-            include_as: string;
-        }>;
+        TRACK_INCLUDE_PATHS: Array<string>;
         FORCE_INCLUDE_PATHS: Array<{
             relative_path: string;
             include_as: string;
@@ -115,8 +128,8 @@ export async function initialize_packaging(overwrite: boolean) {
         RELATIVE_INSTANCE_DIRECTORY: relative_instance_directory,
         REMOTE_MANIFEST_PROJECT: answers.REMOTE_MANIFEST_PROJECT.replace(/\/$/m, ''),
         TRACK_INCLUDE_PATHS: [
-            { relative_path: mc_dir + 'mods', include_as: 'minecraft/mods' },
-            { relative_path: mc_dir + 'config', include_as: 'minecraft/config' },
+            mc_dir + 'mods',
+            mc_dir + 'config',
             // { relative_path: mc_dir + 'scripts', include_as: 'minecraft/scripts/' },
         ],
         FORCE_INCLUDE_PATHS: [
@@ -160,7 +173,7 @@ use_parent_directory=true`,
   "name": "${packaging_config.PACK_NAME}",
   "versions": {
     "current": {
-      "name": "1.0.0",
+      "name": "1.0.0 (${(await resolveRef({ fs: fs, dir: relative_instance_directory, ref: 'HEAD' })).slice(0, 7)})",
       "code": 1
     },
     "history": []
@@ -218,7 +231,7 @@ export async function build_bootstrap(commit_sha: string) {
     });
 
     console.info('Building bootstrap for git ref ', commit_sha);
-    const packaging_plan = filter_and_plan_files(files);
+    const packaging_plan = filter_and_plan_files(Object.fromEntries(files.map((key) => [key, { relative_path: key }])));
     const bootstrap_manifest: bootstrap_json = {
         unsup_manifest: 'bootstrap-1',
         version: {
@@ -250,13 +263,18 @@ export async function build_bootstrap(commit_sha: string) {
     await Bun.write(PACKAGING.PACKAGE_DIRECTORY + '/bootstrap.json', JSON.stringify(bootstrap_manifest, null, 4));
 }
 
-function filter_and_plan_files(files: string[]): Array<{ relative_path: string; include_path: string }> {
+/**
+ * This function filters an array (in form of a record) by paths (its keys)
+ * @param files A record, where the key if the path.
+ * @returns The value of the record will be returned in a list if it passes the filter.
+ */
+function filter_and_plan_files<T>(files: Record<string, T>): Array<T> {
     if (PACKAGING == undefined) throw Error('Config not yet initialized.');
 
     const mod_dir_is_relative = MOD_BASE_DIR.startsWith(PACKAGING.RELATIVE_INSTANCE_DIRECTORY);
     const exclude_patterns = PACKAGING.EXCLUDE_PATTERNS.map((pattern) => RegExp(pattern, 'm'));
-    const filtered_files: Array<{ relative_path: string; include_path: string }> = [];
-    for (const file of files) {
+    const filtered_files: Array<T> = [];
+    for (const [file, obj] of Object.entries(files)) {
         let relative_path;
         if (!file.startsWith(PACKAGING.RELATIVE_INSTANCE_DIRECTORY) && mod_dir_is_relative) {
             relative_path = PACKAGING.RELATIVE_INSTANCE_DIRECTORY + file;
@@ -264,13 +282,10 @@ function filter_and_plan_files(files: string[]): Array<{ relative_path: string; 
             relative_path = file;
         }
 
-        let include_obj: { relative_path: string; include_path: string } | undefined = undefined;
-        for (const filter of [...PACKAGING.TRACK_INCLUDE_PATHS, ...PACKAGING.FORCE_INCLUDE_PATHS]) {
-            if (relative_path.startsWith(filter.relative_path)) {
-                include_obj = {
-                    relative_path,
-                    include_path: relative_path.replace(filter.relative_path, filter.include_as),
-                };
+        let include_obj: T | undefined = undefined;
+        for (const path_filter of [...PACKAGING.TRACK_INCLUDE_PATHS, ...PACKAGING.FORCE_INCLUDE_PATHS.map((item) => item.relative_path)]) {
+            if (relative_path.startsWith(path_filter)) {
+                include_obj = obj;
                 break;
             }
         }
@@ -320,8 +335,8 @@ async function collect_mmc_component_versions(optional_early_instance_dir: strin
     const mmc_json = await Bun.file(optional_early_instance_dir + 'mmc-pack.json').json();
     if (mmc_json && mmc_json.components && Array.isArray(mmc_json.components) && mmc_json.components.length > 0) {
         for (const component of mmc_json.components) {
-            if (component.uid && component.version) {
-                component_versions.set(component.uid, component.version);
+            if (component.uid && (component.version || component.cachedVersion)) {
+                component_versions.set(component.uid, component.version || component.cachedVersion);
             } else {
                 console.warn('W: Component entry ', component, ' in mmc-pack.json is malformed, not including in manifest.');
             }
@@ -367,7 +382,7 @@ export async function bundle_pack_into_starter() {
 }
 
 //#region building
-export async function build_version_for_diff(target_commit_sha: string, base_commit_sha: string | undefined = undefined) {
+export async function build_version_for_diff(target_commit_sha: string, base_commit_sha: string | undefined, tag: string | undefined) {
     if (PACKAGING == undefined) {
         console.error("ERR: Missing config settings for packaging. Make sure to run 'packscripts package init' first.");
         return;
@@ -375,6 +390,132 @@ export async function build_version_for_diff(target_commit_sha: string, base_com
 
     const versions = await read_unsup_versions_from_manifest();
 
+    if (base_commit_sha == undefined) {
+        console.info('No base commit specified, selecting from latest...');
+        base_commit_sha = await resolve_to_correct_git_ref(versions.current.hash);
+        console.info(`Using commit ${base_commit_sha} (${versions.current.name} - ${versions.current.code}) as base`);
+    }
+
+    target_commit_sha = await resolve_to_correct_git_ref(target_commit_sha);
+    console.info(`Building diff between ${base_commit_sha.slice(0, 7)} and ${target_commit_sha.slice(0, 7)} ...`)
+
+    const diffs: { filepath: string; status: 'added' | 'deleted' | 'modified' }[] = await walk({
+        fs: fs,
+        dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
+        trees: [TREE({ ref: base_commit_sha }), TREE({ ref: target_commit_sha })],
+        map: async (filepath, [a, b]) => {
+            if (filepath === '.') return;
+
+            const type = await (a ?? b)?.type();
+            if (type === 'tree') return;
+
+            const a_oid = await a?.oid();
+            const b_oid = await b?.oid();
+
+            if (a_oid === b_oid) return;
+
+            return {
+                filepath,
+                status: !a ? 'added' : !b ? 'deleted' : 'modified',
+            };
+        },
+    });
+
+    // Filter by filepaths
+    const filtered_diffs = filter_and_plan_files(Object.fromEntries(diffs.map((item) => [item.filepath, item])));
+
+    console.info(`Building list of changes from ${filtered_diffs.length} diffs...`);
+    const changes: {
+        path: string;
+        from_hash: string | null;
+        from_size: number;
+        to_hash: string | null;
+        to_size: number;
+        url?: string;
+    }[] = [];
+    const target_remote_url = PACKAGING.REMOTE_MANIFEST_PROJECT.replace(/[^\/]+?$/m, '') + target_commit_sha;
+    for (const item of filtered_diffs) {
+        if (item.status === 'added') {
+            const { blob } = await readBlob({
+                fs: fs,
+                dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
+                oid: target_commit_sha,
+                filepath: item.filepath,
+            });
+
+            changes.push({
+                path: item.filepath,
+                from_hash: null,
+                from_size: 0,
+                to_hash: await hash_buffer(blob),
+                to_size: blob.byteLength,
+                url: target_remote_url + '/' + encodeURI(item.filepath),
+            });
+        } else if (item.status === 'deleted') {
+            const { blob } = await readBlob({
+                fs: fs,
+                dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
+                oid: base_commit_sha,
+                filepath: item.filepath,
+            });
+
+            changes.push({
+                path: item.filepath,
+                from_hash: await hash_buffer(blob),
+                from_size: blob.byteLength,
+                to_hash: null,
+                to_size: 0,
+            });
+        } else if (item.status === 'modified') {
+            const old_blob = (
+                await readBlob({
+                    fs: fs,
+                    dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
+                    oid: base_commit_sha,
+                    filepath: item.filepath,
+                })
+            ).blob;
+            const new_blob = (
+                await readBlob({
+                    fs: fs,
+                    dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
+                    oid: target_commit_sha,
+                    filepath: item.filepath,
+                })
+            ).blob;
+
+            changes.push({
+                path: item.filepath,
+                from_hash: await hash_buffer(old_blob),
+                from_size: old_blob.byteLength,
+                to_hash: await hash_buffer(new_blob),
+                to_size: new_blob.byteLength,
+                url: target_remote_url + '/' + encodeURI(item.filepath),
+            });
+        }
+    }
+
+    const version_code = versions.current.code + 1;
+    if (tag == undefined) {
+        console.info('No version tag specified, incrementing patch version from latest...');
+        const patch_match = versions.current.name.match(/(\d+)\s*\(/);
+        if (patch_match && patch_match.length == 2 && patch_match[1] != undefined && !Number.isNaN(Number(patch_match[1]))) {
+            const next_patch = Number(patch_match[1]) + 1;
+            tag = versions.current.name.replace(/(\d+)(\s*\()/, (_, n, rest) => String(next_patch) + rest);
+        } else {
+            tag = versions.current.name + '.' + version_code;
+        }
+        console.info(`Using tag '${tag}' for version ${version_code}.`);
+    }
+
+    const version_manifest: version_json = {
+        unsup_manifest: "update-1",
+        hash_function: "SHA-2 256",
+        changes: changes,
+        component_versions: Object.fromEntries(await collect_mmc_component_versions())
+    }
+
+    await Bun.file(PACKAGING.PACKAGE_DIRECTORY + `/versions/${version_code}.json`).write(JSON.stringify(version_manifest, null, 4));
 }
 
 interface PackVersion {
@@ -394,14 +535,16 @@ async function read_unsup_versions_from_manifest(): Promise<{ current: PackVersi
 
     const manifest_content: manifest_json = await file.json();
     function get_version_obj_from_entry(entry: { name: string; code: number }): PackVersion | undefined {
-        const match = entry.name.match(/(.)+? \((\w+)\)/m);
-        if (match && match.length == 2 && match[1] && match[2]) {
+        const match = entry.name.match(/(.+?) \((\w+)\)/);
+        if (match && match.length == 3 && match[1] && match[2]) {
             return {
                 actual_name: entry.name,
                 code: entry.code,
                 name: match[1],
                 hash: match[2],
             };
+        } else {
+            throw Error("Unsup manifest has faulty versions - format should be of 'version (short commit sha)', is: " + entry.name);
         }
     }
 
@@ -416,6 +559,20 @@ async function read_unsup_versions_from_manifest(): Promise<{ current: PackVersi
 
     return {
         current: current_version as PackVersion,
-        history: history_versions as PackVersion[]
+        history: history_versions as PackVersion[],
     };
+}
+
+async function resolve_to_correct_git_ref(initial_ref: string): Promise<string> {
+    if (PACKAGING == undefined) throw Error('Config not yet initialized.');
+
+    try {
+        return await resolveRef({ fs: fs, dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY, ref: initial_ref });
+    } catch {
+        try {
+            return await expandOid({ fs: fs, dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY, oid: initial_ref });
+        } catch {
+            throw Error(`ERR: Failed to resolve git ref ${initial_ref} to a valid git ref.`);
+        }
+    }
 }

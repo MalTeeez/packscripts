@@ -16,7 +16,7 @@ import { visualize_graph } from './subcommands/graph';
 import { check_all_mods_for_updates, undo_last_update } from './subcommands/update';
 import { list_all_versions_for_mod, restore_to_asset_versions, switch_version_of_mod } from './subcommands/version';
 import { initHandler } from './subcommands/init';
-import { build_bootstrap, bundle_pack_into_starter, initialize_packaging } from './subcommands/package';
+import { build_bootstrap, build_version_for_diff, bundle_pack_into_starter, initialize_packaging } from './subcommands/package';
 
 //#region Command Framework
 interface CommandDefinition {
@@ -298,23 +298,47 @@ const commands: Record<string, CommandDefinition> = {
             return;
         },
     },
+    package_bootstrap: {
+        description: 'Build the bootstrap for the provided commit sha (assumes HEAD if none is provided) (Will override the old bootstrap manifest).',
+        usage: 'package bootstrap',
+        is_subcommand: true,
+        handler: async (args) => {
+            if (args.includes('--help') || args.includes('-h')) {
+                console.log(commands['package_bootstrap']?.usage);
+                return;
+            }
+            
+            await build_bootstrap(args.at(-1) || "HEAD");
+
+            return;
+        },
+    },
     package_build: {
-        description: 'Build the changes since the last built version and the provided git commit sha (or HEAD if none were provided) into manifests that will propagate the update. Optionally just build a bootstrap for the current state (also assumes HEAD if no commit sha is provided).',
-        usage: 'package build [--bootstrap] <commit sha>',
+        description: 'Build the changes since a specified commit (assumes the latest version if none is provided) and the provided target git ref (or HEAD if none is provided) into a version manifest that will propagate the update. Accepts a version in the form of -t <version>.',
+        usage: 'package build <base git ref> <target git ref> [-t tag]',
         is_subcommand: true,
         handler: async (args) => {
             if (args.includes('--help') || args.includes('-h')) {
                 console.log(commands['package_build']?.usage);
                 return;
             }
-            
-            const filtered_args = args.filter((arg) => arg !== "--bootstrap");
-            const commit_sha = (filtered_args[-1] !== "build" && filtered_args[-1] != undefined) ? filtered_args[-1] : undefined;
-            if (args.includes("--bootstrap")) {
-                await build_bootstrap(commit_sha || "HEAD");
-            } else  {
-                
+
+            // Collect positional args (non-flag values, excluding -t and its value)
+            const positional: string[] = [];
+            let tag: string | undefined;
+            for (let i = 0; i < args.length; i++) {
+                if (args[i] === '-t') {
+                    tag = args[++i];
+                } else if (!args[i]?.startsWith('-')) {
+                    positional.push(args[i] as string);
+                }
             }
+
+            const base_ref = positional[0];
+            const target_ref = positional[1] ?? 'HEAD';
+
+            await build_version_for_diff(target_ref, base_ref, tag);
+
             return;
         },
     },
@@ -354,8 +378,9 @@ function showHelp() {
     const maxCmdLength = Math.max(...Object.keys(commands).map((k) => k.length));
 
     for (const [cmd, def] of Object.entries(commands)) {
-        const cmdPadded = cmd.padEnd(maxCmdLength + 2);
-        const usage = def.usage || cmd;
+        const clean_cmd = def.is_subcommand ? cmd.replace("_", " ") : cmd;
+        const cmdPadded = clean_cmd.padEnd(maxCmdLength + 2);
+        const usage = def.usage || clean_cmd;
         console.log(`  ${cmdPadded}${def.description}`);
         if (def.usage) {
             console.log(`  ${''.padEnd(maxCmdLength + 2)}Usage: ${usage}`);

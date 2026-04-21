@@ -9,10 +9,7 @@ let config: {
               PACKAGE_DIRECTORY: string;
               RELATIVE_INSTANCE_DIRECTORY: string;
               REMOTE_MANIFEST_PROJECT: string;
-              TRACK_INCLUDE_PATHS: Array<{
-                  relative_path: string;
-                  include_as: string;
-              }>;
+              TRACK_INCLUDE_PATHS: Array<string>;
               FORCE_INCLUDE_PATHS: Array<{
                   relative_path: string;
                   include_as: string;
