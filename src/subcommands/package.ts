@@ -217,33 +217,58 @@ export async function build_bootstrap(commit_sha: string, tag: string | undefine
     commit_sha = await resolve_to_correct_git_ref(commit_sha);
     const short_commit_sha = commit_sha.slice(0, 7);
 
-    const files = await listFiles({
+    const file_oids: Record<string, string> = {};
+    await walk({
         fs: fs,
         dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
-        ref: commit_sha,
+        trees: [TREE({ ref: commit_sha })],
+        map: async (filepath, [entry]) => {
+            if (!entry) return null;
+            const type = await entry.type();
+            if (type === 'tree') return null;
+            file_oids[filepath] = await entry.oid();
+            return null;
+        },
     });
 
     console.info('Building bootstrap for git ref ', commit_sha);
-    const packaging_plan = filter_and_plan_files(Object.fromEntries(files.map((key) => [key, { relative_path: key }])));
+    const packaging_plan = filter_and_plan_files(Object.fromEntries(Object.keys(file_oids).map((key) => [key, { relative_path: key }])));
     const target_remote_url = PACKAGING.REMOTE_MANIFEST_PROJECT.replace(/[^\/]+?$/m, '') + commit_sha;
 
-    const file_refs = [];
-    for (const plan_item of packaging_plan) {
-        const direct_path = plan_item.relative_path.replace(PACKAGING.RELATIVE_INSTANCE_DIRECTORY, '');
-        const { blob } = await readBlob({
-            fs: fs,
-            dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
-            oid: commit_sha,
-            filepath: direct_path,
-        });
+    const file_refs = await Promise.all(
+        packaging_plan.map(async (plan_item) => {
+            if (PACKAGING == undefined) throw Error('Config was initialized but is not available off-thread? Something is wrong.');
 
-        file_refs.push({
-            path: direct_path,
-            hash: await hash_buffer(blob),
-            size: blob.byteLength,
-            url: target_remote_url + '/' + encodeURI(direct_path),
-        });
-    }
+            const direct_path = plan_item.relative_path.replace(PACKAGING.RELATIVE_INSTANCE_DIRECTORY, '');
+
+            let blob;
+            if (file_oids[direct_path] != undefined) {
+                blob = (
+                    await readBlob({
+                        fs: fs,
+                        dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
+                        oid: file_oids[direct_path],
+                    })
+                ).blob;
+            } else {
+                blob = (
+                    await readBlob({
+                        fs: fs,
+                        dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
+                        oid: commit_sha,
+                        filepath: direct_path,
+                    })
+                ).blob;
+            }
+
+            return {
+                path: direct_path,
+                hash: await hash_buffer(blob),
+                size: blob.byteLength,
+                url: target_remote_url + '/' + encodeURI(direct_path),
+            };
+        }),
+    );
 
     const main_manifest: manifest_json = await Bun.file(PACKAGING.PACKAGE_DIRECTORY + '/manifest.json').json();
     let version_code = main_manifest.versions.current.code + 1;
@@ -464,32 +489,39 @@ export async function build_version_for_diff(target_commit_sha: string, base_com
     target_commit_sha = await resolve_to_correct_git_ref(target_commit_sha);
     console.info(`Building diff between ${base_commit_sha.slice(0, 7)} and ${target_commit_sha.slice(0, 7)} ...`);
 
-    const diffs: { filepath: string; status: 'added' | 'deleted' | 'modified' }[] = await walk({
-        fs: fs,
-        dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
-        trees: [TREE({ ref: base_commit_sha }), TREE({ ref: target_commit_sha })],
-        map: async (filepath, [a, b]) => {
-            if (filepath === '.') return;
+    const diffs: { filepath: string; status: 'added' | 'deleted' | 'modified'; old_oid: string | undefined; new_oid: string | undefined }[] =
+        await walk({
+            fs: fs,
+            dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
+            trees: [TREE({ ref: base_commit_sha }), TREE({ ref: target_commit_sha })],
+            map: async (filepath, [a, b]) => {
+                if (filepath === '.') return;
 
-            const type = await (a ?? b)?.type();
-            if (type === 'tree') return;
+                const type = await (a ?? b)?.type();
+                if (type === 'tree') return;
 
-            const a_oid = await a?.oid();
-            const b_oid = await b?.oid();
+                const a_oid = await a?.oid();
+                const b_oid = await b?.oid();
 
-            if (a_oid === b_oid) return;
+                if (a_oid === b_oid) return;
 
-            return {
-                filepath,
-                status: !a ? 'added' : !b ? 'deleted' : 'modified',
-            };
-        },
-    });
+                return {
+                    filepath,
+                    status: !a ? 'added' : !b ? 'deleted' : 'modified',
+                    old_oid: a_oid,
+                    new_oid: b_oid,
+                };
+            },
+        });
 
     // Filter by filepaths
     const filtered_diffs = filter_and_plan_files(Object.fromEntries(diffs.map((item) => [item.filepath, item])));
 
+    
     console.info(`Building list of changes from ${filtered_diffs.length} diffs...`);
+    // Remove branch / git ref from remote url and use the target ref
+    const target_remote_url = PACKAGING.REMOTE_MANIFEST_PROJECT.replace(/[^\/]+?$/m, '') + target_commit_sha;
+
     const changes: {
         path: string;
         from_hash: string | null;
@@ -497,71 +529,72 @@ export async function build_version_for_diff(target_commit_sha: string, base_com
         to_hash: string | null;
         to_size: number;
         url?: string;
-    }[] = [];
+    }[] = await Promise.all(
+        filtered_diffs.map(async (item) => {
+            if (PACKAGING == undefined) throw Error('Config was initialized but is not available off-thread? Something is wrong.');
 
-    // Remove branch / git ref from remote url and use the target ref
-    const target_remote_url = PACKAGING.REMOTE_MANIFEST_PROJECT.replace(/[^\/]+?$/m, '') + target_commit_sha;
-
-    for (const item of filtered_diffs) {
-        if (item.status === 'added') {
-            const { blob } = await readBlob({
-                fs: fs,
-                dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
-                oid: target_commit_sha,
-                filepath: item.filepath,
-            });
-
-            changes.push({
-                path: item.filepath,
-                from_hash: null,
-                from_size: 0,
-                to_hash: await hash_buffer(blob),
-                to_size: blob.byteLength,
-                url: target_remote_url + '/' + encodeURI(item.filepath),
-            });
-        } else if (item.status === 'deleted') {
-            const { blob } = await readBlob({
-                fs: fs,
-                dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
-                oid: base_commit_sha,
-                filepath: item.filepath,
-            });
-
-            changes.push({
-                path: item.filepath,
-                from_hash: await hash_buffer(blob),
-                from_size: blob.byteLength,
-                to_hash: null,
-                to_size: 0,
-            });
-        } else if (item.status === 'modified') {
-            const old_blob = (
-                await readBlob({
+            if (item.status === 'added') {
+                const { blob } = await readBlob({
                     fs: fs,
                     dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
-                    oid: base_commit_sha,
-                    filepath: item.filepath,
-                })
-            ).blob;
-            const new_blob = (
-                await readBlob({
+                    oid: item.new_oid || target_commit_sha,
+                    ...(item.new_oid == undefined && { filepath: item.filepath }),
+                });
+
+                return {
+                    path: item.filepath,
+                    from_hash: null,
+                    from_size: 0,
+                    to_hash: await hash_buffer(blob),
+                    to_size: blob.byteLength,
+                    url: target_remote_url + '/' + encodeURI(item.filepath),
+                };
+            } else if (item.status === 'deleted') {
+                const { blob } = await readBlob({
                     fs: fs,
                     dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
-                    oid: target_commit_sha,
-                    filepath: item.filepath,
-                })
-            ).blob;
+                    oid: item.old_oid || base_commit_sha,
+                    ...(item.old_oid == undefined && { filepath: item.filepath }),
+                });
 
-            changes.push({
-                path: item.filepath,
-                from_hash: await hash_buffer(old_blob),
-                from_size: old_blob.byteLength,
-                to_hash: await hash_buffer(new_blob),
-                to_size: new_blob.byteLength,
-                url: target_remote_url + '/' + encodeURI(item.filepath),
-            });
-        }
-    }
+                return {
+                    path: item.filepath,
+                    from_hash: await hash_buffer(blob),
+                    from_size: blob.byteLength,
+                    to_hash: null,
+                    to_size: 0,
+                };
+            } else if (item.status === 'modified') {
+                const old_blob = (
+                    await readBlob({
+                        fs: fs,
+                        dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
+                        oid: item.old_oid || base_commit_sha,
+                        ...(item.old_oid == undefined && { filepath: item.filepath }),
+                    })
+                ).blob;
+                const new_blob = (
+                    await readBlob({
+                        fs: fs,
+                        dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
+                        oid: item.new_oid || target_commit_sha,
+                        ...(item.old_oid == undefined && { filepath: item.filepath }),
+                    })
+                ).blob;
+
+                return {
+                    path: item.filepath,
+                    from_hash: await hash_buffer(old_blob),
+                    from_size: old_blob.byteLength,
+                    to_hash: await hash_buffer(new_blob),
+                    to_size: new_blob.byteLength,
+                    url: target_remote_url + '/' + encodeURI(item.filepath),
+                };
+            } else {
+                throw Error("Encountered an unrecognized git change while build changes from diff: " + item)
+            }
+        }),
+    );
 
     const version_code = versions.current.code + 1;
     if (tag == undefined) {
