@@ -169,15 +169,15 @@ use_parent_directory=true`,
     // Yes, I know this is an object but it really isn't worth to stringify here
     await Bun.file(packaging_dir + '/manifest.json').write(
         `{
-  "unsup_manifest": "root-1",
-  "name": "${packaging_config.PACK_NAME}",
-  "versions": {
-    "current": {
-      "name": "1.0.0 (${(await resolveRef({ fs: fs, dir: relative_instance_directory, ref: 'HEAD' })).slice(0, 7)})",
-      "code": 1
-    },
-    "history": []
-  }
+    "unsup_manifest": "root-1",
+    "name": "${packaging_config.PACK_NAME}",
+    "versions": {
+        "current": {
+            "name": "initial",
+            "code": 1
+        },
+        "history": []
+    }
 }`,
     );
 
@@ -195,34 +195,27 @@ OverrideJava=true
 JvmArgs=-javaagent:unsup.jar`,
     );
 
-    //TODO: remove this when versions are done
-    await Bun.file(packaging_dir + '/versions/1.json').write(
-        `{
-  "unsup_manifest": "update-1",
-  "hash_function": "SHA-2 256",
-  "changes": [
-    {}
-  ],
-  "component_versions": ${JSON.stringify(Object.fromEntries(await collect_mmc_component_versions(relative_instance_directory)), null, 2)}
-}`,
-    );
-
     // Write config back to file
     await setConfigKeys({ PACKAGING: packaging_config });
 
     console.info(
         `\nWrote initial setup to ${packaging_dir}. 
         Before continuing, check your config.json for any paths that should be included / excluded. 
-        Afterwards, create your first version with "packscripts package build --bootstrap".`,
+        Afterwards, create your first version with "packscripts package bootstrap".
+        To distribute your pack, bundle your pack with "packscripts package bundle" and import it into prism.
+        To release new versions, build them with "packscripts package build" and push the generated manifests to your remote provider.`,
     );
 }
 
 //#region bootstrapping
-export async function build_bootstrap(commit_sha: string) {
+export async function build_bootstrap(commit_sha: string, tag: string | undefined) {
     if (PACKAGING == undefined) {
         console.error("ERR: Missing config settings for packaging. Make sure to run 'packscripts package init' first.");
         return;
     }
+
+    commit_sha = await resolve_to_correct_git_ref(commit_sha);
+    const short_commit_sha = commit_sha.slice(0, 7);
 
     const files = await listFiles({
         fs: fs,
@@ -232,16 +225,9 @@ export async function build_bootstrap(commit_sha: string) {
 
     console.info('Building bootstrap for git ref ', commit_sha);
     const packaging_plan = filter_and_plan_files(Object.fromEntries(files.map((key) => [key, { relative_path: key }])));
-    const bootstrap_manifest: bootstrap_json = {
-        unsup_manifest: 'bootstrap-1',
-        version: {
-            name: 'initial',
-            code: 1,
-        },
-        hash_function: 'SHA-2 256',
-        files: [],
-    };
+    const target_remote_url = PACKAGING.REMOTE_MANIFEST_PROJECT.replace(/[^\/]+?$/m, '') + commit_sha;
 
+    const file_refs = [];
     for (const plan_item of packaging_plan) {
         const direct_path = plan_item.relative_path.replace(PACKAGING.RELATIVE_INSTANCE_DIRECTORY, '');
         const { blob } = await readBlob({
@@ -251,14 +237,93 @@ export async function build_bootstrap(commit_sha: string) {
             filepath: direct_path,
         });
 
-        bootstrap_manifest.files.push({
+        file_refs.push({
             path: direct_path,
             hash: await hash_buffer(blob),
             size: blob.byteLength,
-            url: PACKAGING.REMOTE_MANIFEST_PROJECT + '/' + encodeURI(direct_path),
+            url: target_remote_url + '/' + encodeURI(direct_path),
         });
     }
 
+    const main_manifest: manifest_json = await Bun.file(PACKAGING.PACKAGE_DIRECTORY + '/manifest.json').json();
+    let version_code = main_manifest.versions.current.code + 1;
+
+    // This might be the first run, where the version is still "initial". If that is the case, fill it with the same content that the bootstrap will get here.
+    if (
+        main_manifest.versions.current.name === 'initial' &&
+        main_manifest.versions.current.code == 1 &&
+        main_manifest.versions.history.length == 0
+    ) {
+        console.info('This is the initial bootstrap, also building an initial version...');
+        const changes: {
+            path: string;
+            from_hash: string | null;
+            from_size: number;
+            to_hash: string | null;
+            to_size: number;
+            url?: string;
+        }[] = [];
+        for (const item of file_refs) {
+            changes.push({
+                path: item.path,
+                from_hash: null,
+                from_size: 0,
+                to_hash: item.hash,
+                to_size: item.size,
+                url: item.url,
+            });
+        }
+
+        if (tag == undefined) {
+            console.info(`No tag defined, using 1.0.0 for initial (${short_commit_sha}).`);
+            tag = '1.0.0';
+        }
+        version_code = 1;
+
+        const version_manifest: version_json = {
+            unsup_manifest: 'update-1',
+            hash_function: 'SHA-2 256',
+            changes: changes,
+            component_versions: Object.fromEntries(await collect_mmc_component_versions()),
+        };
+        main_manifest.versions.current = {
+            name: `${tag} (${short_commit_sha})`,
+            code: version_code,
+        };
+
+        await Bun.file(PACKAGING.PACKAGE_DIRECTORY + `/versions/1.json`).write(JSON.stringify(version_manifest, null, 4));
+        await Bun.file(PACKAGING.PACKAGE_DIRECTORY + '/manifest.json').write(JSON.stringify(main_manifest, null, 4));
+    }
+
+    // Is no longer initial so manifest should be in the correct format
+    const manifest_versions = await read_unsup_versions_from_manifest();
+    const manifest_version_of_tag = [manifest_versions.current, ...manifest_versions.history].find((version) => version.name === tag);
+    if (tag == undefined || manifest_version_of_tag != undefined) {
+        // Does this version differ from any version already in the manifest under the same tag or from the current version?
+        if (manifest_version_of_tag != undefined && manifest_version_of_tag.hash !== short_commit_sha) {
+            tag = manifest_version_of_tag.name + '-dirty';
+        } else if (manifest_version_of_tag != undefined) {
+            // Is the same, so we use its code & tag
+            version_code = manifest_version_of_tag.code;
+            tag = manifest_versions.current.name;
+        } else {
+            // Is not the same as any already known version, so use the current + -dirty (already has incremented code)
+            tag = manifest_versions.current.name + '-dirty';
+        }
+    }
+
+    console.info(`Using tag ${tag} at ${short_commit_sha} (${version_code}) for bootstrap manifest.`);
+    const bootstrap_manifest: bootstrap_json = {
+        unsup_manifest: 'bootstrap-1',
+        version: {
+            name: `${tag} (${short_commit_sha})`,
+            code: version_code,
+        },
+        hash_function: 'SHA-2 256',
+        files: file_refs,
+    };
+
+    // Save bootstraps
     console.info(`Saving bootstrap with ${packaging_plan.length} items...`);
     await Bun.write(PACKAGING.PACKAGE_DIRECTORY + '/bootstrap.json', JSON.stringify(bootstrap_manifest, null, 4));
 }
@@ -397,7 +462,7 @@ export async function build_version_for_diff(target_commit_sha: string, base_com
     }
 
     target_commit_sha = await resolve_to_correct_git_ref(target_commit_sha);
-    console.info(`Building diff between ${base_commit_sha.slice(0, 7)} and ${target_commit_sha.slice(0, 7)} ...`)
+    console.info(`Building diff between ${base_commit_sha.slice(0, 7)} and ${target_commit_sha.slice(0, 7)} ...`);
 
     const diffs: { filepath: string; status: 'added' | 'deleted' | 'modified' }[] = await walk({
         fs: fs,
@@ -433,7 +498,10 @@ export async function build_version_for_diff(target_commit_sha: string, base_com
         to_size: number;
         url?: string;
     }[] = [];
+
+    // Remove branch / git ref from remote url and use the target ref
     const target_remote_url = PACKAGING.REMOTE_MANIFEST_PROJECT.replace(/[^\/]+?$/m, '') + target_commit_sha;
+
     for (const item of filtered_diffs) {
         if (item.status === 'added') {
             const { blob } = await readBlob({
@@ -498,10 +566,11 @@ export async function build_version_for_diff(target_commit_sha: string, base_com
     const version_code = versions.current.code + 1;
     if (tag == undefined) {
         console.info('No version tag specified, incrementing patch version from latest...');
-        const patch_match = versions.current.name.match(/(\d+)\s*\(/);
-        if (patch_match && patch_match.length == 2 && patch_match[1] != undefined && !Number.isNaN(Number(patch_match[1]))) {
+        const patch_match = versions.current.name.match(/(\d+)([^0-9]*)$/m);
+        if (patch_match && patch_match[1] != undefined && !Number.isNaN(Number(patch_match[1]))) {
             const next_patch = Number(patch_match[1]) + 1;
-            tag = versions.current.name.replace(/(\d+)(\s*\()/, (_, n, rest) => String(next_patch) + rest);
+            const suffix = patch_match[2] ?? '';
+            tag = versions.current.name.replace(/(\d+)([^0-9]*)$/m, () => String(next_patch) + suffix);
         } else {
             tag = versions.current.name + '.' + version_code;
         }
@@ -509,13 +578,20 @@ export async function build_version_for_diff(target_commit_sha: string, base_com
     }
 
     const version_manifest: version_json = {
-        unsup_manifest: "update-1",
-        hash_function: "SHA-2 256",
+        unsup_manifest: 'update-1',
+        hash_function: 'SHA-2 256',
         changes: changes,
-        component_versions: Object.fromEntries(await collect_mmc_component_versions())
-    }
+        component_versions: Object.fromEntries(await collect_mmc_component_versions()),
+    };
+    const main_manifest: manifest_json = await Bun.file(PACKAGING.PACKAGE_DIRECTORY + '/manifest.json').json();
+    main_manifest.versions.history.push(main_manifest.versions.current);
+    main_manifest.versions.current = {
+        name: `${tag} (${target_commit_sha.slice(0, 7)})`,
+        code: version_code,
+    };
 
     await Bun.file(PACKAGING.PACKAGE_DIRECTORY + `/versions/${version_code}.json`).write(JSON.stringify(version_manifest, null, 4));
+    await Bun.file(PACKAGING.PACKAGE_DIRECTORY + '/manifest.json').write(JSON.stringify(main_manifest, null, 4));
 }
 
 interface PackVersion {
