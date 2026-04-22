@@ -55,11 +55,13 @@ interface version_json {
 }
 
 //#region git worker pool
-function create_worker_pool(total: number, worker_count: number) {
+function create_worker_pool(total: number, worker_count: number, options: { live_render?: boolean } = {}) {
+    const { live_render = true } = options;
     let completed = 0;
     const worker_status = Array.from({ length: worker_count }, () => 'idle');
 
     const render = () => {
+        if (!live_render) return;
         const bar_width = 40;
         const filled = Math.round((completed / total) * bar_width);
         const bar = CLIColor.FgGreen + '█'.repeat(filled) + CLIColor.FgGray8 + '░'.repeat(bar_width - filled) + CLIColor.Reset;
@@ -103,12 +105,14 @@ function create_worker_pool(total: number, worker_count: number) {
     };
 
     const start = () => {
-        init_live_zone(worker_count + 2);
-        render();
+        if (live_render) {
+            init_live_zone(worker_count + 2);
+            render();
+        }
     };
 
     const finish = (summary: string) => {
-        finish_live_zone();
+        if (live_render) finish_live_zone();
         console.info(summary);
     };
 
@@ -126,20 +130,66 @@ async function is_git_available(dir: string): Promise<boolean> {
     }
 }
 
-async function process_blob(dir: string, oid: string): Promise<{ hash: string | undefined; size: number }> {
+/**
+ * Instead of going through isomorphic-git, try directly going through a subprocess via the git binary.
+ * Should be faster, and seems to work most of the time.
+ */
+async function fast_process_blob(dir: string, oid: string): Promise<{ hash: string | undefined; size: number }> {
     const [hashProc, sizeProc] = await Promise.all([
-        Bun.spawn(['bash', '-c', `git cat-file blob ${oid} | sha256sum`], { cwd: dir, stdout: 'pipe' }),
-        Bun.spawn(['git', 'cat-file', '-s', oid], { cwd: dir, stdout: 'pipe' }),
+        Bun.spawn(['bash', '-c', `git cat-file blob ${oid} | sha256sum`], { cwd: dir, stdout: 'pipe', stderr: 'pipe' }),
+        Bun.spawn(['git', 'cat-file', '-s', oid], { cwd: dir, stdout: 'pipe', stderr: 'pipe' }),
     ]);
 
-    const [hashOut, sizeOut] = await Promise.all([new Response(hashProc.stdout).text(), new Response(sizeProc.stdout).text()]);
+    const [hashOut, sizeOut, hashErr, sizeErr] = await Promise.all([
+        new Response(hashProc.stdout).text(),
+        new Response(sizeProc.stdout).text(),
+        new Response(hashProc.stderr).text(),
+        new Response(sizeProc.stderr).text(),
+    ]);
 
     await Promise.all([hashProc.exited, sizeProc.exited]);
 
-    return {
-        hash: hashOut.trim().split(' ')[0],
-        size: parseInt(sizeOut.trim(), 10),
-    };
+    const size = parseInt(sizeOut.trim(), 10);
+
+    // Just return undefined as the hash for results we dont trust / that errored so we can fallback at the caller
+    if (hashProc.exitCode !== 0 || sizeProc.exitCode !== 0 || isNaN(size)) {
+        return { hash: undefined, size: isNaN(size) ? 0 : size };
+    }
+    const hash = hashOut.trim().split(/\s+/)[0];
+    if (hash != undefined && !/^[a-f0-9]{64}$/.test(hash)) {
+        return { hash: undefined, size };
+    }
+
+    return { hash, size };
+}
+
+/**
+ * Get a blobs sha256 hash and size, by trying multiple methods, ordered by speed.
+ * Wants more than it needs in the best case, but is basically guaranteed to work in the worst case (but will be slower).
+ */
+async function get_blob_info(
+    git_available: boolean,
+    oid: string | undefined,
+    git_directory: string,
+    commit_sha: string,
+    file_path: string,
+): Promise<{ hash: string; size: number }> {
+    let blob_hash = undefined;
+    let blob_size = 0;
+    if (git_available && oid != undefined) {
+        ({ hash: blob_hash, size: blob_size } = await fast_process_blob(git_directory, oid));
+    }
+    // Fallback to builtin if that didnt work
+    if (blob_hash == undefined) {
+        const { blob } =
+            oid != undefined
+                ? await readBlob({ fs, dir: git_directory, oid: oid })
+                : await readBlob({ fs, dir: git_directory, oid: commit_sha, filepath: file_path });
+        blob_hash = await hash_buffer(blob);
+        blob_size = blob.byteLength;
+    }
+
+    return { hash: blob_hash, size: blob_size };
 }
 
 interface PackVersion {
@@ -417,7 +467,7 @@ export async function build_bootstrap(commit_sha: string, tag: string | undefine
     const git_available = await is_git_available(PACKAGING.RELATIVE_INSTANCE_DIRECTORY);
     const file_refs: { path: string; hash: string; size: number; url: string }[] = [];
     const WORKER_COUNT = Math.min(PACKAGING.MAX_WORKER_THREADS, 10);
-    const pool = create_worker_pool(packaging_plan.length, WORKER_COUNT);
+    const pool = create_worker_pool(packaging_plan.length, WORKER_COUNT, { live_render: true });
     pool.start();
 
     const queue = [...packaging_plan];
@@ -430,26 +480,18 @@ export async function build_bootstrap(commit_sha: string, tag: string | undefine
             pool.set_status(worker_id, direct_path);
 
             const file_oid = file_oids.get(direct_path);
-
-            let blob_hash = undefined;
-            let blob_size = 0;
-            if (git_available && file_oid != undefined) {
-                ({ hash: blob_hash, size: blob_size } = await process_blob(PACKAGING.RELATIVE_INSTANCE_DIRECTORY, file_oid));
-            }
-            // Fallback to builtin if that didnt work
-            if (blob_hash == undefined) {
-                const { blob } =
-                    file_oid != undefined
-                        ? await readBlob({ fs, dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY, oid: file_oid })
-                        : await readBlob({ fs, dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY, oid: commit_sha, filepath: direct_path });
-                blob_hash = await hash_buffer(blob);
-                blob_size = blob.byteLength;
-            }
+            const { hash, size } = await get_blob_info(
+                git_available,
+                file_oid,
+                PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
+                commit_sha,
+                direct_path,
+            );
 
             file_refs.push({
                 path: direct_path,
-                hash: blob_hash,
-                size: blob_size,
+                hash,
+                size,
                 url: target_remote_url + '/' + encodeURI(direct_path),
             });
 
@@ -711,6 +753,7 @@ export async function build_version_for_diff(target_commit_sha: string, base_com
         url?: string;
     }[] = [];
 
+    const git_available = await is_git_available(PACKAGING.RELATIVE_INSTANCE_DIRECTORY);
     const WORKER_COUNT = Math.min(PACKAGING.MAX_WORKER_THREADS, 4);
     const pool = create_worker_pool(filtered_diffs.length, WORKER_COUNT);
     pool.start();
@@ -724,55 +767,50 @@ export async function build_version_for_diff(target_commit_sha: string, base_com
             pool.set_status(worker_id, `${item.status} ${item.filepath}`);
 
             if (item.status === 'added') {
-                const { blob } = await readBlob({
-                    fs: fs,
-                    dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
-                    oid: item.new_oid || target_commit_sha,
-                    ...(item.new_oid == undefined && { filepath: item.filepath }),
-                });
+                const { hash, size } = await get_blob_info(
+                    git_available,
+                    item.new_oid,
+                    PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
+                    target_commit_sha,
+                    item.filepath,
+                );
+
                 changes.push({
                     path: item.filepath,
                     from_hash: null,
                     from_size: 0,
-                    to_hash: await hash_buffer(blob),
-                    to_size: blob.byteLength,
+                    to_hash: hash,
+                    to_size: size,
                     url: target_remote_url + '/' + encodeURI(item.filepath),
                 });
             } else if (item.status === 'deleted') {
-                const { blob } = await readBlob({
-                    fs: fs,
-                    dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
-                    oid: item.old_oid || base_commit_sha,
-                    ...(item.old_oid == undefined && { filepath: item.filepath }),
-                });
+                const { hash, size } = await get_blob_info(
+                    git_available,
+                    item.old_oid,
+                    PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
+                    base_commit_sha,
+                    item.filepath,
+                );
+
                 changes.push({
                     path: item.filepath,
-                    from_hash: await hash_buffer(blob),
-                    from_size: blob.byteLength,
+                    from_hash: hash,
+                    from_size: size,
                     to_hash: null,
                     to_size: 0,
                 });
             } else if (item.status === 'modified') {
-                const [{ blob: old_blob }, { blob: new_blob }] = await Promise.all([
-                    readBlob({
-                        fs: fs,
-                        dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
-                        oid: item.old_oid || base_commit_sha,
-                        ...(item.old_oid == undefined && { filepath: item.filepath }),
-                    }),
-                    readBlob({
-                        fs: fs,
-                        dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
-                        oid: item.new_oid || target_commit_sha,
-                        ...(item.new_oid == undefined && { filepath: item.filepath }),
-                    }),
+                const [old_blob, new_blob] = await Promise.all([
+                    get_blob_info(git_available, item.old_oid, PACKAGING.RELATIVE_INSTANCE_DIRECTORY, base_commit_sha, item.filepath),
+                    get_blob_info(git_available, item.new_oid, PACKAGING.RELATIVE_INSTANCE_DIRECTORY, target_commit_sha, item.filepath),
                 ]);
+
                 changes.push({
                     path: item.filepath,
-                    from_hash: await hash_buffer(old_blob),
-                    from_size: old_blob.byteLength,
-                    to_hash: await hash_buffer(new_blob),
-                    to_size: new_blob.byteLength,
+                    from_hash: old_blob.hash,
+                    from_size: old_blob.size,
+                    to_hash: new_blob.hash,
+                    to_size: new_blob.size,
                     url: target_remote_url + '/' + encodeURI(item.filepath),
                 });
             } else {
