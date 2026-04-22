@@ -1083,6 +1083,17 @@ export async function is_finished(promise: Promise<any>) {
     ]);
 }
 
+export async function pool<T>(items: T[], limit: number, fn: (item: T) => Promise<void>) {
+    const queue = [...items];
+    const workers = Array.from({ length: limit }, async () => {
+        while (queue.length > 0) {
+            const item = queue.shift()!;
+            await fn(item);
+        }
+    });
+    await Promise.all(workers);
+}
+
 let live_lines = 0;
 let live_content: string[] = [];
 

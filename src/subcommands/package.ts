@@ -3,10 +3,10 @@ import fs from 'fs';
 import { MOD_BASE_DIR, PACKAGING, setConfigKeys } from '../utils/config';
 import { mkdir } from 'node:fs/promises';
 import { download_file } from '../utils/fetch';
-import { expandOid, listFiles, log, readBlob, resolveRef, TREE, walk } from 'isomorphic-git';
+import { expandOid, readBlob, resolveRef, TREE, walk } from 'isomorphic-git';
 import { bundle_files_to_zip, path_is_directory } from '../utils/fs';
 import { sync } from 'fast-glob';
-import { hash_buffer } from '../utils/utils';
+import { CLIColor, finish_live_zone, hash_buffer, init_live_zone, update_live_zone } from '../utils/utils';
 
 interface bootstrap_json {
     unsup_manifest: string;
@@ -52,6 +52,67 @@ interface version_json {
     component_versions: {
         [key: string]: string;
     };
+}
+
+//#region git worker pool
+function create_worker_pool(total: number, worker_count: number) {
+    let completed = 0;
+    const worker_status = Array.from({ length: worker_count }, () => 'idle');
+
+    const render = () => {
+        const bar_width = 40;
+        const filled = Math.round((completed / total) * bar_width);
+        const bar = CLIColor.FgGreen + '█'.repeat(filled) + CLIColor.FgGray8 + '░'.repeat(bar_width - filled) + CLIColor.Reset;
+        const percent = String(Math.round((completed / total) * 100)).padStart(3);
+        const progress_line = `  ${bar} ${CLIColor.FgWhite}${percent}%${CLIColor.Reset} ${CLIColor.FgGray11}(${completed}/${total})${CLIColor.Reset}`;
+
+        update_live_zone([
+            progress_line,
+            '',
+            ...worker_status.map((status, i) => {
+                if (status === 'idle') {
+                    return `  ${CLIColor.FgGray8}worker ${i + 1}  idle${CLIColor.Reset}`;
+                }
+                const [change_type, ...rest] = status.split(' ');
+                const filepath = rest.join(' ');
+                const type_color =
+                    change_type === 'added'
+                        ? CLIColor.FgGreen
+                        : change_type === 'deleted'
+                          ? CLIColor.FgRed
+                          : change_type === 'modified'
+                            ? CLIColor.FgYellow
+                            : CLIColor.FgCyan;
+                const label = filepath
+                    ? `${type_color}${change_type}${CLIColor.Reset}  ${CLIColor.FgGray15}${filepath}${CLIColor.Reset}`
+                    : `${type_color}${change_type}${CLIColor.Reset}`;
+                return `  ${CLIColor.FgCyan}worker ${i + 1}${CLIColor.Reset}  ${label}`;
+            }),
+        ]);
+    };
+
+    const set_status = (worker_id: number, status: string) => {
+        worker_status[worker_id] = status;
+        render();
+    };
+
+    const complete = (worker_id: number) => {
+        completed++;
+        worker_status[worker_id] = 'idle';
+        render();
+    };
+
+    const start = () => {
+        init_live_zone(worker_count + 2);
+        render();
+    };
+
+    const finish = (summary: string) => {
+        finish_live_zone();
+        console.info(summary);
+    };
+
+    return { start, finish, set_status, complete };
 }
 
 //#region initialization
@@ -122,6 +183,7 @@ export async function initialize_packaging(overwrite: boolean) {
         }>;
         EXCLUDE_FROM_INCLUDE_PATHS: Array<string>;
         EXCLUDE_PATTERNS: Array<string>;
+        MAX_WORKER_THREADS: number;
     } = {
         PACK_NAME: answers.PACK_NAME,
         PACKAGE_DIRECTORY: packaging_dir,
@@ -143,6 +205,7 @@ export async function initialize_packaging(overwrite: boolean) {
         ],
         EXCLUDE_FROM_INCLUDE_PATHS: ['../.minecraft/mods/disabled_mods'],
         EXCLUDE_PATTERNS: ['\\.git\\w+$'],
+        MAX_WORKER_THREADS: 10
     };
 
     if (await Bun.file(packaging_dir).exists()) {
@@ -217,7 +280,7 @@ export async function build_bootstrap(commit_sha: string, tag: string | undefine
     commit_sha = await resolve_to_correct_git_ref(commit_sha);
     const short_commit_sha = commit_sha.slice(0, 7);
 
-    const file_oids: Record<string, string> = {};
+    const file_oids: Map<string, string> = new Map();
     await walk({
         fs: fs,
         dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
@@ -225,50 +288,49 @@ export async function build_bootstrap(commit_sha: string, tag: string | undefine
         map: async (filepath, [entry]) => {
             if (!entry) return null;
             const type = await entry.type();
-            if (type === 'tree') return null;
-            file_oids[filepath] = await entry.oid();
+            if (type === 'tree') return undefined;
+            file_oids.set(filepath, await entry.oid());
             return null;
         },
     });
 
-    console.info('Building bootstrap for git ref ', commit_sha);
-    const packaging_plan = filter_and_plan_files(Object.fromEntries(Object.keys(file_oids).map((key) => [key, { relative_path: key }])));
+    console.info('Building bootstrap for git ref ', commit_sha, ' from ', file_oids.size, ' git objects...');
+    const packaging_plan = filter_and_plan_files(Object.fromEntries(file_oids.keys().map((key) => [key, { relative_path: key }])));
     const target_remote_url = PACKAGING.REMOTE_MANIFEST_PROJECT.replace(/[^\/]+?$/m, '') + commit_sha;
 
-    const file_refs = await Promise.all(
-        packaging_plan.map(async (plan_item) => {
+    const file_refs: { path: string; hash: string; size: number; url: string }[] = [];
+    const WORKER_COUNT = Math.min(PACKAGING.MAX_WORKER_THREADS, 10);
+    const pool = create_worker_pool(packaging_plan.length, WORKER_COUNT);
+    pool.start();
+
+    const queue = [...packaging_plan];
+    const workers = Array.from({ length: WORKER_COUNT }, async (_, worker_id) => {
+        while (queue.length > 0) {
+            const plan_item = queue.shift()!;
             if (PACKAGING == undefined) throw Error('Config was initialized but is not available off-thread? Something is wrong.');
 
             const direct_path = plan_item.relative_path.replace(PACKAGING.RELATIVE_INSTANCE_DIRECTORY, '');
+            pool.set_status(worker_id, direct_path);
 
-            let blob;
-            if (file_oids[direct_path] != undefined) {
-                blob = (
-                    await readBlob({
-                        fs: fs,
-                        dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
-                        oid: file_oids[direct_path],
-                    })
-                ).blob;
-            } else {
-                blob = (
-                    await readBlob({
-                        fs: fs,
-                        dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
-                        oid: commit_sha,
-                        filepath: direct_path,
-                    })
-                ).blob;
-            }
+            const file_oid = file_oids.get(direct_path);
+            const { blob } =
+                file_oid != undefined
+                    ? await readBlob({ fs, dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY, oid: file_oid })
+                    : await readBlob({ fs, dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY, oid: commit_sha, filepath: direct_path });
 
-            return {
+            file_refs.push({
                 path: direct_path,
                 hash: await hash_buffer(blob),
                 size: blob.byteLength,
                 url: target_remote_url + '/' + encodeURI(direct_path),
-            };
-        }),
-    );
+            });
+
+            pool.complete(worker_id);
+        }
+    });
+
+    await Promise.all(workers);
+    pool.finish(`${CLIColor.FgGreen}✓${CLIColor.Reset} Built bootstrap with ${CLIColor.FgWhite}${file_refs.length}${CLIColor.Reset} files.`);
 
     const main_manifest: manifest_json = await Bun.file(PACKAGING.PACKAGE_DIRECTORY + '/manifest.json').json();
     let version_code = main_manifest.versions.current.code + 1;
@@ -320,21 +382,28 @@ export async function build_bootstrap(commit_sha: string, tag: string | undefine
         await Bun.file(PACKAGING.PACKAGE_DIRECTORY + '/manifest.json').write(JSON.stringify(main_manifest, null, 4));
     }
 
-    // Is no longer initial so manifest should be in the correct format
     const manifest_versions = await read_unsup_versions_from_manifest();
-    const manifest_version_of_tag = [manifest_versions.current, ...manifest_versions.history].find((version) => version.name === tag);
-    if (tag == undefined || manifest_version_of_tag != undefined) {
-        // Does this version differ from any version already in the manifest under the same tag or from the current version?
-        if (manifest_version_of_tag != undefined && manifest_version_of_tag.hash !== short_commit_sha) {
-            tag = manifest_version_of_tag.name + '-dirty';
-        } else if (manifest_version_of_tag != undefined) {
-            // Is the same, so we use its code & tag
+    const all_versions = [manifest_versions.current, ...manifest_versions.history];
+    const manifest_version_of_tag = all_versions.find((version) => version.name === tag);
+    const manifest_version_of_commit = all_versions.find((version) => version.hash === short_commit_sha);
+
+    if (manifest_version_of_tag != undefined) {
+        // This tag exists in the manifest — does its hash match?
+        if (manifest_version_of_tag.hash === short_commit_sha) {
+            // Exact match on both tag and commit — reuse the existing code and tag
             version_code = manifest_version_of_tag.code;
             tag = manifest_versions.current.name;
         } else {
-            // Is not the same as any already known version, so use the current + -dirty (already has incremented code)
-            tag = manifest_versions.current.name + '-dirty';
+            // Same tag name, different commit — mark dirty
+            tag = manifest_version_of_tag.name + '-dirty';
         }
+    } else if (manifest_version_of_commit != undefined) {
+        // Tag not found, but this commit is already recorded under a different tag — reuse its code
+        version_code = manifest_version_of_commit.code;
+        tag = manifest_version_of_commit.name;
+    } else {
+        // Neither tag nor commit found in the manifest — fall back to current + -dirty
+        tag = manifest_versions.current.name + '-dirty';
     }
 
     console.info(`Using tag ${tag} at ${short_commit_sha} (${version_code}) for bootstrap manifest.`);
@@ -348,9 +417,8 @@ export async function build_bootstrap(commit_sha: string, tag: string | undefine
         files: file_refs,
     };
 
-    // Save bootstraps
-    console.info(`Saving bootstrap with ${packaging_plan.length} items...`);
     await Bun.write(PACKAGING.PACKAGE_DIRECTORY + '/bootstrap.json', JSON.stringify(bootstrap_manifest, null, 4));
+    console.info(`Built & saved bootstrap manifest with ${packaging_plan.length} items!`);
 }
 
 /**
@@ -478,6 +546,14 @@ export async function build_version_for_diff(target_commit_sha: string, base_com
         return;
     }
 
+    const main_manifest: manifest_json = await Bun.file(PACKAGING.PACKAGE_DIRECTORY + '/manifest.json').json();
+    if (main_manifest.versions.current.name === 'initial') {
+        console.error(
+            `ERR: Tried to build version without first initializing base bootstrap. Make sure to initially create a base version with "packscripts package bootstrap".`,
+        );
+        return;
+    }
+
     const versions = await read_unsup_versions_from_manifest();
 
     if (base_commit_sha == undefined) {
@@ -487,6 +563,13 @@ export async function build_version_for_diff(target_commit_sha: string, base_com
     }
 
     target_commit_sha = await resolve_to_correct_git_ref(target_commit_sha);
+    if (base_commit_sha === target_commit_sha) {
+        console.warn(
+            `W: The newest available ref (${target_commit_sha}) is already available under ${versions.current.name}, refusing to build version without changes.`,
+        );
+        return;
+    }
+
     console.info(`Building diff between ${base_commit_sha.slice(0, 7)} and ${target_commit_sha.slice(0, 7)} ...`);
 
     const diffs: { filepath: string; status: 'added' | 'deleted' | 'modified'; old_oid: string | undefined; new_oid: string | undefined }[] =
@@ -517,7 +600,6 @@ export async function build_version_for_diff(target_commit_sha: string, base_com
     // Filter by filepaths
     const filtered_diffs = filter_and_plan_files(Object.fromEntries(diffs.map((item) => [item.filepath, item])));
 
-    
     console.info(`Building list of changes from ${filtered_diffs.length} diffs...`);
     // Remove branch / git ref from remote url and use the target ref
     const target_remote_url = PACKAGING.REMOTE_MANIFEST_PROJECT.replace(/[^\/]+?$/m, '') + target_commit_sha;
@@ -529,9 +611,19 @@ export async function build_version_for_diff(target_commit_sha: string, base_com
         to_hash: string | null;
         to_size: number;
         url?: string;
-    }[] = await Promise.all(
-        filtered_diffs.map(async (item) => {
+    }[] = [];
+
+    const WORKER_COUNT = Math.min(PACKAGING.MAX_WORKER_THREADS, 4);
+    const pool = create_worker_pool(filtered_diffs.length, WORKER_COUNT);
+    pool.start();
+
+    const queue = [...filtered_diffs];
+    const workers = Array.from({ length: WORKER_COUNT }, async (_, worker_id) => {
+        while (queue.length > 0) {
+            const item = queue.shift()!;
             if (PACKAGING == undefined) throw Error('Config was initialized but is not available off-thread? Something is wrong.');
+
+            pool.set_status(worker_id, `${item.status} ${item.filepath}`);
 
             if (item.status === 'added') {
                 const { blob } = await readBlob({
@@ -540,15 +632,14 @@ export async function build_version_for_diff(target_commit_sha: string, base_com
                     oid: item.new_oid || target_commit_sha,
                     ...(item.new_oid == undefined && { filepath: item.filepath }),
                 });
-
-                return {
+                changes.push({
                     path: item.filepath,
                     from_hash: null,
                     from_size: 0,
                     to_hash: await hash_buffer(blob),
                     to_size: blob.byteLength,
                     url: target_remote_url + '/' + encodeURI(item.filepath),
-                };
+                });
             } else if (item.status === 'deleted') {
                 const { blob } = await readBlob({
                     fs: fs,
@@ -556,44 +647,47 @@ export async function build_version_for_diff(target_commit_sha: string, base_com
                     oid: item.old_oid || base_commit_sha,
                     ...(item.old_oid == undefined && { filepath: item.filepath }),
                 });
-
-                return {
+                changes.push({
                     path: item.filepath,
                     from_hash: await hash_buffer(blob),
                     from_size: blob.byteLength,
                     to_hash: null,
                     to_size: 0,
-                };
+                });
             } else if (item.status === 'modified') {
-                const old_blob = (
-                    await readBlob({
+                const [{ blob: old_blob }, { blob: new_blob }] = await Promise.all([
+                    readBlob({
                         fs: fs,
                         dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
                         oid: item.old_oid || base_commit_sha,
                         ...(item.old_oid == undefined && { filepath: item.filepath }),
-                    })
-                ).blob;
-                const new_blob = (
-                    await readBlob({
+                    }),
+                    readBlob({
                         fs: fs,
                         dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
                         oid: item.new_oid || target_commit_sha,
-                        ...(item.old_oid == undefined && { filepath: item.filepath }),
-                    })
-                ).blob;
-
-                return {
+                        ...(item.new_oid == undefined && { filepath: item.filepath }),
+                    }),
+                ]);
+                changes.push({
                     path: item.filepath,
                     from_hash: await hash_buffer(old_blob),
                     from_size: old_blob.byteLength,
                     to_hash: await hash_buffer(new_blob),
                     to_size: new_blob.byteLength,
                     url: target_remote_url + '/' + encodeURI(item.filepath),
-                };
+                });
             } else {
-                throw Error("Encountered an unrecognized git change while build changes from diff: " + item)
+                throw Error('Encountered an unrecognized git change while building changes from diff: ' + item);
             }
-        }),
+
+            pool.complete(worker_id);
+        }
+    });
+
+    await Promise.all(workers);
+    pool.finish(
+        `${CLIColor.FgGreen}✓${CLIColor.Reset} Built ${CLIColor.FgWhite}${changes.length}${CLIColor.Reset} changes — ${CLIColor.FgGreen}${changes.filter((c) => c.from_hash === null).length} added${CLIColor.Reset}, ${CLIColor.FgYellow}${changes.filter((c) => c.from_hash !== null && c.to_hash !== null).length} modified${CLIColor.Reset}, ${CLIColor.FgRed}${changes.filter((c) => c.to_hash === null).length} deleted${CLIColor.Reset}.`,
     );
 
     const version_code = versions.current.code + 1;
@@ -616,7 +710,6 @@ export async function build_version_for_diff(target_commit_sha: string, base_com
         changes: changes,
         component_versions: Object.fromEntries(await collect_mmc_component_versions()),
     };
-    const main_manifest: manifest_json = await Bun.file(PACKAGING.PACKAGE_DIRECTORY + '/manifest.json').json();
     main_manifest.versions.history.push(main_manifest.versions.current);
     main_manifest.versions.current = {
         name: `${tag} (${target_commit_sha.slice(0, 7)})`,
@@ -625,6 +718,7 @@ export async function build_version_for_diff(target_commit_sha: string, base_com
 
     await Bun.file(PACKAGING.PACKAGE_DIRECTORY + `/versions/${version_code}.json`).write(JSON.stringify(version_manifest, null, 4));
     await Bun.file(PACKAGING.PACKAGE_DIRECTORY + '/manifest.json').write(JSON.stringify(main_manifest, null, 4));
+    console.info(`Built & saved manifests for version ${tag}!`)    
 }
 
 interface PackVersion {

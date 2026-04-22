@@ -16,6 +16,7 @@ let config: {
               }>;
               EXCLUDE_FROM_INCLUDE_PATHS: Array<string>;
               EXCLUDE_PATTERNS: Array<string>;
+              MAX_WORKER_THREADS: number
           }
         | undefined;
 } = (await Bun.file('./config.json').exists()) ? await Bun.file('./config.json').json() : undefined;
