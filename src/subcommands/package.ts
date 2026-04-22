@@ -115,6 +115,122 @@ function create_worker_pool(total: number, worker_count: number) {
     return { start, finish, set_status, complete };
 }
 
+//#region general helpers
+async function is_git_available(dir: string): Promise<boolean> {
+    try {
+        const proc = Bun.spawn(['git', 'rev-parse', '--git-dir'], { cwd: dir });
+        return (await proc.exited) === 0;
+    } catch {
+        console.warn('W: For some (weird) reason, git is not availble in this cli context. Falling back to slower approach.');
+        return false;
+    }
+}
+
+async function process_blob(dir: string, oid: string): Promise<{ hash: string | undefined; size: number }> {
+    const [hashProc, sizeProc] = await Promise.all([
+        Bun.spawn(['bash', '-c', `git cat-file blob ${oid} | sha256sum`], { cwd: dir, stdout: 'pipe' }),
+        Bun.spawn(['git', 'cat-file', '-s', oid], { cwd: dir, stdout: 'pipe' }),
+    ]);
+
+    const [hashOut, sizeOut] = await Promise.all([new Response(hashProc.stdout).text(), new Response(sizeProc.stdout).text()]);
+
+    await Promise.all([hashProc.exited, sizeProc.exited]);
+
+    return {
+        hash: hashOut.trim().split(' ')[0],
+        size: parseInt(sizeOut.trim(), 10),
+    };
+}
+
+interface PackVersion {
+    actual_name: string;
+    name: string;
+    code: number;
+    hash: string;
+}
+
+async function read_unsup_versions_from_manifest(): Promise<{ current: PackVersion; history: PackVersion[] }> {
+    if (PACKAGING == undefined) throw Error('Config not yet initialized.');
+
+    const file = Bun.file(PACKAGING.PACKAGE_DIRECTORY + '/manifest.json');
+    if (!(await file.exists())) {
+        throw Error(`Unsup manifest at ${file.name} is missing.`);
+    }
+
+    const manifest_content: manifest_json = await file.json();
+    function get_version_obj_from_entry(entry: { name: string; code: number }): PackVersion | undefined {
+        const match = entry.name.match(/(.+?) \((\w+)\)/);
+        if (match && match.length == 3 && match[1] && match[2]) {
+            return {
+                actual_name: entry.name,
+                code: entry.code,
+                name: match[1],
+                hash: match[2],
+            };
+        } else {
+            throw Error("Unsup manifest has faulty versions - format should be of 'version (short commit sha)', is: " + entry.name);
+        }
+    }
+
+    const current_version = get_version_obj_from_entry(manifest_content.versions.current);
+    const history_versions = manifest_content.versions.history.map(get_version_obj_from_entry);
+
+    [current_version, ...history_versions].forEach((version) => {
+        if (version == undefined) {
+            throw Error("Unsup manifest has faulty versions - format should be of 'version (short commit sha)'");
+        }
+    });
+
+    return {
+        current: current_version as PackVersion,
+        history: history_versions as PackVersion[],
+    };
+}
+
+async function resolve_to_correct_git_ref(initial_ref: string): Promise<string> {
+    if (PACKAGING == undefined) throw Error('Config not yet initialized.');
+
+    try {
+        return await resolveRef({ fs: fs, dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY, ref: initial_ref });
+    } catch {
+        try {
+            return await expandOid({ fs: fs, dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY, oid: initial_ref });
+        } catch {
+            throw Error(`ERR: Failed to resolve git ref ${initial_ref} to a valid git ref.`);
+        }
+    }
+}
+
+async function collect_mmc_component_versions(optional_early_instance_dir: string | undefined = undefined): Promise<Map<string, string>> {
+    if (PACKAGING == undefined && optional_early_instance_dir == undefined) throw Error('Config not yet initialized.');
+
+    const component_versions = new Map();
+    optional_early_instance_dir = optional_early_instance_dir || PACKAGING?.RELATIVE_INSTANCE_DIRECTORY;
+    if (optional_early_instance_dir == undefined) throw Error('Missing rel dir.');
+
+    if (!Bun.file(optional_early_instance_dir + 'mmc-pack.json').exists()) {
+        console.warn(
+            'W: Missing mmc-pack.json at RELATIVE_INSTANCE_DIRECTORY (',
+            optional_early_instance_dir,
+            '), not attaching mmc-component versions.',
+        );
+        return component_versions;
+    }
+
+    const mmc_json = await Bun.file(optional_early_instance_dir + 'mmc-pack.json').json();
+    if (mmc_json && mmc_json.components && Array.isArray(mmc_json.components) && mmc_json.components.length > 0) {
+        for (const component of mmc_json.components) {
+            if (component.uid && (component.version || component.cachedVersion)) {
+                component_versions.set(component.uid, component.version || component.cachedVersion);
+            } else {
+                console.warn('W: Component entry ', component, ' in mmc-pack.json is malformed, not including in manifest.');
+            }
+        }
+    }
+
+    return component_versions;
+}
+
 //#region initialization
 export async function initialize_packaging(overwrite: boolean) {
     if (PACKAGING != undefined && !overwrite) {
@@ -205,7 +321,7 @@ export async function initialize_packaging(overwrite: boolean) {
         ],
         EXCLUDE_FROM_INCLUDE_PATHS: ['../.minecraft/mods/disabled_mods'],
         EXCLUDE_PATTERNS: ['\\.git\\w+$'],
-        MAX_WORKER_THREADS: 10
+        MAX_WORKER_THREADS: 10,
     };
 
     if (await Bun.file(packaging_dir).exists()) {
@@ -298,6 +414,7 @@ export async function build_bootstrap(commit_sha: string, tag: string | undefine
     const packaging_plan = filter_and_plan_files(Object.fromEntries(file_oids.keys().map((key) => [key, { relative_path: key }])));
     const target_remote_url = PACKAGING.REMOTE_MANIFEST_PROJECT.replace(/[^\/]+?$/m, '') + commit_sha;
 
+    const git_available = await is_git_available(PACKAGING.RELATIVE_INSTANCE_DIRECTORY);
     const file_refs: { path: string; hash: string; size: number; url: string }[] = [];
     const WORKER_COUNT = Math.min(PACKAGING.MAX_WORKER_THREADS, 10);
     const pool = create_worker_pool(packaging_plan.length, WORKER_COUNT);
@@ -313,15 +430,26 @@ export async function build_bootstrap(commit_sha: string, tag: string | undefine
             pool.set_status(worker_id, direct_path);
 
             const file_oid = file_oids.get(direct_path);
-            const { blob } =
-                file_oid != undefined
-                    ? await readBlob({ fs, dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY, oid: file_oid })
-                    : await readBlob({ fs, dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY, oid: commit_sha, filepath: direct_path });
+
+            let blob_hash = undefined;
+            let blob_size = 0;
+            if (git_available && file_oid != undefined) {
+                ({ hash: blob_hash, size: blob_size } = await process_blob(PACKAGING.RELATIVE_INSTANCE_DIRECTORY, file_oid));
+            }
+            // Fallback to builtin if that didnt work
+            if (blob_hash == undefined) {
+                const { blob } =
+                    file_oid != undefined
+                        ? await readBlob({ fs, dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY, oid: file_oid })
+                        : await readBlob({ fs, dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY, oid: commit_sha, filepath: direct_path });
+                blob_hash = await hash_buffer(blob);
+                blob_size = blob.byteLength;
+            }
 
             file_refs.push({
                 path: direct_path,
-                hash: await hash_buffer(blob),
-                size: blob.byteLength,
+                hash: blob_hash,
+                size: blob_size,
                 url: target_remote_url + '/' + encodeURI(direct_path),
             });
 
@@ -472,36 +600,6 @@ function filter_and_plan_files<T>(files: Record<string, T>): Array<T> {
     }
 
     return filtered_files;
-}
-
-async function collect_mmc_component_versions(optional_early_instance_dir: string | undefined = undefined): Promise<Map<string, string>> {
-    if (PACKAGING == undefined && optional_early_instance_dir == undefined) throw Error('Config not yet initialized.');
-
-    const component_versions = new Map();
-    optional_early_instance_dir = optional_early_instance_dir || PACKAGING?.RELATIVE_INSTANCE_DIRECTORY;
-    if (optional_early_instance_dir == undefined) throw Error('Missing rel dir.');
-
-    if (!Bun.file(optional_early_instance_dir + 'mmc-pack.json').exists()) {
-        console.warn(
-            'W: Missing mmc-pack.json at RELATIVE_INSTANCE_DIRECTORY (',
-            optional_early_instance_dir,
-            '), not attaching mmc-component versions.',
-        );
-        return component_versions;
-    }
-
-    const mmc_json = await Bun.file(optional_early_instance_dir + 'mmc-pack.json').json();
-    if (mmc_json && mmc_json.components && Array.isArray(mmc_json.components) && mmc_json.components.length > 0) {
-        for (const component of mmc_json.components) {
-            if (component.uid && (component.version || component.cachedVersion)) {
-                component_versions.set(component.uid, component.version || component.cachedVersion);
-            } else {
-                console.warn('W: Component entry ', component, ' in mmc-pack.json is malformed, not including in manifest.');
-            }
-        }
-    }
-
-    return component_versions;
 }
 
 //#region bundling
@@ -718,64 +816,5 @@ export async function build_version_for_diff(target_commit_sha: string, base_com
 
     await Bun.file(PACKAGING.PACKAGE_DIRECTORY + `/versions/${version_code}.json`).write(JSON.stringify(version_manifest, null, 4));
     await Bun.file(PACKAGING.PACKAGE_DIRECTORY + '/manifest.json').write(JSON.stringify(main_manifest, null, 4));
-    console.info(`Built & saved manifests for version ${tag}!`)    
-}
-
-interface PackVersion {
-    actual_name: string;
-    name: string;
-    code: number;
-    hash: string;
-}
-
-async function read_unsup_versions_from_manifest(): Promise<{ current: PackVersion; history: PackVersion[] }> {
-    if (PACKAGING == undefined) throw Error('Config not yet initialized.');
-
-    const file = Bun.file(PACKAGING.PACKAGE_DIRECTORY + '/manifest.json');
-    if (!(await file.exists())) {
-        throw Error(`Unsup manifest at ${file.name} is missing.`);
-    }
-
-    const manifest_content: manifest_json = await file.json();
-    function get_version_obj_from_entry(entry: { name: string; code: number }): PackVersion | undefined {
-        const match = entry.name.match(/(.+?) \((\w+)\)/);
-        if (match && match.length == 3 && match[1] && match[2]) {
-            return {
-                actual_name: entry.name,
-                code: entry.code,
-                name: match[1],
-                hash: match[2],
-            };
-        } else {
-            throw Error("Unsup manifest has faulty versions - format should be of 'version (short commit sha)', is: " + entry.name);
-        }
-    }
-
-    const current_version = get_version_obj_from_entry(manifest_content.versions.current);
-    const history_versions = manifest_content.versions.history.map(get_version_obj_from_entry);
-
-    [current_version, ...history_versions].forEach((version) => {
-        if (version == undefined) {
-            throw Error("Unsup manifest has faulty versions - format should be of 'version (short commit sha)'");
-        }
-    });
-
-    return {
-        current: current_version as PackVersion,
-        history: history_versions as PackVersion[],
-    };
-}
-
-async function resolve_to_correct_git_ref(initial_ref: string): Promise<string> {
-    if (PACKAGING == undefined) throw Error('Config not yet initialized.');
-
-    try {
-        return await resolveRef({ fs: fs, dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY, ref: initial_ref });
-    } catch {
-        try {
-            return await expandOid({ fs: fs, dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY, oid: initial_ref });
-        } catch {
-            throw Error(`ERR: Failed to resolve git ref ${initial_ref} to a valid git ref.`);
-        }
-    }
+    console.info(`Built & saved manifests for version ${tag}!`);
 }
