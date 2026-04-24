@@ -294,7 +294,7 @@ const commands: Record<string, CommandDefinition> = {
                 console.log(commands['package_init']?.usage);
                 return;
             }
-            await initialize_packaging(args.includes("--overwrite"));
+            await initialize_packaging(args.includes("--overwrite"), args.includes("--skip_prompts"));
             return;
         },
     },
@@ -347,7 +347,7 @@ const commands: Record<string, CommandDefinition> = {
             const base_ref = positional[0];
             const target_ref = positional[1] ?? 'HEAD';
 
-            await build_version_for_diff(target_ref, base_ref, tag);
+            await build_version_for_diff(target_ref, base_ref, tag, args.includes("--overwrite"));
 
             return;
         },
