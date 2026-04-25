@@ -5,6 +5,7 @@ import {
     CONFIG_FILE,
     MOD_BASE_DIR,
     PACKAGING,
+    RELATIVE_INSTANCE_DIRECTORY,
     read_intermediate_config,
     set_config_keys,
     type PackagingConfig,
@@ -150,7 +151,7 @@ async function fast_process_blob(dir: string, oid: string): Promise<{ hash: stri
         Bun.spawn(['git', 'cat-file', '-s', oid], { cwd: dir, stdout: 'pipe', stderr: 'pipe' }),
     ]);
 
-    const [hashOut, sizeOut, hashErr, sizeErr] = await Promise.all([
+    const [hashOut, sizeOut, _hashErr, _sizeErr] = await Promise.all([
         new Response(hashProc.stdout).text(),
         new Response(sizeProc.stdout).text(),
         new Response(hashProc.stderr).text(),
@@ -251,10 +252,10 @@ async function resolve_to_correct_git_ref(initial_ref: string): Promise<string> 
     if (PACKAGING == undefined) throw Error('Config not yet initialized.');
 
     try {
-        return await resolveRef({ fs: fs, dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY, ref: initial_ref });
+        return await resolveRef({ fs: fs, dir: RELATIVE_INSTANCE_DIRECTORY, ref: initial_ref });
     } catch {
         try {
-            return await expandOid({ fs: fs, dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY, oid: initial_ref });
+            return await expandOid({ fs: fs, dir: RELATIVE_INSTANCE_DIRECTORY, oid: initial_ref });
         } catch {
             throw Error(`ERR: Failed to resolve git ref ${initial_ref} to a valid git ref.`);
         }
@@ -262,22 +263,19 @@ async function resolve_to_correct_git_ref(initial_ref: string): Promise<string> 
 }
 
 async function collect_mmc_component_versions(optional_early_instance_dir: string | undefined = undefined): Promise<Map<string, string>> {
-    if (PACKAGING == undefined && optional_early_instance_dir == undefined) throw Error('Config not yet initialized.');
-
     const component_versions = new Map();
-    optional_early_instance_dir = optional_early_instance_dir || PACKAGING?.RELATIVE_INSTANCE_DIRECTORY;
-    if (optional_early_instance_dir == undefined) throw Error('Missing rel dir.');
+    const instance_dir = optional_early_instance_dir ?? RELATIVE_INSTANCE_DIRECTORY;
 
-    if (!Bun.file(optional_early_instance_dir + 'mmc-pack.json').exists()) {
+    if (!Bun.file(instance_dir + 'mmc-pack.json').exists()) {
         console.warn(
             'W: Missing mmc-pack.json at RELATIVE_INSTANCE_DIRECTORY (',
-            optional_early_instance_dir,
+            instance_dir,
             '), not attaching mmc-component versions.',
         );
         return component_versions;
     }
 
-    const mmc_json = await Bun.file(optional_early_instance_dir + 'mmc-pack.json').json();
+    const mmc_json = await Bun.file(instance_dir + 'mmc-pack.json').json();
     if (mmc_json && mmc_json.components && Array.isArray(mmc_json.components) && mmc_json.components.length > 0) {
         for (const component of mmc_json.components) {
             if (component.uid && (component.version || component.cachedVersion)) {
@@ -308,22 +306,22 @@ async function filter_and_plan_files<T>(
     const combined_filters: Array<{ filter_path: string; include_as: string | undefined }> = [
         ...packaging_config.TRACK_INCLUDE_PATHS.map((relative_path) => {
             return {
-                filter_path: relative_path.replace(new RegExp(`^${PACKAGING?.RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
+                filter_path: relative_path.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
                 include_as: undefined,
             };
         }),
         ...packaging_config.FORCE_INCLUDE_PATHS.map((include_filter) => {
             return {
-                filter_path: include_filter.relative_path.replace(new RegExp(`^${PACKAGING?.RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
+                filter_path: include_filter.relative_path.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
                 include_as: include_filter.include_as,
             };
         }),
     ];
     const exclude_filters = packaging_config.EXCLUDE_FROM_INCLUDE_PATHS.map((relative_path) =>
-        relative_path.replace(new RegExp(`^${PACKAGING?.RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
+        relative_path.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
     );
     const exclude_patterns = packaging_config.EXCLUDE_PATTERNS.map((pattern) => RegExp(pattern, 'm'));
-    const non_relative_mod_dir = MOD_BASE_DIR.replace(new RegExp(`^${PACKAGING?.RELATIVE_INSTANCE_DIRECTORY}`, 'm'), '');
+    const non_relative_mod_dir = MOD_BASE_DIR.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, 'm'), '');
 
     file_iter: for (const [file_path, carryon_obj] of Object.entries(files)) {
         // Need to do this before we check if the jar is tracked below
@@ -338,9 +336,9 @@ async function filter_and_plan_files<T>(
             if (file_path.startsWith(path_filter.filter_path)) {
                 if (path_filter.filter_path === non_relative_mod_dir && file_path.endsWith('.jar')) {
                     // Need to relativize this here because thats how our mod jars are stored
-                    let mod_file_path = file_path.startsWith(PACKAGING.RELATIVE_INSTANCE_DIRECTORY)
+                    let mod_file_path = file_path.startsWith(RELATIVE_INSTANCE_DIRECTORY)
                         ? file_path
-                        : PACKAGING.RELATIVE_INSTANCE_DIRECTORY + file_path;
+                        : RELATIVE_INSTANCE_DIRECTORY + file_path;
                     const mod_obj = mod_map.values().find((mod_obj) => mod_obj.file_path === mod_file_path);
                     if (mod_obj == undefined) {
                         console.warn(
@@ -412,17 +410,6 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
         const answers = await inquirer.prompt([
             {
                 type: 'input',
-                name: 'RELATIVE_INSTANCE_DIRECTORY',
-                message:
-                    'Optionally change the path to your top level instance directory (relative to where you execute packscripts from) (should contain your instance.cfg and .git dir):',
-                default: '.',
-                validate: (input: string) => {
-                    if (!input.trim()) return 'ERR: Relative instance directory cannot be empty.';
-                    return true;
-                },
-            },
-            {
-                type: 'input',
                 name: 'PACKAGE_DIRECTORY',
                 message: 'Enter the directory where your packaging setup should be initialized (will be created if not present):',
                 default: 'packaging',
@@ -453,14 +440,12 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
             },
         ]);
 
-        const relative_instance_directory = answers.RELATIVE_INSTANCE_DIRECTORY.replace(/\/$/m, '') + '/';
-        const packaging_dir = relative_instance_directory + answers.PACKAGE_DIRECTORY.replace(/\/$/m, '') + '/';
+        const packaging_dir = RELATIVE_INSTANCE_DIRECTORY + answers.PACKAGE_DIRECTORY.replace(/\/$/m, '') + '/';
         // This already has a relative parent
         const mc_dir = MOD_BASE_DIR.replace(/(?:\/)mods$/m, '') + '/';
         const packaging_config: PackagingConfig = {
             PACK_NAME: answers.PACK_NAME,
             PACKAGE_DIRECTORY: packaging_dir,
-            RELATIVE_INSTANCE_DIRECTORY: relative_instance_directory,
             REMOTE_MANIFEST_PROJECT: answers.REMOTE_MANIFEST_PROJECT.replace(/\/$/m, ''),
             PACK_VARIANTS: {
                 client: {
@@ -472,10 +457,10 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
                         { relative_path: packaging_dir + 'unsup.jar', include_as: 'minecraft/unsup.jar' },
                         { relative_path: packaging_dir + 'client/unsup.ini', include_as: 'minecraft/unsup.ini' },
                         { relative_path: packaging_dir + 'client/instance.cfg', include_as: 'instance.cfg' },
-                        { relative_path: relative_instance_directory + 'libraries', include_as: 'libraries' },
-                        { relative_path: relative_instance_directory + 'patches', include_as: 'patches' },
-                        { relative_path: relative_instance_directory + 'mmc-pack.json', include_as: 'mmc-pack.json' },
-                        { relative_path: relative_instance_directory + 'icon.png', include_as: 'icon.png' },
+                        { relative_path: RELATIVE_INSTANCE_DIRECTORY + 'libraries', include_as: 'libraries' },
+                        { relative_path: RELATIVE_INSTANCE_DIRECTORY + 'patches', include_as: 'patches' },
+                        { relative_path: RELATIVE_INSTANCE_DIRECTORY + 'mmc-pack.json', include_as: 'mmc-pack.json' },
+                        { relative_path: RELATIVE_INSTANCE_DIRECTORY + 'icon.png', include_as: 'icon.png' },
                     ],
                     EXCLUDE_FROM_INCLUDE_PATHS: [mc_dir + 'mods/disabled_mods'],
                     EXCLUDE_PATTERNS: ['\\.git\\w+$'],
@@ -542,7 +527,7 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
             intermediate_config.PACKAGING.REMOTE_MANIFEST_PROJECT +
             '/' +
             intermediate_config.PACKAGING.PACKAGE_DIRECTORY.replace(/\/$/m, '').replace(
-                new RegExp(`^${intermediate_config.PACKAGING.RELATIVE_INSTANCE_DIRECTORY}`, 'm'),
+                new RegExp(`^${intermediate_config.RELATIVE_INSTANCE_DIRECTORY}`, 'm'),
                 '',
             );
 
@@ -607,7 +592,7 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
     const file_oids: Map<string, string> = new Map();
     await walk({
         fs: fs,
-        dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
+        dir: RELATIVE_INSTANCE_DIRECTORY,
         trees: [TREE({ ref: commit_sha })],
         map: async (filepath, [entry]) => {
             if (!entry) return null;
@@ -619,7 +604,7 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
     });
 
     console.info('Building bootstrap for git ref ', commit_sha, ' from ', file_oids.size, ' git objects...');
-    const git_available = await is_git_available(PACKAGING.RELATIVE_INSTANCE_DIRECTORY);
+    const git_available = await is_git_available(RELATIVE_INSTANCE_DIRECTORY);
     const target_remote_url = PACKAGING.REMOTE_MANIFEST_PROJECT.replace(/[^\/]+?$/m, '') + commit_sha;
     const WORKER_COUNT = Math.min(PACKAGING.MAX_WORKER_THREADS, 10);
 
@@ -648,7 +633,7 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
                 const { hash, size } = await get_blob_info(
                     git_available,
                     file_oid,
-                    PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
+                    RELATIVE_INSTANCE_DIRECTORY,
                     commit_sha,
                     plan_item[0].path,
                 );
@@ -793,7 +778,7 @@ export async function bundle_pack_into_starter() {
             }
         }
 
-        const zip_name = `${PACKAGING.RELATIVE_INSTANCE_DIRECTORY}starter-${variant_name}.zip`;
+        const zip_name = `${RELATIVE_INSTANCE_DIRECTORY}starter-${variant_name}.zip`;
         console.info(`Writing ${files.length} files to zip (${zip_name}) for pack variant '${variant_name}'...`);
         await bundle_files_to_zip(files, zip_name);
     }
@@ -812,7 +797,7 @@ export async function build_version_for_diff(
     }
 
     target_commit_sha = await resolve_to_correct_git_ref(target_commit_sha);
-    const git_available = await is_git_available(PACKAGING.RELATIVE_INSTANCE_DIRECTORY);
+    const git_available = await is_git_available(RELATIVE_INSTANCE_DIRECTORY);
     const WORKER_COUNT = Math.min(PACKAGING.MAX_WORKER_THREADS, 4);
 
     for (const [variant_name, pack_variant] of Object.entries(PACKAGING.PACK_VARIANTS)) {
@@ -853,7 +838,7 @@ export async function build_version_for_diff(
             new_oid: string | undefined;
         }[] = await walk({
             fs: fs,
-            dir: PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
+            dir: RELATIVE_INSTANCE_DIRECTORY,
             trees: [TREE({ ref: base_commit_sha }), TREE({ ref: target_commit_sha })],
             map: async (filepath, [a, b]) => {
                 if (filepath === '.') return;
@@ -906,7 +891,7 @@ export async function build_version_for_diff(
                     const { hash, size } = await get_blob_info(
                         git_available,
                         diff_item.new_oid,
-                        PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
+                        RELATIVE_INSTANCE_DIRECTORY,
                         target_commit_sha,
                         file_path,
                     );
@@ -923,7 +908,7 @@ export async function build_version_for_diff(
                     const { hash, size } = await get_blob_info(
                         git_available,
                         diff_item.old_oid,
-                        PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
+                        RELATIVE_INSTANCE_DIRECTORY,
                         base_commit_sha,
                         file_path,
                     );
@@ -937,8 +922,8 @@ export async function build_version_for_diff(
                     });
                 } else if (diff_item.status === 'modified') {
                     const [old_blob, new_blob] = await Promise.all([
-                        get_blob_info(git_available, diff_item.old_oid, PACKAGING.RELATIVE_INSTANCE_DIRECTORY, base_commit_sha, file_path),
-                        get_blob_info(git_available, diff_item.new_oid, PACKAGING.RELATIVE_INSTANCE_DIRECTORY, target_commit_sha, file_path),
+                        get_blob_info(git_available, diff_item.old_oid, RELATIVE_INSTANCE_DIRECTORY, base_commit_sha, file_path),
+                        get_blob_info(git_available, diff_item.new_oid, RELATIVE_INSTANCE_DIRECTORY, target_commit_sha, file_path),
                     ]);
 
                     changes.push({

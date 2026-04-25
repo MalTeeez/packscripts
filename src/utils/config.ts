@@ -1,10 +1,30 @@
-export const CONFIG_FILE = './packscripts.json';
-export const ENV_FILE = './.env.json';
+import path from 'node:path';
+import { existsSync } from 'node:fs';
+
+export const CONFIG_FILE = 'packscripts.json';
+export const ENV_FILE = '.packscripts.env.json';
+
+// Walk up the directory tree from CWD to find the config file, then chdir to
+// that directory so all relative paths in the config resolve correctly regardless
+// of whether packscripts is invoked from inside the submodule or from the root.
+function find_and_chdir_to_config(filename: string): void {
+    let dir = process.cwd();
+    while (true) {
+        if (existsSync(path.join(dir, filename))) {
+            process.chdir(dir);
+            return;
+        }
+        const parent = path.dirname(dir);
+        if (parent === dir) return; // probably filesystem root — no config found, stay in CWD
+        dir = parent;
+    }
+}
+// Immediately execute, so anything that uses it has the correct cwd
+find_and_chdir_to_config(CONFIG_FILE);
 
 export interface PackagingConfig {
     PACK_NAME: string;
     PACKAGE_DIRECTORY: string;
-    RELATIVE_INSTANCE_DIRECTORY: string;
     REMOTE_MANIFEST_PROJECT: string;
     PACK_VARIANTS: {
         [key: string]: PackPackagingVariant;
@@ -30,16 +50,20 @@ interface config {
     DOWNLOAD_TEMP_DIR: string;
     DOWNLOAD_UNDO_DIR: string;
     ANNOTATED_FILE: string;
+    RELATIVE_INSTANCE_DIRECTORY: string;
     PACKAGING: PackagingConfig | undefined;
 }
 
-let config: config = (await Bun.file(CONFIG_FILE).exists()) ? await Bun.file(CONFIG_FILE).json() : undefined;
+if (!await (Bun.file(CONFIG_FILE).exists())) throw Error("Missing config file. Make sure to first initialize your pack with 'packscripts init'.");
+
+let config: config = await Bun.file(CONFIG_FILE).json();
 let secrets = (await Bun.file(ENV_FILE).exists()) ? await Bun.file(ENV_FILE).json() : undefined;
 
-export const MOD_BASE_DIR: string = config?.MOD_BASE_DIR?.replace(/\/$/m, '') || './minecraft/mods';
-export const DOWNLOAD_TEMP_DIR: string = config?.DOWNLOAD_TEMP_DIR?.replace(/\/$/m, '') || './tmp/downloads';
-export const DOWNLOAD_UNDO_DIR: string = config?.DOWNLOAD_UNDO_DIR?.replace(/\/$/m, '') || './tmp/updateundo';
-export const ANNOTATED_FILE: string = config?.ANNOTATED_FILE?.replace(/\/$/m, '') || './annotated_mods.json';
+export const MOD_BASE_DIR: string = config?.MOD_BASE_DIR?.replace(/\/$/m, '');
+export const DOWNLOAD_TEMP_DIR: string = config?.DOWNLOAD_TEMP_DIR?.replace(/\/$/m, '');
+export const DOWNLOAD_UNDO_DIR: string = config?.DOWNLOAD_UNDO_DIR?.replace(/\/$/m, '');
+export const ANNOTATED_FILE: string = config?.ANNOTATED_FILE?.replace(/\/$/m, '');
+export const RELATIVE_INSTANCE_DIRECTORY: string = (config?.RELATIVE_INSTANCE_DIRECTORY?.replace(/\/?$/m, '') ?? '.') + '/';
 export const PACKAGING = config?.PACKAGING;
 export const GITHUB_API_KEY: string | undefined = secrets?.GITHUB_API_KEY || undefined;
 
