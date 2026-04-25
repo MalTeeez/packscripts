@@ -293,43 +293,58 @@ async function collect_mmc_component_versions(optional_early_instance_dir: strin
 
 /**
  * This function filters an array (in form of a record) by paths (its keys)
- * @param files A record, where the key if the path.
+ * @param files A record, where the key is the non-relative path (the git filepath).
  * @returns The value of the record will be returned in a list if it passes the filter.
  */
-async function filter_and_plan_files<T>(files: Record<string, T>, packaging_config: PackPackagingVariant): Promise<Array<T>> {
+async function filter_and_plan_files<T>(
+    files: Record<string, T>,
+    packaging_config: PackPackagingVariant,
+): Promise<Array<[{ path: string; include_as: string }, T]>> {
     if (PACKAGING == undefined) throw Error('Config not yet initialized.');
 
-    const mod_dir_is_relative = MOD_BASE_DIR.startsWith(PACKAGING.RELATIVE_INSTANCE_DIRECTORY);
-    const exclude_patterns = packaging_config.EXCLUDE_PATTERNS.map((pattern) => RegExp(pattern, 'm'));
-    const filtered_files: Array<T> = [];
+    const filtered_files: Array<[{ path: string; include_as: string }, T]> = [];
     const mod_map = await read_saved_mods(ANNOTATED_FILE);
+    // Combine both filters into one, not relative, list of filters that includes what they should be included as
+    const combined_filters: Array<{ filter_path: string; include_as: string | undefined }> = [
+        ...packaging_config.TRACK_INCLUDE_PATHS.map((relative_path) => {
+            return {
+                filter_path: relative_path.replace(new RegExp(`^${PACKAGING?.RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
+                include_as: undefined,
+            };
+        }),
+        ...packaging_config.FORCE_INCLUDE_PATHS.map((include_filter) => {
+            return {
+                filter_path: include_filter.relative_path.replace(new RegExp(`^${PACKAGING?.RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
+                include_as: include_filter.include_as,
+            };
+        }),
+    ];
+    const exclude_filters = packaging_config.EXCLUDE_FROM_INCLUDE_PATHS.map((relative_path) =>
+        relative_path.replace(new RegExp(`^${PACKAGING?.RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
+    );
+    const exclude_patterns = packaging_config.EXCLUDE_PATTERNS.map((pattern) => RegExp(pattern, 'm'));
+    const non_relative_mod_dir = MOD_BASE_DIR.replace(new RegExp(`^${PACKAGING?.RELATIVE_INSTANCE_DIRECTORY}`, 'm'), '');
 
-    file_iter: for (const [file, obj] of Object.entries(files)) {
-        let relative_path;
-        if (!file.startsWith(PACKAGING.RELATIVE_INSTANCE_DIRECTORY) && mod_dir_is_relative) {
-            relative_path = PACKAGING.RELATIVE_INSTANCE_DIRECTORY + file;
-        } else {
-            relative_path = file;
-        }
-
+    file_iter: for (const [file_path, carryon_obj] of Object.entries(files)) {
         // Need to do this before we check if the jar is tracked below
-        for (const filter of packaging_config.EXCLUDE_FROM_INCLUDE_PATHS) {
-            if (relative_path.startsWith(filter)) {
+        for (const filter of exclude_filters) {
+            if (file_path.startsWith(filter)) {
                 continue file_iter;
             }
         }
 
-        let include_obj: T | undefined = undefined;
-        path_filter_iter: for (const path_filter of [
-            ...packaging_config.TRACK_INCLUDE_PATHS,
-            ...packaging_config.FORCE_INCLUDE_PATHS.map((item) => item.relative_path),
-        ]) {
-            if (relative_path.startsWith(path_filter)) {
-                if (path_filter === MOD_BASE_DIR) {
-                    const mod_obj = mod_map.values().find((mod_obj) => mod_obj.file_path === relative_path);
+        let include_obj: [{ path: string; include_as: string }, T] | undefined = undefined;
+        path_filter_iter: for (const path_filter of combined_filters) {
+            if (file_path.startsWith(path_filter.filter_path)) {
+                if (path_filter.filter_path === non_relative_mod_dir && file_path.endsWith('.jar')) {
+                    // Need to relativize this here because thats how our mod jars are stored
+                    let mod_file_path = file_path.startsWith(PACKAGING.RELATIVE_INSTANCE_DIRECTORY)
+                        ? file_path
+                        : PACKAGING.RELATIVE_INSTANCE_DIRECTORY + file_path;
+                    const mod_obj = mod_map.values().find((mod_obj) => mod_obj.file_path === mod_file_path);
                     if (mod_obj == undefined) {
                         console.warn(
-                            `W: Mod jar ${relative_path} is in mods folder, but does not seem to be tracked by packscripts. Including by default via tags.`,
+                            `W: Mod jar ${file_path} is in mods folder, but does not seem to be tracked by packscripts. Including by default via tags.`,
                         );
                     } else if (mod_obj.tags != undefined && mod_obj.tags.length > 0) {
                         for (const exclude_tags of packaging_config.EXCLUDED_MOD_TAGS) {
@@ -355,14 +370,23 @@ async function filter_and_plan_files<T>(files: Record<string, T>, packaging_conf
                     }
                 }
 
-                include_obj = obj;
+                include_obj = [
+                    {
+                        path: file_path,
+                        include_as:
+                            path_filter.include_as != undefined
+                                ? file_path.replace(new RegExp(`^${path_filter.filter_path}`, 'm'), path_filter.include_as)
+                                : file_path,
+                    },
+                    carryon_obj,
+                ];
                 break;
             }
         }
 
         if (include_obj != undefined) {
             for (const pattern of exclude_patterns) {
-                if (relative_path.match(pattern) != null) {
+                if (file_path.match(pattern) != null) {
                     include_obj = undefined;
                     break;
                 }
@@ -605,10 +629,7 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
         // Don't mutate this across loops
         let tag = input_tag;
 
-        const packaging_plan = await filter_and_plan_files(
-            Object.fromEntries(file_oids.keys().map((key) => [key, { relative_path: key }])),
-            pack_variant,
-        );
+        const packaging_plan = await filter_and_plan_files(Object.fromEntries(file_oids.keys().map((path) => [path, null])), pack_variant);
         const file_refs: { path: string; hash: string; size: number; url: string }[] = [];
 
         console.info('Collecting git blobs...');
@@ -621,23 +642,22 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
                 const plan_item = queue.shift()!;
                 if (PACKAGING == undefined) throw Error('Config was initialized but is not available off-thread? Something is wrong.');
 
-                const direct_path = plan_item.relative_path.replace(PACKAGING.RELATIVE_INSTANCE_DIRECTORY, '');
-                pool.set_status(worker_id, direct_path);
+                pool.set_status(worker_id, plan_item[0].path);
 
-                const file_oid = file_oids.get(direct_path);
+                const file_oid = file_oids.get(plan_item[0].path);
                 const { hash, size } = await get_blob_info(
                     git_available,
                     file_oid,
                     PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
                     commit_sha,
-                    direct_path,
+                    plan_item[0].path,
                 );
 
                 file_refs.push({
-                    path: direct_path,
+                    path: plan_item[0].include_as,
                     hash,
                     size,
-                    url: target_remote_url + '/' + encodeURI(direct_path),
+                    url: target_remote_url + '/' + encodeURI(plan_item[0].path),
                 });
 
                 pool.complete(worker_id);
@@ -780,7 +800,7 @@ export async function bundle_pack_into_starter() {
 }
 
 //#region building
-export async function build_version_for_diff (
+export async function build_version_for_diff(
     target_commit_sha: string,
     input_base_commit_sha: string | undefined,
     tag: string | undefined,
@@ -856,7 +876,7 @@ export async function build_version_for_diff (
         });
 
         // Filter by filepaths
-        const filtered_diffs = await filter_and_plan_files(Object.fromEntries(diffs.map((item) => [item.filepath, item])), pack_variant);
+        const filtered_diffs = await filter_and_plan_files(Object.fromEntries(diffs.map((diff_item) => [diff_item.filepath, diff_item])), pack_variant);
 
         console.info(`Building list of changes from ${filtered_diffs.length} diffs...`);
         // Remove branch / git ref from remote url and use the target ref
@@ -877,60 +897,60 @@ export async function build_version_for_diff (
         const queue = [...filtered_diffs];
         const workers = Array.from({ length: WORKER_COUNT }, async (_, worker_id) => {
             while (queue.length > 0) {
-                const item = queue.shift()!;
+                const [{path: file_path, include_as: include_path}, diff_item] = queue.shift()!;
                 if (PACKAGING == undefined) throw Error('Config was initialized but is not available off-thread? Something is wrong.');
+                
+                pool.set_status(worker_id, `${diff_item.status} ${file_path}`);
 
-                pool.set_status(worker_id, `${item.status} ${item.filepath}`);
-
-                if (item.status === 'added') {
+                if (diff_item.status === 'added') {
                     const { hash, size } = await get_blob_info(
                         git_available,
-                        item.new_oid,
+                        diff_item.new_oid,
                         PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
                         target_commit_sha,
-                        item.filepath,
+                        file_path,
                     );
 
                     changes.push({
-                        path: item.filepath,
+                        path: include_path,
                         from_hash: null,
                         from_size: 0,
                         to_hash: hash,
                         to_size: size,
-                        url: target_remote_url + '/' + encodeURI(item.filepath),
+                        url: target_remote_url + '/' + encodeURI(file_path),
                     });
-                } else if (item.status === 'deleted') {
+                } else if (diff_item.status === 'deleted') {
                     const { hash, size } = await get_blob_info(
                         git_available,
-                        item.old_oid,
+                        diff_item.old_oid,
                         PACKAGING.RELATIVE_INSTANCE_DIRECTORY,
                         base_commit_sha,
-                        item.filepath,
+                        file_path,
                     );
 
                     changes.push({
-                        path: item.filepath,
+                        path: file_path,
                         from_hash: hash,
                         from_size: size,
                         to_hash: null,
                         to_size: 0,
                     });
-                } else if (item.status === 'modified') {
+                } else if (diff_item.status === 'modified') {
                     const [old_blob, new_blob] = await Promise.all([
-                        get_blob_info(git_available, item.old_oid, PACKAGING.RELATIVE_INSTANCE_DIRECTORY, base_commit_sha, item.filepath),
-                        get_blob_info(git_available, item.new_oid, PACKAGING.RELATIVE_INSTANCE_DIRECTORY, target_commit_sha, item.filepath),
+                        get_blob_info(git_available, diff_item.old_oid, PACKAGING.RELATIVE_INSTANCE_DIRECTORY, base_commit_sha, file_path),
+                        get_blob_info(git_available, diff_item.new_oid, PACKAGING.RELATIVE_INSTANCE_DIRECTORY, target_commit_sha, file_path),
                     ]);
 
                     changes.push({
-                        path: item.filepath,
+                        path: include_path,
                         from_hash: old_blob.hash,
                         from_size: old_blob.size,
                         to_hash: new_blob.hash,
                         to_size: new_blob.size,
-                        url: target_remote_url + '/' + encodeURI(item.filepath),
+                        url: target_remote_url + '/' + encodeURI(file_path),
                     });
                 } else {
-                    throw Error('Encountered an unrecognized git change while building changes from diff: ' + item);
+                    throw Error('Encountered an unrecognized git change while building changes from diff: ' + diff_item);
                 }
 
                 pool.complete(worker_id);
