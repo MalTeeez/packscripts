@@ -2,6 +2,7 @@ import inquirer from 'inquirer';
 import fs from 'fs';
 import path from 'path';
 import { CLIColor } from '../utils/utils';
+import { CONFIG_FILE } from '../utils/config';
 
 export async function initHandler(): Promise<void> {
     const answers = await inquirer.prompt([
@@ -32,7 +33,7 @@ export async function initHandler(): Promise<void> {
     };
 
     // Write config.json
-    await Bun.write('./config.json', JSON.stringify(config, null, 2));
+    await Bun.write(CONFIG_FILE, JSON.stringify(config, null, 2));
     console.log(`${CLIColor.FgGreen4}✔${CLIColor.Reset} config.json written.`);
 
     // Create empty annotated mods file if it doesn't exist

@@ -265,7 +265,7 @@ const commands: Record<string, CommandDefinition> = {
     },
     package: {
         description: 'Package your modpack into prism zips & provide them with updates via unsup',
-        usage: 'version <init|build|bundle>',
+        usage: 'version <init|build|bundle|bootstrap>',
         handler: async (args) => {
             const mode = args[0]?.toLowerCase();
             const cmdArgs = args.slice(1);
@@ -287,7 +287,7 @@ const commands: Record<string, CommandDefinition> = {
     },
     package_init: {
         description: 'Setup packaging for a modpack via config settings and a few starter files.',
-        usage: 'package init [--overwrite]',
+        usage: 'package init [--overwrite] [--skip_prompts]',
         is_subcommand: true,
         handler: async (args) => {
             if (args.includes('--help') || args.includes('-h')) {
@@ -325,7 +325,7 @@ const commands: Record<string, CommandDefinition> = {
     },
     package_build: {
         description: 'Build the changes since a specified commit (assumes the latest version if none is provided) and the provided target git ref (or HEAD if none is provided) into a version manifest that will propagate the update. Accepts a version in the form of -t <version>.',
-        usage: 'package build <base git ref> <target git ref> [-t tag]',
+        usage: 'package build <base git ref> <target git ref> [-t tag] [--overwrite]',
         is_subcommand: true,
         handler: async (args) => {
             if (args.includes('--help') || args.includes('-h')) {

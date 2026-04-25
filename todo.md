@@ -5,7 +5,8 @@
 - Add functionality to just provide download url, to append a new mod to map (download to temp, extract id, move to mods/)
 
 ## doing
-
+- try using config from parent dir with link
+- allow overriding the remote url, with one that also fills from env variables
 - write simple launch scripts and test w. unsup
 - try including java
 - use download urls when they seem correct
