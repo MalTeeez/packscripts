@@ -54,9 +54,12 @@ interface config {
     PACKAGING: PackagingConfig | undefined;
 }
 
-if (!await (Bun.file(CONFIG_FILE).exists())) throw Error("Missing config file. Make sure to first initialize your pack with 'packscripts init'.");
+const _config_file_exists = await Bun.file(CONFIG_FILE).exists();
+let config: config = _config_file_exists ? await Bun.file(CONFIG_FILE).json() : {} as config;
 
-let config: config = await Bun.file(CONFIG_FILE).json();
+export function assert_config_exists(): void {
+    if (!_config_file_exists) throw Error("Missing config file. Make sure to first initialize your pack with 'packscripts init'.");
+}
 let secrets = (await Bun.file(ENV_FILE).exists()) ? await Bun.file(ENV_FILE).json() : undefined;
 
 export const MOD_BASE_DIR: string = config?.MOD_BASE_DIR?.replace(/\/$/m, '');

@@ -9,7 +9,6 @@ import {
     are_all_mods_unlocked,
     filter_for_faulty_dependencies,
 } from './utils/mods';
-import { MOD_BASE_DIR } from './utils/config';
 import { annotate } from './subcommands/annotate';
 import { disable_atomic_deep, enable_atomic_deep, list_mods, list_mods_folder, list_mods_wide, toggle_mod } from './subcommands/simple';
 import { visualize_graph } from './subcommands/graph';
@@ -17,6 +16,7 @@ import { check_all_mods_for_updates, undo_last_update } from './subcommands/upda
 import { list_all_versions_for_mod, restore_to_asset_versions, switch_version_of_mod } from './subcommands/version';
 import { initHandler } from './subcommands/init';
 import { build_bootstrap, build_version_for_diff, bundle_pack_into_starter, initialize_packaging } from './subcommands/package';
+import { assert_config_exists } from './utils/config';
 
 //#region Command Framework
 interface CommandDefinition {
@@ -372,7 +372,7 @@ const commands: Record<string, CommandDefinition> = {
         handler: async (args) => {
             console.log(
                 filter_for_faulty_dependencies(
-                    (await get_details_from_mainclass(MOD_BASE_DIR + '/' + args[0])).main_deps,
+                    (await get_details_from_mainclass('./.minecraft/mods/' + args[0])).main_deps,
                     args[1] as string,
                     [],
                 ),
@@ -408,6 +408,10 @@ async function main() {
     if (!mode || mode === 'help' || mode === '--help' || mode === '-h') {
         showHelp();
         return;
+    }
+
+    if (mode !== 'init') {
+        assert_config_exists();
     }
 
     const command = commands[mode];
