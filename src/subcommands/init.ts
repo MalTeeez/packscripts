@@ -10,8 +10,8 @@ export async function initHandler(): Promise<void> {
             type: 'input',
             name: 'RELATIVE_INSTANCE_DIRECTORY',
             message:
-                'Path to your instance root, relative to where you are running packscripts from (should contain .git/ and mmc-pack.json):',
-            default: './',
+                'Path to your instance root, relative to where you are currently running packscripts from (should contain .git/ and mmc-pack.json):',
+            default: '.',
             validate: (input: string) => {
                 if (!input.trim()) return 'Instance directory cannot be empty.';
                 const resolved = path.resolve(input);
@@ -51,6 +51,7 @@ export async function initHandler(): Promise<void> {
     // Check if future workdir exists, and if yes switch to it so we can use the relative paths that were just provided
     if (existsSync(config.RELATIVE_INSTANCE_DIRECTORY)) {
         process.chdir(config.RELATIVE_INSTANCE_DIRECTORY);
+        config.RELATIVE_INSTANCE_DIRECTORY = './';
     } else {
         throw Error(`Working directory ${config.RELATIVE_INSTANCE_DIRECTORY} does not exist.`);
     }
