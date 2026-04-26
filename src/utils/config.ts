@@ -25,7 +25,8 @@ find_and_chdir_to_config(CONFIG_FILE);
 export interface PackagingConfig {
     PACK_NAME: string;
     PACKAGE_DIRECTORY: string;
-    REMOTE_MANIFEST_PROJECT: string;
+    GIT_REMOTE_URL: string;
+    GIT_LFS_REMOTE_URL: string;
     PACK_VARIANTS: {
         [key: string]: PackPackagingVariant;
     };

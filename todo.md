@@ -5,7 +5,7 @@
 - Add functionality to just provide download url, to append a new mod to map (download to temp, extract id, move to mods/)
 
 ## doing
-- allow overriding the remote url, with one that also fills from env variables
+- allow overriding the remote url for specific paths, with one that also fills from env variables
 - write simple launch scripts and test w. unsup
 - try including java
 - use download urls when they seem correct

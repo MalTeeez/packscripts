@@ -1,16 +1,14 @@
-import inquirer from 'inquirer';
 import fs, { existsSync } from 'fs';
 import path from 'path';
 import { CLIColor } from '../utils/utils';
 import { CONFIG_FILE } from '../utils/config';
+import { input } from '@inquirer/prompts';
 
 export async function initHandler(): Promise<void> {
-    const answers = await inquirer.prompt([
-        {
-            type: 'input',
-            name: 'RELATIVE_INSTANCE_DIRECTORY',
+    const [RELATIVE_INSTANCE_DIRECTORY, MOD_BASE_DIR, ANNOTATED_FILE] = [
+        await input({
             message:
-                'Path to your instance root, relative to where you are currently running packscripts from (should contain .git/ and mmc-pack.json):',
+                'RELATIVE_INSTANCE_DIRECTORY\n Path to your instance root, relative to where you are currently running packscripts from (should contain .git/ and mmc-pack.json):',
             default: '.',
             validate: (input: string) => {
                 if (!input.trim()) return 'Instance directory cannot be empty.';
@@ -19,33 +17,29 @@ export async function initHandler(): Promise<void> {
                 if (!fs.statSync(resolved).isDirectory()) return `Path is not a directory: ${resolved}`;
                 return true;
             },
-        },
-        {
-            type: 'input',
-            name: 'MOD_BASE_DIR',
-            message: 'Path to your mods folder, relative to RELATIVE_INSTANCE_DIRECTORY:',
+        }),
+        await input({
+            message: 'MOD_BASE_DIR\n Path to your mods folder, relative to RELATIVE_INSTANCE_DIRECTORY:',
             default: './minecraft/mods',
             validate: (input: string) => {
                 if (!input.trim()) return 'Mod folder path cannot be empty.';
                 return true;
             },
-        },
-        {
-            type: 'input',
-            name: 'ANNOTATED_FILE',
-            message: 'Path to where extra information on mods should be stored (in a JSON file), relative to RELATIVE_INSTANCE_DIRECTORY:',
+        }),
+        await input({
+            message: 'ANNOTATED_FILE\n Path to where extra information on mods should be stored (in a JSON file), relative to RELATIVE_INSTANCE_DIRECTORY:',
             default: './annotated_mods.json',
             validate: (input: string) => {
                 if (!input.trim()) return 'Path to mod annotation JSON cannot be empty.';
                 return true;
             },
-        },
-    ]);
+        }),
+    ];
 
     const config = {
-        RELATIVE_INSTANCE_DIRECTORY: answers.RELATIVE_INSTANCE_DIRECTORY.replace(/\/?$/m, '') + '/',
-        MOD_BASE_DIR: answers.MOD_BASE_DIR.replace(/\/$/m, ''),
-        ANNOTATED_FILE: answers.ANNOTATED_FILE.replace(/\/$/m, ''),
+        RELATIVE_INSTANCE_DIRECTORY: RELATIVE_INSTANCE_DIRECTORY.replace(/\/?$/m, '') + '/',
+        MOD_BASE_DIR: MOD_BASE_DIR.replace(/\/$/m, ''),
+        ANNOTATED_FILE: ANNOTATED_FILE.replace(/\/$/m, ''),
     };
 
     // Check if future workdir exists, and if yes switch to it so we can use the relative paths that were just provided

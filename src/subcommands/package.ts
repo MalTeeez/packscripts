@@ -1,4 +1,3 @@
-import inquirer from 'inquirer';
 import fs from 'fs';
 import {
     ANNOTATED_FILE,
@@ -18,6 +17,7 @@ import { bundle_files_to_zip, path_is_directory } from '../utils/fs';
 import { sync } from 'fast-glob';
 import { CLIColor, finish_live_zone, hash_buffer, init_live_zone, update_live_zone } from '../utils/utils';
 import { read_saved_mods } from '../utils/mods';
+import { input, confirm } from '@inquirer/prompts';
 
 interface bootstrap_json {
     unsup_manifest: string;
@@ -146,28 +146,27 @@ async function get_lfs_oids(dir: string, target_commits: string[]): Promise<Map<
 
     for (const commit_sha of target_commits) {
         const check = Bun.spawn(['git', 'lfs', 'ls-files', '-d', commit_sha], { cwd: dir, stdout: 'pipe', stderr: 'pipe' });
-        const [out] = await Promise.all([
-            new Response(check.stdout).text(),
-            new Response(check.stderr).text(),
-        ]);
+        const [out] = await Promise.all([new Response(check.stdout).text(), new Response(check.stderr).text()]);
         await check.exited;
-    
+
         // Non-zero exit means either git-lfs isn't installed or repo has no LFS — either way, empty map is correct
         if (check.exitCode !== 0 || !out.trim()) return lfs_files;
-    
+
         for (const block of out.split('\n\n')) {
             const path = block.match(/^ *filepath: (.+)$/m)?.[1]?.trim();
             const hash = block.match(/^ *oid: sha256 ([a-f0-9]{64})$/m)?.[1];
             const size = block.match(/^ *size: (\d+)$/m)?.[1];
             if (path && hash && size) {
-                lfs_files.set(path + ":" + commit_sha, { hash, size: parseInt(size, 10) });
+                lfs_files.set(path + ':' + commit_sha, { hash, size: parseInt(size, 10) });
             }
         }
     }
 
     if (lfs_files.size > 0) {
-        const short_hashes = target_commits.map((sha) => sha.slice(0, 7)).join(", ");
-        console.log(`Found ${lfs_files.size} LFS objects in ${target_commits.length == 1 ? short_hashes : ("[" + short_hashes + "]")}, caching.`)
+        const short_hashes = target_commits.map((sha) => sha.slice(0, 7)).join(', ');
+        console.log(
+            `Found ${lfs_files.size} LFS objects in ${target_commits.length == 1 ? short_hashes : '[' + short_hashes + ']'}, caching.`,
+        );
     }
 
     return lfs_files;
@@ -220,14 +219,14 @@ async function get_blob_info(
     commit_sha: string,
     file_path: string,
     lfs_oids: Map<string, { hash: string; size: number }> | undefined,
-): Promise<{ hash: string; size: number }> {
+): Promise<{ hash: string; size: number, is_lfs: boolean }> {
     let blob_hash = undefined;
     let blob_size = 0;
     if (git_available && oid != undefined) {
         // If git was available, and we were able to collect lfs ids, directly check against that
         if (lfs_oids != undefined) {
-            const lfs = lfs_oids.get(file_path + ":" + commit_sha);
-            if (lfs) return lfs;
+            const lfs = lfs_oids.get(file_path + ':' + commit_sha);
+            if (lfs) return {...lfs, is_lfs: true};
         }
 
         ({ hash: blob_hash, size: blob_size } = await fast_process_blob(git_directory, oid));
@@ -248,26 +247,16 @@ async function get_blob_info(
                 const lfs_oid = text.match(/^oid sha256:([a-f0-9]{64})$/m)?.[1];
                 const lfs_size = text.match(/^size (\d+)$/m)?.[1];
                 if (lfs_oid && lfs_size) {
-                    blob_hash = lfs_oid;
-                    blob_size = parseInt(lfs_size, 10);
-                } else {
-                    // Malformed pointer — we can't trust the hash. Try serving it as the pointer
-                    blob_hash = await hash_buffer(blob);
-                    blob_size = blob.byteLength;
+                    return { hash: lfs_oid, size: parseInt(lfs_size, 10), is_lfs: true }
                 }
-            } else {
-                // Small non-LFS file, hash normally
-                blob_hash = await hash_buffer(blob);
-                blob_size = blob.byteLength;
             }
-        } else {
-            // Normal file, hash the blob content directly
-            blob_hash = await hash_buffer(blob);
-            blob_size = blob.byteLength;
         }
+        // Probably normal file, hash the blob content directly
+        blob_hash = await hash_buffer(blob);
+        blob_size = blob.byteLength;
     }
 
-    return { hash: blob_hash, size: blob_size };
+    return { hash: blob_hash, size: blob_size, is_lfs: false };
 }
 
 interface PackVersion {
@@ -470,46 +459,47 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
     }
 
     if (!skip_prompts) {
-        const answers = await inquirer.prompt([
-            {
-                type: 'input',
-                name: 'PACKAGE_DIRECTORY',
-                message: ' Enter the directory where your packaging setup should be initialized (will be created if not present):',
+        const [PACKAGE_DIRECTORY, GIT_REMOTE_URL, GIT_LFS_REMOTE_URL, PACK_NAME] = [
+            await input({
+                message:
+                    'PACKAGE_DIRECTORY\n Enter the directory where your packaging setup should be initialized (will be created if not present):',
                 default: 'packaging',
                 validate: (input: string) => {
                     if (!input.trim()) return 'ERR: Package folder path cannot be empty.';
                     return true;
                 },
-            },
-            {
-                type: 'input',
-                name: 'REMOTE_MANIFEST_PROJECT',
+            }),
+            await input({
                 message:
-                    ' Enter a url to a remote place where the unsup directory is provided. For github that would be "https://raw.githubusercontent.com/[USER]/[REPOSITORY]/[BRANCH]". This will be used to notify users of updates:',
-                default: 'https://raw.githubusercontent.com/',
+                    'GIT_REMOTE_URL\n Enter a url to a raw git directory head from where the repo can be read. For github that would be "https://raw.githubusercontent.com/[USER]/[REPOSITORY]/[BRANCH]". This will be used to notify users of updates & provide some files:',
+                default: 'https://raw.githubusercontent.com/[USER]/[REPOSITORY]/[BRANCH]',
+                prefill: "editable",
                 validate: (input: string) => {
                     if (!input.trim()) return 'ERR: Remote manifest URL cannot be empty.';
                     return true;
                 },
-            },
-            {
-                type: 'input',
-                name: 'PACK_NAME',
-                message: ' Enter the full name of your pack (without versions):',
+            }),
+            await input({
+                message: 'GIT_LFS_REMOTE_URL\n Enter the git lfs url for a raw view on lfs files. For github that would be :',
+                default: 'https://github.com/[USER]/[REPOSITORY]/raw/[BRANCH]',
+                prefill: "editable"
+            }),
+            await input({
+                message: 'PACK_NAME\n Enter the full name of your pack (without versions):',
                 validate: (input: string) => {
                     if (!input.trim()) return 'ERR: Pack name cannot be empty.';
                     return true;
                 },
-            },
-        ]);
+            }),
+        ];
 
-        const packaging_dir = RELATIVE_INSTANCE_DIRECTORY + answers.PACKAGE_DIRECTORY.replace(/\/$/m, '') + '/';
-        // This already has a relative parent
+        const packaging_dir = RELATIVE_INSTANCE_DIRECTORY + PACKAGE_DIRECTORY.replace(/\/$/m, '') + '/';
         const mc_dir = MOD_BASE_DIR.replace(/(?:\/)mods$/m, '') + '/';
         const packaging_config: PackagingConfig = {
-            PACK_NAME: answers.PACK_NAME,
+            PACK_NAME: PACK_NAME,
             PACKAGE_DIRECTORY: packaging_dir,
-            REMOTE_MANIFEST_PROJECT: answers.REMOTE_MANIFEST_PROJECT.replace(/\/$/m, ''),
+            GIT_REMOTE_URL: GIT_REMOTE_URL.replace(/\/$/m, ''),
+            GIT_LFS_REMOTE_URL: GIT_LFS_REMOTE_URL.replace(/\/$/m, ''),
             PACK_VARIANTS: {
                 client: {
                     TYPE: 'client',
@@ -557,14 +547,15 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
         ${CLIColor.FgRed8}Please review the generated config (especially TRACK_INCLUDE_PATHS, FORCE_INCLUDE_PATHS, and EXCLUDE_PATTERNS) before continuing.${CLIColor.Reset}
         If you need to exit the setup to do that, skip back to this section by setting --skip_prompts.`,
         );
-        await inquirer.prompt([
-            {
-                type: 'confirm',
-                name: 'config_checked',
+
+        if (
+            !(await confirm({
                 message: 'Accept packaging config in its current state?',
-                default: true,
-            },
-        ]);
+            }))
+        ) {
+            console.info("Cancelling...")
+            return;
+        }
     }
 
     // Have to re-read config now that it might have changed via user interaction.
@@ -588,7 +579,7 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
         await mkdir(packaging_dir + variant_name + '/unsup/versions/', { recursive: true });
 
         const base_source_url =
-            intermediate_config.PACKAGING.REMOTE_MANIFEST_PROJECT +
+            intermediate_config.PACKAGING.GIT_REMOTE_URL +
             '/' +
             intermediate_config.PACKAGING.PACKAGE_DIRECTORY.replace(/\/$/m, '').replace(
                 new RegExp(`^${intermediate_config.RELATIVE_INSTANCE_DIRECTORY}`, 'm'),
@@ -670,7 +661,8 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
     console.info('Building bootstrap for git ref ', commit_sha, ' from ', file_oids.size, ' git objects...');
     const git_available = await is_git_available(RELATIVE_INSTANCE_DIRECTORY);
     const lfs_oids = git_available ? await get_lfs_oids(RELATIVE_INSTANCE_DIRECTORY, [commit_sha]) : undefined;
-    const target_remote_url = PACKAGING.REMOTE_MANIFEST_PROJECT.replace(/[^\/]+?$/m, '') + commit_sha;
+    const target_remote_url = PACKAGING.GIT_REMOTE_URL.replace(/[^\/]+?$/m, '') + commit_sha;
+    const target_remote_lfs_url = PACKAGING.GIT_LFS_REMOTE_URL.replace(/[^\/]+?$/m, '') + commit_sha
     const WORKER_COUNT = Math.min(PACKAGING.MAX_WORKER_THREADS, 10);
 
     for (const [variant_name, pack_variant] of Object.entries(PACKAGING.PACK_VARIANTS)) {
@@ -695,20 +687,20 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
                 pool.set_status(worker_id, plan_item[0].path);
 
                 const file_oid = file_oids.get(plan_item[0].path);
-                const { hash, size } = await get_blob_info(
+                const { hash, size, is_lfs } = await get_blob_info(
                     git_available,
                     file_oid,
                     RELATIVE_INSTANCE_DIRECTORY,
                     commit_sha,
                     plan_item[0].path,
-                    lfs_oids
+                    lfs_oids,
                 );
 
                 file_refs.push({
                     path: plan_item[0].include_as,
                     hash,
                     size,
-                    url: target_remote_url + '/' + encodeURI(plan_item[0].path),
+                    url: (is_lfs ? target_remote_lfs_url : target_remote_url) + '/' + encodeURI(plan_item[0].path),
                 });
 
                 pool.complete(worker_id);
@@ -865,10 +857,10 @@ export async function build_version_for_diff(
     target_commit_sha = await resolve_to_correct_git_ref(target_commit_sha);
     const git_available = await is_git_available(RELATIVE_INSTANCE_DIRECTORY);
     const WORKER_COUNT = Math.min(PACKAGING.MAX_WORKER_THREADS, 4);
-    
+
     for (const [variant_name, pack_variant] of Object.entries(PACKAGING.PACK_VARIANTS)) {
         console.info(`\nRunning for pack variant '${variant_name}'`);
-        
+
         const main_manifest: manifest_json = await Bun.file(PACKAGING.PACKAGE_DIRECTORY + variant_name + '/unsup/manifest.json').json();
         if (main_manifest.versions.current.name === 'initial') {
             console.error(
@@ -876,9 +868,9 @@ export async function build_version_for_diff(
             );
             return;
         }
-        
+
         const versions = await read_unsup_versions_from_manifest(variant_name);
-        
+
         let base_commit_sha: string | undefined = undefined;
         if (input_base_commit_sha == undefined) {
             console.info('No base commit specified, selecting from latest...');
@@ -887,17 +879,17 @@ export async function build_version_for_diff(
         } else {
             base_commit_sha = await resolve_to_correct_git_ref(input_base_commit_sha);
         }
-        
+
         if (base_commit_sha === target_commit_sha && !overwrite) {
             console.warn(
                 `W: The newest available ref (${target_commit_sha}) is already available under ${versions.current.name}, refusing to build version without changes.\nIf you must, overwrite with --overwrite.`,
             );
             return;
         }
-        
+
         console.info(`Building diff between ${base_commit_sha.slice(0, 7)} and ${target_commit_sha.slice(0, 7)} ...`);
         const lfs_oids = git_available ? await get_lfs_oids(RELATIVE_INSTANCE_DIRECTORY, [base_commit_sha, target_commit_sha]) : undefined;
-        
+
         const diffs: {
             filepath: string;
             status: 'added' | 'deleted' | 'modified';
@@ -935,7 +927,8 @@ export async function build_version_for_diff(
 
         console.info(`Building list of changes from ${filtered_diffs.length} diffs...`);
         // Remove branch / git ref from remote url and use the target ref
-        const target_remote_url = PACKAGING.REMOTE_MANIFEST_PROJECT.replace(/[^\/]+?$/m, '') + target_commit_sha;
+        const target_remote_url = PACKAGING.GIT_REMOTE_URL.replace(/[^\/]+?$/m, '') + target_commit_sha;
+        const target_remote_lfs_url = PACKAGING.GIT_LFS_REMOTE_URL.replace(/[^\/]+?$/m, '') + target_commit_sha
 
         const changes: {
             path: string;
@@ -958,13 +951,13 @@ export async function build_version_for_diff(
                 pool.set_status(worker_id, `${diff_item.status} ${file_path}`);
 
                 if (diff_item.status === 'added') {
-                    const { hash, size } = await get_blob_info(
+                    const { hash, size, is_lfs } = await get_blob_info(
                         git_available,
                         diff_item.new_oid,
                         RELATIVE_INSTANCE_DIRECTORY,
                         target_commit_sha,
                         file_path,
-                        lfs_oids
+                        lfs_oids,
                     );
 
                     changes.push({
@@ -973,7 +966,7 @@ export async function build_version_for_diff(
                         from_size: 0,
                         to_hash: hash,
                         to_size: size,
-                        url: target_remote_url + '/' + encodeURI(file_path),
+                        url: (is_lfs ? target_remote_lfs_url : target_remote_url) + '/' + encodeURI(file_path),
                     });
                 } else if (diff_item.status === 'deleted') {
                     const { hash, size } = await get_blob_info(
@@ -982,7 +975,7 @@ export async function build_version_for_diff(
                         RELATIVE_INSTANCE_DIRECTORY,
                         base_commit_sha,
                         file_path,
-                        lfs_oids
+                        lfs_oids,
                     );
 
                     changes.push({
@@ -1004,7 +997,7 @@ export async function build_version_for_diff(
                         from_size: old_blob.size,
                         to_hash: new_blob.hash,
                         to_size: new_blob.size,
-                        url: target_remote_url + '/' + encodeURI(file_path),
+                        url: (new_blob.is_lfs ? target_remote_lfs_url : target_remote_url) + '/' + encodeURI(file_path),
                     });
                 } else {
                     throw Error('Encountered an unrecognized git change while building changes from diff: ' + diff_item);
