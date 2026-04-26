@@ -136,7 +136,7 @@ async function is_git_available(dir: string): Promise<boolean> {
         const proc = Bun.spawn(['git', 'rev-parse', '--git-dir'], { cwd: dir });
         return (await proc.exited) === 0;
     } catch {
-        console.warn('W: For some (weird) reason, git is not availble in this cli context. Falling back to slower approach.');
+        console.warn('W: For some (weird) reason, git is not availble in this cli context. Falling back to a slower approach.');
         return false;
     }
 }
@@ -155,9 +155,9 @@ async function get_lfs_oids(dir: string): Promise<Map<string, { hash: string; si
     if (check.exitCode !== 0 || !out.trim()) return lfs_files;
 
     for (const block of out.split('\n\n')) {
-        const path = block.match(/^filepath: (.+)$/m)?.[1]?.trim();
-        const hash = block.match(/^oid: sha256 ([a-f0-9]{64})$/m)?.[1];
-        const size = block.match(/^size: (\d+)$/m)?.[1];
+        const path = block.match(/^ *filepath: (.+)$/m)?.[1]?.trim();
+        const hash = block.match(/^ *oid: sha256 ([a-f0-9]{64})$/m)?.[1];
+        const size = block.match(/^ *size: (\d+)$/m)?.[1];
         if (path && hash && size) {
             lfs_files.set(path, { hash, size: parseInt(size, 10) });
         }
