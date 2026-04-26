@@ -411,7 +411,7 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
             {
                 type: 'input',
                 name: 'PACKAGE_DIRECTORY',
-                message: 'Enter the directory where your packaging setup should be initialized (will be created if not present):',
+                message: ' Enter the directory where your packaging setup should be initialized (will be created if not present):',
                 default: 'packaging',
                 validate: (input: string) => {
                     if (!input.trim()) return 'ERR: Package folder path cannot be empty.';
@@ -422,7 +422,7 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
                 type: 'input',
                 name: 'REMOTE_MANIFEST_PROJECT',
                 message:
-                    'Enter a url to a remote place where the unsup directory is provided. For github that would be "https://raw.githubusercontent.com/[USER]/[REPOSITORY]/[BRANCH]". This will be used to notify users of updates:',
+                    ' Enter a url to a remote place where the unsup directory is provided. For github that would be "https://raw.githubusercontent.com/[USER]/[REPOSITORY]/[BRANCH]". This will be used to notify users of updates:',
                 default: 'https://raw.githubusercontent.com/',
                 validate: (input: string) => {
                     if (!input.trim()) return 'ERR: Remote manifest URL cannot be empty.';
@@ -432,7 +432,7 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
             {
                 type: 'input',
                 name: 'PACK_NAME',
-                message: 'Enter the full name of your pack (without versions):',
+                message: ' Enter the full name of your pack (without versions):',
                 validate: (input: string) => {
                     if (!input.trim()) return 'ERR: Pack name cannot be empty.';
                     return true;
@@ -490,14 +490,15 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
         await set_config_keys({ PACKAGING: packaging_config });
 
         console.info(
-            `\nAppended packaging config to ${CONFIG_FILE}. Please review the generated config (especially TRACK_INCLUDE_PATHS, FORCE_INCLUDE_PATHS, and EXCLUDE_PATTERNS) before continuing.
+            `\nAppended packaging config to ${CONFIG_FILE}.
+        ${CLIColor.FgRed8}Please review the generated config (especially TRACK_INCLUDE_PATHS, FORCE_INCLUDE_PATHS, and EXCLUDE_PATTERNS) before continuing.${CLIColor.Reset}
         If you need to exit the setup to do that, skip back to this section by setting --skip_prompts.`,
         );
         await inquirer.prompt([
             {
                 type: 'confirm',
                 name: 'config_checked',
-                message: 'Have you reviewed the config file?',
+                message: 'Accept packaging config in its current state?',
                 default: true,
             },
         ]);
@@ -510,9 +511,9 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
 
     // download unsup jar (which will be the same for all variants), save to newly created packaging dir
     await mkdir(packaging_dir, { recursive: true });
-    console.info('Downloading unsup jar from https://github.com/MalTeeez/unsup-fork ...');
+    console.info('\nDownloading unsup jar from https://github.com/MalTeeez/unsup-fork ...');
     await download_file(
-        'https://github.com/MalTeeez/unsup-fork/releases/download/v1.2.2/unsup-1.2-custom+d8a847e485.20260411.jar',
+        'https://github.com/MalTeeez/unsup-fork/releases/download/v1.2.3/unsup-1.2-custom+f82705b5ac.20260426.jar',
         'OTHER',
         packaging_dir.replace(/\/$/m, ''),
         'unsup.jar',
