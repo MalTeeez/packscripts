@@ -141,9 +141,37 @@ async function is_git_available(dir: string): Promise<boolean> {
     }
 }
 
+async function get_lfs_oids(dir: string): Promise<Map<string, { hash: string; size: number }>> {
+    const lfs_files = new Map<string, { hash: string; size: number }>();
+
+    const check = Bun.spawn(['git', 'lfs', 'ls-files', '--all', '-d'], { cwd: dir, stdout: 'pipe', stderr: 'pipe' });
+    const [out] = await Promise.all([
+        new Response(check.stdout).text(),
+        new Response(check.stderr).text(), // drain stderr
+    ]);
+    await check.exited;
+
+    // Non-zero exit means either git-lfs isn't installed or repo has no LFS — either way, empty map is correct
+    if (check.exitCode !== 0 || !out.trim()) return lfs_files;
+
+    for (const block of out.split('\n\n')) {
+        const path = block.match(/^filepath: (.+)$/m)?.[1]?.trim();
+        const hash = block.match(/^oid: sha256 ([a-f0-9]{64})$/m)?.[1];
+        const size = block.match(/^size: (\d+)$/m)?.[1];
+        if (path && hash && size) {
+            lfs_files.set(path, { hash, size: parseInt(size, 10) });
+        }
+    }
+
+    return lfs_files;
+}
+
 /**
  * Instead of going through isomorphic-git, try directly going through a subprocess via the git binary.
  * Should be faster, and seems to work most of the time.
+ *
+ * LFS files are handled via the pre-built lfs_oids map — if the filepath is present we skip the
+ * subprocess entirely and return the real content hash + size from the pointer metadata.
  */
 async function fast_process_blob(dir: string, oid: string): Promise<{ hash: string | undefined; size: number }> {
     const [hashProc, sizeProc] = await Promise.all([
@@ -151,7 +179,7 @@ async function fast_process_blob(dir: string, oid: string): Promise<{ hash: stri
         Bun.spawn(['git', 'cat-file', '-s', oid], { cwd: dir, stdout: 'pipe', stderr: 'pipe' }),
     ]);
 
-    const [hashOut, sizeOut, _hashErr, _sizeErr] = await Promise.all([
+    const [hashOut, sizeOut] = await Promise.all([
         new Response(hashProc.stdout).text(),
         new Response(sizeProc.stdout).text(),
         new Response(hashProc.stderr).text(),
@@ -162,12 +190,12 @@ async function fast_process_blob(dir: string, oid: string): Promise<{ hash: stri
 
     const size = parseInt(sizeOut.trim(), 10);
 
-    // Just return undefined as the hash for results we dont trust / that errored so we can fallback at the caller
     if (hashProc.exitCode !== 0 || sizeProc.exitCode !== 0 || isNaN(size)) {
         return { hash: undefined, size: isNaN(size) ? 0 : size };
     }
+
     const hash = hashOut.trim().split(/\s+/)[0];
-    if (hash != undefined && !/^[a-f0-9]{64}$/.test(hash)) {
+    if (!hash || !/^[a-f0-9]{64}$/.test(hash)) {
         return { hash: undefined, size };
     }
 
@@ -184,20 +212,52 @@ async function get_blob_info(
     git_directory: string,
     commit_sha: string,
     file_path: string,
+    lfs_oids: Map<string, { hash: string; size: number }> | undefined,
 ): Promise<{ hash: string; size: number }> {
     let blob_hash = undefined;
     let blob_size = 0;
     if (git_available && oid != undefined) {
+        // If git was available, and we were able to collect lfs ids, directly check against that
+        if (lfs_oids != undefined) {
+            const lfs = lfs_oids.get(file_path);
+            if (lfs) return lfs;
+        }
+
         ({ hash: blob_hash, size: blob_size } = await fast_process_blob(git_directory, oid));
     }
+
     // Fallback to builtin if that didnt work
     if (blob_hash == undefined) {
         const { blob } =
             oid != undefined
                 ? await readBlob({ fs, dir: git_directory, oid: oid })
                 : await readBlob({ fs, dir: git_directory, oid: commit_sha, filepath: file_path });
-        blob_hash = await hash_buffer(blob);
-        blob_size = blob.byteLength;
+
+        // LFS pointer files are always small — no point checking large blobs
+        if (blob.byteLength < 512) {
+            const text = new TextDecoder().decode(blob);
+
+            if (text.startsWith('version https://git-lfs.github.com/spec/v1')) {
+                const lfs_oid = text.match(/^oid sha256:([a-f0-9]{64})$/m)?.[1];
+                const lfs_size = text.match(/^size (\d+)$/m)?.[1];
+                if (lfs_oid && lfs_size) {
+                    blob_hash = lfs_oid;
+                    blob_size = parseInt(lfs_size, 10);
+                } else {
+                    // Malformed pointer — we can't trust the hash. Try serving it as the pointer
+                    blob_hash = await hash_buffer(blob);
+                    blob_size = blob.byteLength;
+                }
+            } else {
+                // Small non-LFS file, hash normally
+                blob_hash = await hash_buffer(blob);
+                blob_size = blob.byteLength;
+            }
+        } else {
+            // Normal file, hash the blob content directly
+            blob_hash = await hash_buffer(blob);
+            blob_size = blob.byteLength;
+        }
     }
 
     return { hash: blob_hash, size: blob_size };
@@ -267,11 +327,7 @@ async function collect_mmc_component_versions(optional_early_instance_dir: strin
     const instance_dir = optional_early_instance_dir ?? RELATIVE_INSTANCE_DIRECTORY;
 
     if (!Bun.file(instance_dir + 'mmc-pack.json').exists()) {
-        console.warn(
-            'W: Missing mmc-pack.json at RELATIVE_INSTANCE_DIRECTORY (',
-            instance_dir,
-            '), not attaching mmc-component versions.',
-        );
+        console.warn('W: Missing mmc-pack.json at RELATIVE_INSTANCE_DIRECTORY (', instance_dir, '), not attaching mmc-component versions.');
         return component_versions;
     }
 
@@ -606,6 +662,7 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
 
     console.info('Building bootstrap for git ref ', commit_sha, ' from ', file_oids.size, ' git objects...');
     const git_available = await is_git_available(RELATIVE_INSTANCE_DIRECTORY);
+    const lfs_oids = git_available ? await get_lfs_oids(RELATIVE_INSTANCE_DIRECTORY) : undefined;
     const target_remote_url = PACKAGING.REMOTE_MANIFEST_PROJECT.replace(/[^\/]+?$/m, '') + commit_sha;
     const WORKER_COUNT = Math.min(PACKAGING.MAX_WORKER_THREADS, 10);
 
@@ -637,6 +694,7 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
                     RELATIVE_INSTANCE_DIRECTORY,
                     commit_sha,
                     plan_item[0].path,
+                    lfs_oids
                 );
 
                 file_refs.push({
@@ -799,6 +857,7 @@ export async function build_version_for_diff(
 
     target_commit_sha = await resolve_to_correct_git_ref(target_commit_sha);
     const git_available = await is_git_available(RELATIVE_INSTANCE_DIRECTORY);
+    const lfs_oids = git_available ? await get_lfs_oids(RELATIVE_INSTANCE_DIRECTORY) : undefined;
     const WORKER_COUNT = Math.min(PACKAGING.MAX_WORKER_THREADS, 4);
 
     for (const [variant_name, pack_variant] of Object.entries(PACKAGING.PACK_VARIANTS)) {
@@ -862,7 +921,10 @@ export async function build_version_for_diff(
         });
 
         // Filter by filepaths
-        const filtered_diffs = await filter_and_plan_files(Object.fromEntries(diffs.map((diff_item) => [diff_item.filepath, diff_item])), pack_variant);
+        const filtered_diffs = await filter_and_plan_files(
+            Object.fromEntries(diffs.map((diff_item) => [diff_item.filepath, diff_item])),
+            pack_variant,
+        );
 
         console.info(`Building list of changes from ${filtered_diffs.length} diffs...`);
         // Remove branch / git ref from remote url and use the target ref
@@ -883,9 +945,9 @@ export async function build_version_for_diff(
         const queue = [...filtered_diffs];
         const workers = Array.from({ length: WORKER_COUNT }, async (_, worker_id) => {
             while (queue.length > 0) {
-                const [{path: file_path, include_as: include_path}, diff_item] = queue.shift()!;
+                const [{ path: file_path, include_as: include_path }, diff_item] = queue.shift()!;
                 if (PACKAGING == undefined) throw Error('Config was initialized but is not available off-thread? Something is wrong.');
-                
+
                 pool.set_status(worker_id, `${diff_item.status} ${file_path}`);
 
                 if (diff_item.status === 'added') {
@@ -895,6 +957,7 @@ export async function build_version_for_diff(
                         RELATIVE_INSTANCE_DIRECTORY,
                         target_commit_sha,
                         file_path,
+                        lfs_oids
                     );
 
                     changes.push({
@@ -912,6 +975,7 @@ export async function build_version_for_diff(
                         RELATIVE_INSTANCE_DIRECTORY,
                         base_commit_sha,
                         file_path,
+                        lfs_oids
                     );
 
                     changes.push({
@@ -923,8 +987,8 @@ export async function build_version_for_diff(
                     });
                 } else if (diff_item.status === 'modified') {
                     const [old_blob, new_blob] = await Promise.all([
-                        get_blob_info(git_available, diff_item.old_oid, RELATIVE_INSTANCE_DIRECTORY, base_commit_sha, file_path),
-                        get_blob_info(git_available, diff_item.new_oid, RELATIVE_INSTANCE_DIRECTORY, target_commit_sha, file_path),
+                        get_blob_info(git_available, diff_item.old_oid, RELATIVE_INSTANCE_DIRECTORY, base_commit_sha, file_path, lfs_oids),
+                        get_blob_info(git_available, diff_item.new_oid, RELATIVE_INSTANCE_DIRECTORY, target_commit_sha, file_path, lfs_oids),
                     ]);
 
                     changes.push({
