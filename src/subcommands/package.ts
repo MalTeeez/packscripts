@@ -779,7 +779,7 @@ export async function bundle_pack_into_starter() {
             }
         }
 
-        const zip_name = `${RELATIVE_INSTANCE_DIRECTORY}starter-${variant_name}.zip`;
+        const zip_name = `${RELATIVE_INSTANCE_DIRECTORY}${PACKAGING.PACK_NAME}-${variant_name}.zip`;
         console.info(`Writing ${files.length} files to zip (${zip_name}) for pack variant '${variant_name}'...`);
         await bundle_files_to_zip(files, zip_name);
     }
