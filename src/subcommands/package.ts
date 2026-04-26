@@ -141,26 +141,33 @@ async function is_git_available(dir: string): Promise<boolean> {
     }
 }
 
-async function get_lfs_oids(dir: string): Promise<Map<string, { hash: string; size: number }>> {
+async function get_lfs_oids(dir: string, target_commits: string[]): Promise<Map<string, { hash: string; size: number }>> {
     const lfs_files = new Map<string, { hash: string; size: number }>();
 
-    const check = Bun.spawn(['git', 'lfs', 'ls-files', '--all', '-d'], { cwd: dir, stdout: 'pipe', stderr: 'pipe' });
-    const [out] = await Promise.all([
-        new Response(check.stdout).text(),
-        new Response(check.stderr).text(), // drain stderr
-    ]);
-    await check.exited;
-
-    // Non-zero exit means either git-lfs isn't installed or repo has no LFS — either way, empty map is correct
-    if (check.exitCode !== 0 || !out.trim()) return lfs_files;
-
-    for (const block of out.split('\n\n')) {
-        const path = block.match(/^ *filepath: (.+)$/m)?.[1]?.trim();
-        const hash = block.match(/^ *oid: sha256 ([a-f0-9]{64})$/m)?.[1];
-        const size = block.match(/^ *size: (\d+)$/m)?.[1];
-        if (path && hash && size) {
-            lfs_files.set(path, { hash, size: parseInt(size, 10) });
+    for (const commit_sha of target_commits) {
+        const check = Bun.spawn(['git', 'lfs', 'ls-files', '-d', commit_sha], { cwd: dir, stdout: 'pipe', stderr: 'pipe' });
+        const [out] = await Promise.all([
+            new Response(check.stdout).text(),
+            new Response(check.stderr).text(),
+        ]);
+        await check.exited;
+    
+        // Non-zero exit means either git-lfs isn't installed or repo has no LFS — either way, empty map is correct
+        if (check.exitCode !== 0 || !out.trim()) return lfs_files;
+    
+        for (const block of out.split('\n\n')) {
+            const path = block.match(/^ *filepath: (.+)$/m)?.[1]?.trim();
+            const hash = block.match(/^ *oid: sha256 ([a-f0-9]{64})$/m)?.[1];
+            const size = block.match(/^ *size: (\d+)$/m)?.[1];
+            if (path && hash && size) {
+                lfs_files.set(path + ":" + commit_sha, { hash, size: parseInt(size, 10) });
+            }
         }
+    }
+
+    if (lfs_files.size > 0) {
+        const short_hashes = target_commits.map((sha) => sha.slice(0, 7)).join(", ");
+        console.log(`Found ${lfs_files.size} LFS objects in ${target_commits.length == 1 ? short_hashes : ("[" + short_hashes + "]")}, caching.`)
     }
 
     return lfs_files;
@@ -219,7 +226,7 @@ async function get_blob_info(
     if (git_available && oid != undefined) {
         // If git was available, and we were able to collect lfs ids, directly check against that
         if (lfs_oids != undefined) {
-            const lfs = lfs_oids.get(file_path);
+            const lfs = lfs_oids.get(file_path + ":" + commit_sha);
             if (lfs) return lfs;
         }
 
@@ -662,7 +669,7 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
 
     console.info('Building bootstrap for git ref ', commit_sha, ' from ', file_oids.size, ' git objects...');
     const git_available = await is_git_available(RELATIVE_INSTANCE_DIRECTORY);
-    const lfs_oids = git_available ? await get_lfs_oids(RELATIVE_INSTANCE_DIRECTORY) : undefined;
+    const lfs_oids = git_available ? await get_lfs_oids(RELATIVE_INSTANCE_DIRECTORY, [commit_sha]) : undefined;
     const target_remote_url = PACKAGING.REMOTE_MANIFEST_PROJECT.replace(/[^\/]+?$/m, '') + commit_sha;
     const WORKER_COUNT = Math.min(PACKAGING.MAX_WORKER_THREADS, 10);
 
@@ -857,12 +864,11 @@ export async function build_version_for_diff(
 
     target_commit_sha = await resolve_to_correct_git_ref(target_commit_sha);
     const git_available = await is_git_available(RELATIVE_INSTANCE_DIRECTORY);
-    const lfs_oids = git_available ? await get_lfs_oids(RELATIVE_INSTANCE_DIRECTORY) : undefined;
     const WORKER_COUNT = Math.min(PACKAGING.MAX_WORKER_THREADS, 4);
-
+    
     for (const [variant_name, pack_variant] of Object.entries(PACKAGING.PACK_VARIANTS)) {
         console.info(`\nRunning for pack variant '${variant_name}'`);
-
+        
         const main_manifest: manifest_json = await Bun.file(PACKAGING.PACKAGE_DIRECTORY + variant_name + '/unsup/manifest.json').json();
         if (main_manifest.versions.current.name === 'initial') {
             console.error(
@@ -870,9 +876,9 @@ export async function build_version_for_diff(
             );
             return;
         }
-
+        
         const versions = await read_unsup_versions_from_manifest(variant_name);
-
+        
         let base_commit_sha: string | undefined = undefined;
         if (input_base_commit_sha == undefined) {
             console.info('No base commit specified, selecting from latest...');
@@ -881,16 +887,17 @@ export async function build_version_for_diff(
         } else {
             base_commit_sha = await resolve_to_correct_git_ref(input_base_commit_sha);
         }
-
+        
         if (base_commit_sha === target_commit_sha && !overwrite) {
             console.warn(
                 `W: The newest available ref (${target_commit_sha}) is already available under ${versions.current.name}, refusing to build version without changes.\nIf you must, overwrite with --overwrite.`,
             );
             return;
         }
-
+        
         console.info(`Building diff between ${base_commit_sha.slice(0, 7)} and ${target_commit_sha.slice(0, 7)} ...`);
-
+        const lfs_oids = git_available ? await get_lfs_oids(RELATIVE_INSTANCE_DIRECTORY, [base_commit_sha, target_commit_sha]) : undefined;
+        
         const diffs: {
             filepath: string;
             status: 'added' | 'deleted' | 'modified';
