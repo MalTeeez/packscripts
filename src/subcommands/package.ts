@@ -507,8 +507,8 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
                     EXCLUDED_MOD_TAGS: [],
                     TRACK_INCLUDE_PATHS: [mc_dir + 'mods', mc_dir + 'config', mc_dir + 'scripts'],
                     FORCE_INCLUDE_PATHS: [
-                        { relative_path: packaging_dir + 'unsup.jar', include_as: 'minecraft/unsup.jar' },
-                        { relative_path: packaging_dir + 'client/unsup.ini', include_as: 'minecraft/unsup.ini' },
+                        { relative_path: packaging_dir + 'unsup.jar', include_as: mc_dir + 'unsup.jar' },
+                        { relative_path: packaging_dir + 'client/unsup.ini', include_as: mc_dir + 'unsup.ini' },
                         { relative_path: packaging_dir + 'client/instance.cfg', include_as: 'instance.cfg' },
                         { relative_path: RELATIVE_INSTANCE_DIRECTORY + 'libraries', include_as: 'libraries' },
                         { relative_path: RELATIVE_INSTANCE_DIRECTORY + 'patches', include_as: 'patches' },
@@ -567,7 +567,7 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
     await mkdir(packaging_dir, { recursive: true });
     console.info('\nDownloading unsup jar from https://github.com/MalTeeez/unsup-fork ...');
     await download_file(
-        'https://github.com/MalTeeez/unsup-fork/releases/download/v1.2.4/unsup-1.2-custom+e9ef6db939.20260426.jar',
+        'https://github.com/MalTeeez/unsup-fork/releases/download/v1.2.5/unsup-1.2-custom+b2e4d6af87.20260427.jar',
         'OTHER',
         packaging_dir.replace(/\/$/m, ''),
         'unsup.jar',
@@ -616,11 +616,7 @@ iconKey=default
 name=${intermediate_config.PACKAGING.PACK_NAME}
 InstanceType=OneSix
 OverrideJavaArgs=true
-JvmArgs=-javaagent:unsup.jar
-
-[Java]
-OverrideJava=true
-JvmArgs=-javaagent:unsup.jar`,
+JvmArgs="-javaagent:unsup.jar -Dunsup.debug=true -Dunsup.downloadWorkers=8"`,
             );
         }
     }

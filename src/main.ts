@@ -337,7 +337,7 @@ const commands: Record<string, CommandDefinition> = {
     package_build: {
         description:
             'Build the changes since a specified commit (assumes the latest version if none is provided) and the provided target git ref (or HEAD if none is provided) into a version manifest that will propagate the update. Accepts a version in the form of -t <version>.',
-        usage: 'package build <base git ref> <target git ref> [-t tag] [--overwrite]',
+        usage: 'package build <target git ref> <base git ref> [-t tag] [--overwrite]',
         is_subcommand: true,
         handler: async (args) => {
             if (args.includes('--help') || args.includes('-h')) {
@@ -356,8 +356,8 @@ const commands: Record<string, CommandDefinition> = {
                 }
             }
 
-            const base_ref = positional[0];
-            const target_ref = positional[1] ?? 'HEAD';
+            const base_ref = positional[1];
+            const target_ref = positional[0] ?? 'HEAD';
 
             await build_version_for_diff(target_ref, base_ref, tag, args.includes('--overwrite'));
 
