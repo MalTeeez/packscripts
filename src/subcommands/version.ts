@@ -156,8 +156,8 @@ export async function switch_version_of_mod(
                 render_wide_release(body as any, {
                     version_padding: 16,
                     text_start: `  ${CLIColor.BgTeal3}${CLIColor.FgWhite1}${CLIColor.Bright} ${mod.update_state.version} ${CLIColor.Reset} ${CLIColor.Bright}${CLIColor.FgGray17}-> ${CLIColor.Reset}`,
-                    render_assets: !options.render_assets,
-                    render_notes: !options.render_notes
+                    render_assets: !options.hide_assets,
+                    render_notes: !options.hide_notes
                 }),
             );
         } else {
