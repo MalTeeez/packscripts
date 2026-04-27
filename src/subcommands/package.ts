@@ -567,7 +567,7 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
     await mkdir(packaging_dir, { recursive: true });
     console.info('\nDownloading unsup jar from https://github.com/MalTeeez/unsup-fork ...');
     await download_file(
-        'https://github.com/MalTeeez/unsup-fork/releases/download/v1.2.3/unsup-1.2-custom+f82705b5ac.20260426.jar',
+        'https://github.com/MalTeeez/unsup-fork/releases/download/v1.2.4/unsup-1.2-custom+e9ef6db939.20260426.jar',
         'OTHER',
         packaging_dir.replace(/\/$/m, ''),
         'unsup.jar',

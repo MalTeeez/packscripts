@@ -23,6 +23,8 @@ export async function list_all_versions_for_mod(
         all_pages: boolean;
         wide: boolean;
         count?: string;
+        hide_assets: boolean;
+        hide_notes: boolean;
     },
     mod_map?: Map<string, mod_object>,
 ) {
@@ -85,6 +87,8 @@ export async function list_all_versions_for_mod(
                             release.tag_name === mod.update_state.version
                                 ? `   \t${CLIColor.FgGray19}<- ${CLIColor.FgGray14}[${CLIColor.FgGray19}current version${CLIColor.FgGray14}]${CLIColor.Reset}`
                                 : undefined,
+                        render_assets: !options.hide_assets,
+                        render_notes: !options.hide_notes
                     }),
                 );
             } else {
@@ -116,17 +120,18 @@ export async function switch_version_of_mod(
     version: string,
     options: {
         dry: boolean;
+        hide_assets: boolean;
+        hide_notes: boolean;
     },
     mod_map?: Map<string, mod_object>,
 ) {
     assert_gh_key();
-    if (!await are_all_mods_unlocked()) {
-        console.warn("W: Something is locking a file in the mods directory. Is the game still running?")
+    if (!(await are_all_mods_unlocked())) {
+        console.warn('W: Something is locking a file in the mods directory. Is the game still running?');
         return;
     }
 
     mod_map = mod_map == undefined ? await read_saved_mods(ANNOTATED_FILE) : mod_map;
-
 
     // Resolve input mod_id to actual mod
     const lower_mod_id = mod_id.toLowerCase();
@@ -151,6 +156,8 @@ export async function switch_version_of_mod(
                 render_wide_release(body as any, {
                     version_padding: 16,
                     text_start: `  ${CLIColor.BgTeal3}${CLIColor.FgWhite1}${CLIColor.Bright} ${mod.update_state.version} ${CLIColor.Reset} ${CLIColor.Bright}${CLIColor.FgGray17}-> ${CLIColor.Reset}`,
+                    render_assets: !options.render_assets,
+                    render_notes: !options.render_notes
                 }),
             );
         } else {
@@ -227,11 +234,11 @@ export async function restore_to_asset_versions(
     mod_map?: Map<string, mod_object>,
 ) {
     assert_gh_key();
-    if (!await are_all_mods_unlocked()) {
-        console.warn("W: Something is locking a file in the mods directory. Is the game still running?")
+    if (!(await are_all_mods_unlocked())) {
+        console.warn('W: Something is locking a file in the mods directory. Is the game still running?');
         return;
     }
-    
+
     mod_map = mod_map == undefined ? await read_saved_mods(ANNOTATED_FILE) : mod_map;
     let to_update_mods: {
         mod_id: string;
@@ -284,7 +291,6 @@ export async function restore_to_asset_versions(
         }
     }
 
-
     // Print list of mods that would be restored
     let longest_mod_version_length = 0;
     let longest_mod_filename_length = 0;
@@ -294,7 +300,7 @@ export async function restore_to_asset_versions(
         longest_mod_filename_length = Math.max((item.mod_obj.file_path.split(/[\\/]/).pop() ?? '').length, longest_mod_filename_length);
     });
 
-    console.log(`\nFound ${to_update_mods.length} mods that ${!options.dry ? "will be" : "can be"} restored from their remote asset:`)
+    console.log(`\nFound ${to_update_mods.length} mods that ${!options.dry ? 'will be' : 'can be'} restored from their remote asset:`);
     for (const item of to_update_mods) {
         const id_padding_len = longest_mod_id_length - item.mod_id.length;
         const vers_padding_len = longest_mod_version_length - (item.mod_obj.update_state.version?.length || 0);
@@ -306,7 +312,6 @@ export async function restore_to_asset_versions(
                 ` ${CLIColor.FgGray}${rev_replace_all(' '.repeat(vers_padding_len), '   ', ' . ')} ${CLIColor.FgGray9}(${CLIColor.FgGray19}${filename}${CLIColor.FgGray14})${CLIColor.Reset}${CLIColor.Reset}`,
         );
     }
-
 
     // If this is not a dry run and there are mods to download, actually download them
     if (to_update_mods.length > 0 && !options.dry) {
@@ -505,6 +510,8 @@ function render_wide_release(
         add_underscores?: boolean;
         text_start?: string;
         text_end?: string;
+        render_assets: boolean;
+        render_notes: boolean;
     },
 ): string {
     const age_days_raw = (new Date(Date.now()).getTime() - new Date(release.published_at).getTime()) / 86400000;
@@ -530,10 +537,11 @@ function render_wide_release(
         badges +
         author +
         (options.text_end || '');
+
     result_text += '\n';
 
     // Assets section — colored gutter, transparent content background
-    if (Array.isArray(release.assets) && release.assets.length > 0) {
+    if (Array.isArray(release.assets) && release.assets.length > 0 && options.render_assets) {
         const gutter_a = `${CLIColor.BgGray5}${CLIColor.Dim}${CLIColor.FgMagenta11}▌${CLIColor.Reset}    `;
         const longest_asset = (release.assets as { name: string }[]).reduce((m, a) => Math.max(m, a.name.length), 0);
         for (const asset of release.assets as { name: string; size: number; download_count: number }[]) {
@@ -548,16 +556,19 @@ function render_wide_release(
                 `${CLIColor.FgGray18}${kb} ${CLIColor.FgGray14}KB` +
                 `${CLIColor.FgGray10})${CLIColor.Reset}\n`;
         }
-        result_text += '\n';
+         if (options.render_notes) result_text += '\n';
     }
 
     // Body section — colored gutter, transparent content background
-    const gutter_b = `${CLIColor.BgGray3}${CLIColor.FgGray5}▌${CLIColor.Reset}    `;
-    const rendered_body = render_md(release.body);
-    result_text += rendered_body
+    if (options.render_notes) {
+        const gutter_b = `${CLIColor.BgGray3}${CLIColor.FgGray5}▌${CLIColor.Reset}    `;
+        const rendered_body = render_md(release.body);
+        result_text += rendered_body
         .split('\n')
         .map((line) => gutter_b + `${CLIColor.FgGray19}${line}${CLIColor.Reset}`)
         .join('\n');
+        result_text += '\n';
+    }
 
-    return result_text + '\n';
+    return result_text;
 }

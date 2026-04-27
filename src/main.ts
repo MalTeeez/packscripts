@@ -204,7 +204,7 @@ const commands: Record<string, CommandDefinition> = {
     },
     version_list: {
         description: 'List remote version of a mod',
-        usage: 'version list <mod_id> [--all] [--wide] [-c=X]',
+        usage: 'version list <mod_id> [--all] [--wide] [-c=X] [--hide_assets] [--hide_notes]',
         is_subcommand: true,
         handler: async (args) => {
             if (args.includes('--help')) {
@@ -219,7 +219,13 @@ const commands: Record<string, CommandDefinition> = {
             const mod_id = args[0];
             if (mod_id != undefined) {
                 const count = args.filter((arg) => arg.startsWith('-c='))[0]?.split('=', 2)[1];
-                await list_all_versions_for_mod(mod_id, { all_pages: args.includes('--all'), wide: args.includes('--wide'), count: count });
+                await list_all_versions_for_mod(mod_id, {
+                    all_pages: args.includes('--all'),
+                    wide: args.includes('--wide'),
+                    count: count,
+                    hide_assets: args.includes('--hide_assets'),
+                    hide_notes: args.includes('--hide_notes'),
+                });
                 return;
             }
         },
@@ -244,7 +250,11 @@ const commands: Record<string, CommandDefinition> = {
             const mod_id = args[0];
             const mod_vers = args[1];
             if (mod_id != undefined && mod_vers != undefined) {
-                await switch_version_of_mod(mod_id, mod_vers, { dry: args.includes('--dry') });
+                await switch_version_of_mod(mod_id, mod_vers, {
+                    dry: args.includes('--dry'),
+                    hide_assets: args.includes('--hide_assets'),
+                    hide_notes: args.includes('--hide_notes'),
+                });
                 return;
             }
         },
@@ -294,12 +304,13 @@ const commands: Record<string, CommandDefinition> = {
                 console.log(commands['package_init']?.usage);
                 return;
             }
-            await initialize_packaging(args.includes("--overwrite"), args.includes("--skip_prompts"));
+            await initialize_packaging(args.includes('--overwrite'), args.includes('--skip_prompts'));
             return;
         },
     },
     package_bootstrap: {
-        description: 'Build the bootstrap for the provided commit sha (assumes HEAD if none is provided) (Will override the old bootstrap manifest).',
+        description:
+            'Build the bootstrap for the provided commit sha (assumes HEAD if none is provided) (Will override the old bootstrap manifest).',
         usage: 'package bootstrap [<git ref>] [-t tag]',
         is_subcommand: true,
         handler: async (args) => {
@@ -318,13 +329,14 @@ const commands: Record<string, CommandDefinition> = {
                 }
             }
 
-            await build_bootstrap(positional.at(-1) ?? "HEAD", tag);
+            await build_bootstrap(positional.at(-1) ?? 'HEAD', tag);
 
             return;
         },
     },
     package_build: {
-        description: 'Build the changes since a specified commit (assumes the latest version if none is provided) and the provided target git ref (or HEAD if none is provided) into a version manifest that will propagate the update. Accepts a version in the form of -t <version>.',
+        description:
+            'Build the changes since a specified commit (assumes the latest version if none is provided) and the provided target git ref (or HEAD if none is provided) into a version manifest that will propagate the update. Accepts a version in the form of -t <version>.',
         usage: 'package build <base git ref> <target git ref> [-t tag] [--overwrite]',
         is_subcommand: true,
         handler: async (args) => {
@@ -347,7 +359,7 @@ const commands: Record<string, CommandDefinition> = {
             const base_ref = positional[0];
             const target_ref = positional[1] ?? 'HEAD';
 
-            await build_version_for_diff(target_ref, base_ref, tag, args.includes("--overwrite"));
+            await build_version_for_diff(target_ref, base_ref, tag, args.includes('--overwrite'));
 
             return;
         },
@@ -361,7 +373,7 @@ const commands: Record<string, CommandDefinition> = {
                 console.log(commands['package_bundle']?.usage);
                 return;
             }
-            
+
             await bundle_pack_into_starter();
 
             return;
@@ -388,7 +400,7 @@ function showHelp() {
     const maxCmdLength = Math.max(...Object.keys(commands).map((k) => k.length));
 
     for (const [cmd, def] of Object.entries(commands)) {
-        const clean_cmd = def.is_subcommand ? cmd.replace("_", " ") : cmd;
+        const clean_cmd = def.is_subcommand ? cmd.replace('_', ' ') : cmd;
         const cmdPadded = clean_cmd.padEnd(maxCmdLength + 2);
         const usage = def.usage || clean_cmd;
         console.log(`  ${cmdPadded}${def.description}`);
