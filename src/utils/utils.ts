@@ -1,4 +1,5 @@
 import type { SupportedCryptoAlgorithms } from "bun";
+import { IS_LIMITED_ENV } from "./config";
 
 export type JsonObject = { [key: string]: JsonObject | Array<JsonObject> | string | undefined };
 
@@ -1098,6 +1099,7 @@ let live_lines = 0;
 let live_content: string[] = [];
 
 export function init_live_zone(lines: number) {
+    if (IS_LIMITED_ENV) return;
     // Initial empty space above live zone
     for (let i = 0; i <= lines; i++) {
         process.stdout.write('\n');
@@ -1108,6 +1110,7 @@ export function init_live_zone(lines: number) {
 }
 
 export function finish_live_zone() {
+    if (IS_LIMITED_ENV) return;
     // Move cursor back down past the live zone
     process.stdout.moveCursor(0, live_lines);
     process.stdout.write('\n');
@@ -1116,6 +1119,7 @@ export function finish_live_zone() {
 }
 
 export function update_live_zone(lines: string[]) {
+    if (IS_LIMITED_ENV) return;
     live_lines = lines.length;
 
     // Print line updates
@@ -1131,10 +1135,12 @@ export function update_live_zone(lines: string[]) {
 }
 
 export function set_live_zone(lines: string[]) {
+    if (IS_LIMITED_ENV) return;
     live_content = lines;
 }
 
 export function live_log(input: any, func: (message: any) => void = console.log) {
+    if (IS_LIMITED_ENV) return;
     process.stdout.clearLine(0);
     func(input);
     update_live_zone(live_content);

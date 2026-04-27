@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { existsSync } from 'node:fs';
 
+export const IS_LIMITED_ENV = (Bun.env.PACKSCRIPTS_IS_LIMITED_ENV || "0") === "1"
 export const CONFIG_FILE = 'packscripts.json';
 export const ENV_FILE = '.packscripts.env.json';
 
