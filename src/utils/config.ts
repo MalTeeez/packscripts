@@ -42,6 +42,7 @@ export interface PackPackagingVariant {
     FORCE_INCLUDE_PATHS: Array<{
         relative_path: string;
         include_as: string;
+        dont_track?: boolean;
     }>;
     EXCLUDE_FROM_INCLUDE_PATHS: Array<string>;
     EXCLUDE_PATTERNS: Array<string>;

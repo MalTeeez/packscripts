@@ -355,17 +355,19 @@ async function filter_and_plan_files<T>(
     const filtered_files: Array<[{ path: string; include_as: string }, T]> = [];
     const mod_map = await read_saved_mods(ANNOTATED_FILE);
     // Combine both filters into one, not relative, list of filters that includes what they should be included as
-    const combined_filters: Array<{ filter_path: string; include_as: string | undefined }> = [
+    const combined_filters: Array<{ filter_path: string; include_as: string | undefined, dont_track: boolean }> = [
         ...packaging_config.TRACK_INCLUDE_PATHS.map((relative_path) => {
             return {
                 filter_path: relative_path.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
                 include_as: undefined,
+                dont_track: false
             };
         }),
         ...packaging_config.FORCE_INCLUDE_PATHS.map((include_filter) => {
             return {
                 filter_path: include_filter.relative_path.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
                 include_as: include_filter.include_as,
+                dont_track: include_filter.dont_track || false
             };
         }),
     ];
@@ -386,7 +388,7 @@ async function filter_and_plan_files<T>(
         let include_obj: [{ path: string; include_as: string }, T] | undefined = undefined;
         path_filter_iter: for (const path_filter of combined_filters) {
             if (file_path.startsWith(path_filter.filter_path)) {
-                if (path_filter.filter_path === non_relative_mod_dir && file_path.endsWith('.jar')) {
+                if (!path_filter.dont_track && path_filter.filter_path === non_relative_mod_dir && file_path.endsWith('.jar')) {
                     // Need to relativize this here because thats how our mod jars are stored
                     let mod_file_path = file_path.startsWith(RELATIVE_INSTANCE_DIRECTORY)
                         ? file_path
@@ -509,7 +511,7 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
                     FORCE_INCLUDE_PATHS: [
                         { relative_path: packaging_dir + 'unsup.jar', include_as: mc_dir + 'unsup.jar' },
                         { relative_path: packaging_dir + 'client/unsup.ini', include_as: mc_dir + 'unsup.ini' },
-                        { relative_path: packaging_dir + 'client/instance.cfg', include_as: 'instance.cfg' },
+                        { relative_path: packaging_dir + 'client/instance.cfg', include_as: 'instance.cfg', dont_track: true },
                         { relative_path: RELATIVE_INSTANCE_DIRECTORY + 'libraries', include_as: 'libraries' },
                         { relative_path: RELATIVE_INSTANCE_DIRECTORY + 'patches', include_as: 'patches' },
                         { relative_path: RELATIVE_INSTANCE_DIRECTORY + 'mmc-pack.json', include_as: 'mmc-pack.json' },
