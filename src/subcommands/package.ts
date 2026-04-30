@@ -387,8 +387,8 @@ async function filter_and_plan_files<T>(
 
         let include_obj: [{ path: string; include_as: string }, T] | undefined = undefined;
         path_filter_iter: for (const path_filter of combined_filters) {
-            if (file_path.startsWith(path_filter.filter_path)) {
-                if (!path_filter.dont_track && path_filter.filter_path === non_relative_mod_dir && file_path.endsWith('.jar')) {
+            if (!path_filter.dont_track && file_path.startsWith(path_filter.filter_path)) {
+                if (path_filter.filter_path === non_relative_mod_dir && file_path.endsWith('.jar')) {
                     // Need to relativize this here because thats how our mod jars are stored
                     let mod_file_path = file_path.startsWith(RELATIVE_INSTANCE_DIRECTORY)
                         ? file_path
@@ -509,7 +509,8 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
                     EXCLUDED_MOD_TAGS: [],
                     TRACK_INCLUDE_PATHS: [mc_dir + 'mods', mc_dir + 'config', mc_dir + 'scripts'],
                     FORCE_INCLUDE_PATHS: [
-                        { relative_path: packaging_dir + 'unsup.jar', include_as: mc_dir + 'unsup.jar' },
+                        { relative_path: packaging_dir + 'unsup.jar', include_as: mc_dir + 'unsup.jar.new' },
+                        { relative_path: packaging_dir + 'unsup-launcher.jar', include_as: mc_dir + 'unsup-launcher.jar', dont_track: true },
                         { relative_path: packaging_dir + 'client/unsup.ini', include_as: mc_dir + 'unsup.ini' },
                         { relative_path: packaging_dir + 'client/instance.cfg', include_as: 'instance.cfg', dont_track: true },
                         { relative_path: RELATIVE_INSTANCE_DIRECTORY + 'libraries', include_as: 'libraries' },
@@ -526,7 +527,8 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
                     EXCLUDED_MOD_TAGS: [],
                     TRACK_INCLUDE_PATHS: [mc_dir + 'mods', mc_dir + 'config', mc_dir + 'scripts'],
                     FORCE_INCLUDE_PATHS: [
-                        { relative_path: packaging_dir + 'unsup.jar', include_as: 'unsup.jar' },
+                        { relative_path: packaging_dir + 'unsup.jar', include_as: 'unsup.jar.new' },
+                        { relative_path: packaging_dir + 'unsup-launcher.jar', include_as: 'unsup-launcher.jar', dont_track: true },
                         { relative_path: packaging_dir + 'server/unsup.ini', include_as: 'unsup.ini' },
                     ],
                     EXCLUDE_FROM_INCLUDE_PATHS: [mc_dir + 'mods/disabled_mods'],
@@ -567,12 +569,18 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
 
     // download unsup jar (which will be the same for all variants), save to newly created packaging dir
     await mkdir(packaging_dir, { recursive: true });
-    console.info('\nDownloading unsup jar from https://github.com/MalTeeez/unsup-fork ...');
+    console.info('\nDownloading unsup & launcher jars from https://github.com/MalTeeez/unsup-fork and https://github.com/MalTeeez/unsup-launcher...');
     await download_file(
-        'https://github.com/MalTeeez/unsup-fork/releases/download/v1.2.5/unsup-1.2-custom+b2e4d6af87.20260427.jar',
+        'https://github.com/MalTeeez/unsup-fork/releases/download/v1.3.0/unsup-1.2-custom+371ddeb243.20260428.jar',
         'OTHER',
         packaging_dir.replace(/\/$/m, ''),
         'unsup.jar',
+    );
+    await download_file(
+        'https://github.com/MalTeeez/unsup-launcher/releases/download/1.0.1/unsup-launcher-1.0.1.jar',
+        'OTHER',
+        packaging_dir.replace(/\/$/m, ''),
+        'unsup-launcher.jar',
     );
 
     // Create directories for each variant, and fill them with their respective starting files
@@ -618,7 +626,7 @@ iconKey=default
 name=${intermediate_config.PACKAGING.PACK_NAME}
 InstanceType=OneSix
 OverrideJavaArgs=true
-JvmArgs="-javaagent:unsup.jar -Dunsup.debug=true -Dunsup.downloadWorkers=8"`,
+JvmArgs="-javaagent:unsup-launcher.jar -Dunsup.debug=true -Dunsup.downloadWorkers=8 -Dunsup.versionSelectorOnLaunch=false"`,
             );
         }
     }
@@ -885,7 +893,7 @@ export async function build_version_for_diff(
             return;
         }
 
-        console.info(`Building diff between ${base_commit_sha.slice(0, 7)} and ${target_commit_sha.slice(0, 7)} ...`);
+        console.info(`Building diff, with ${base_commit_sha.slice(0, 7)} as base -> and ${target_commit_sha.slice(0, 7)} as target...`);
         const lfs_oids = git_available ? await get_lfs_oids(RELATIVE_INSTANCE_DIRECTORY, [base_commit_sha, target_commit_sha]) : undefined;
 
         const diffs: {

@@ -17,6 +17,103 @@ import { toNamespacedPath } from 'node:path';
 
 const SOURCE_API_KEYS: Map<SourceType, string> = new Map();
 
+//#region general helpers
+function assert_gh_key() {
+    if (GITHUB_API_KEY == undefined) {
+        // can't throw in ternary
+        throw Error('Missing GITHUB_API_KEY.');
+    } else {
+        SOURCE_API_KEYS.set('GH_RELEASE', GITHUB_API_KEY);
+    }
+}
+
+function color_by_age(days: number): CLIColor {
+    if (days < 30) return CLIColor.FgGreen11;
+    if (days < 180) return CLIColor.FgYellow1;
+    if (days < 365) return CLIColor.FgOrange5;
+    return CLIColor.FgRed1;
+}
+
+function render_wide_release(
+    release: {
+        tag_name: string;
+        author: { login: string };
+        name: string;
+        draft: string;
+        prerelease: string;
+        published_at: string;
+        assets: { name: string; download_count: number; size: number }[];
+        body: string;
+    },
+    options: {
+        version_padding: number;
+        add_underscores?: boolean;
+        text_start?: string;
+        text_end?: string;
+        render_assets: boolean;
+        render_notes: boolean;
+    },
+): string {
+    const age_days_raw = (new Date(Date.now()).getTime() - new Date(release.published_at).getTime()) / 86400000;
+    const age_days = age_days_raw.toFixed(2);
+    const padding = rev_replace_all(' '.repeat(options.version_padding - release.tag_name.length), '   ', ' . ');
+    const release_name =
+        release.name && release.name !== release.tag_name
+            ? ` ${CLIColor.FgGray}·${CLIColor.Reset} ${CLIColor.FgWhite2}${release.name}${CLIColor.Reset}`
+            : '';
+    const badges =
+        (release.draft ? ` ${CLIColor.BgYellow0}${CLIColor.FgBlack}${CLIColor.Bright} DRAFT ${CLIColor.Reset}` : '') +
+        (release.prerelease ? ` ${CLIColor.BgMagenta0}${CLIColor.FgWhite}${CLIColor.Bright} PRE ${CLIColor.Reset}` : '');
+    const author = release.author?.login
+        ? `${options.add_underscores ? CLIColor.Underscore : ''}${CLIColor.FgGray} by ${CLIColor.FgGray15}${release.author.login}${CLIColor.Reset}`
+        : '';
+    let result_text =
+        (options.text_start || `${options.add_underscores ? CLIColor.Underscore : ''}${CLIColor.FgGray} - ${CLIColor.Reset}`) +
+        `${options.add_underscores ? CLIColor.Underscore : ''}${CLIColor.BgBlue0}${CLIColor.FgWhite1}${CLIColor.Bright} ${release.tag_name} ${CLIColor.Reset}` +
+        `${options.add_underscores ? CLIColor.Underscore : ''}${CLIColor.FgGray}${padding}${CLIColor.Reset}` +
+        `${options.add_underscores ? CLIColor.Underscore : ''}${color_by_age(age_days_raw)}${CLIColor.Bright}${age_days}${CLIColor.Reset}` +
+        `${options.add_underscores ? CLIColor.Underscore : ''}${CLIColor.FgGray} days ago${CLIColor.Reset}` +
+        release_name +
+        badges +
+        author +
+        (options.text_end || '');
+
+    result_text += '\n';
+
+    // Assets section — colored gutter, transparent content background
+    if (Array.isArray(release.assets) && release.assets.length > 0 && options.render_assets) {
+        const gutter_a = `${CLIColor.BgGray5}${CLIColor.Dim}${CLIColor.FgMagenta11}▌${CLIColor.Reset}    `;
+        const longest_asset = (release.assets as { name: string }[]).reduce((m, a) => Math.max(m, a.name.length), 0);
+        for (const asset of release.assets as { name: string; size: number; download_count: number }[]) {
+            const kb = (asset.size / 1024).toFixed(0);
+            const name_pad = ' '.repeat(longest_asset - asset.name.length + 2);
+            result_text +=
+                gutter_a +
+                `${CLIColor.FgGray} - ${CLIColor.Reset}` +
+                `${CLIColor.Dim}${CLIColor.FgMagenta11}${asset.name}${CLIColor.Reset}${name_pad}` +
+                `${CLIColor.FgGray10}(${CLIColor.Reset}` +
+                `${CLIColor.FgGray20}${asset.download_count}↓${CLIColor.FgGray11}, ` +
+                `${CLIColor.FgGray18}${kb} ${CLIColor.FgGray14}KB` +
+                `${CLIColor.FgGray10})${CLIColor.Reset}\n`;
+        }
+         if (options.render_notes) result_text += '\n';
+    }
+
+    // Body section — colored gutter, transparent content background
+    if (options.render_notes) {
+        const gutter_b = `${CLIColor.BgGray3}${CLIColor.FgGray5}▌${CLIColor.Reset}    `;
+        const rendered_body = render_md(release.body);
+        result_text += rendered_body
+        .split('\n')
+        .map((line) => gutter_b + `${CLIColor.FgGray19}${line}${CLIColor.Reset}`)
+        .join('\n');
+        result_text += '\n';
+    }
+
+    return result_text;
+}
+
+//#region list
 export async function list_all_versions_for_mod(
     mod_id: string,
     options: {
@@ -115,6 +212,7 @@ export async function list_all_versions_for_mod(
     await print_gh_ratelimits(GITHUB_API_KEY);
 }
 
+//#region switch
 export async function switch_version_of_mod(
     mod_id: string,
     version: string,
@@ -227,6 +325,7 @@ export async function switch_version_of_mod(
     await print_gh_ratelimits(GITHUB_API_KEY);
 }
 
+//#region restore
 export async function restore_to_asset_versions(
     options: {
         dry: boolean;
@@ -478,97 +577,49 @@ export async function restore_to_asset_versions(
     await print_gh_ratelimits(GITHUB_API_KEY);
 }
 
-function assert_gh_key() {
-    if (GITHUB_API_KEY == undefined) {
-        // can't throw in ternary
-        throw Error('Missing GITHUB_API_KEY.');
-    } else {
-        SOURCE_API_KEYS.set('GH_RELEASE', GITHUB_API_KEY);
-    }
-}
-
-function color_by_age(days: number): CLIColor {
-    if (days < 30) return CLIColor.FgGreen11;
-    if (days < 180) return CLIColor.FgYellow1;
-    if (days < 365) return CLIColor.FgOrange5;
-    return CLIColor.FgRed1;
-}
-
-function render_wide_release(
-    release: {
-        tag_name: string;
-        author: { login: string };
-        name: string;
-        draft: string;
-        prerelease: string;
-        published_at: string;
-        assets: { name: string; download_count: number; size: number }[];
-        body: string;
-    },
+export async function verify_and_refresh_source_links(
     options: {
-        version_padding: number;
-        add_underscores?: boolean;
-        text_start?: string;
-        text_end?: string;
-        render_assets: boolean;
-        render_notes: boolean;
+        dry: boolean;
     },
-): string {
-    const age_days_raw = (new Date(Date.now()).getTime() - new Date(release.published_at).getTime()) / 86400000;
-    const age_days = age_days_raw.toFixed(2);
-    const padding = rev_replace_all(' '.repeat(options.version_padding - release.tag_name.length), '   ', ' . ');
-    const release_name =
-        release.name && release.name !== release.tag_name
-            ? ` ${CLIColor.FgGray}·${CLIColor.Reset} ${CLIColor.FgWhite2}${release.name}${CLIColor.Reset}`
-            : '';
-    const badges =
-        (release.draft ? ` ${CLIColor.BgYellow0}${CLIColor.FgBlack}${CLIColor.Bright} DRAFT ${CLIColor.Reset}` : '') +
-        (release.prerelease ? ` ${CLIColor.BgMagenta0}${CLIColor.FgWhite}${CLIColor.Bright} PRE ${CLIColor.Reset}` : '');
-    const author = release.author?.login
-        ? `${options.add_underscores ? CLIColor.Underscore : ''}${CLIColor.FgGray} by ${CLIColor.FgGray15}${release.author.login}${CLIColor.Reset}`
-        : '';
-    let result_text =
-        (options.text_start || `${options.add_underscores ? CLIColor.Underscore : ''}${CLIColor.FgGray} - ${CLIColor.Reset}`) +
-        `${options.add_underscores ? CLIColor.Underscore : ''}${CLIColor.BgBlue0}${CLIColor.FgWhite1}${CLIColor.Bright} ${release.tag_name} ${CLIColor.Reset}` +
-        `${options.add_underscores ? CLIColor.Underscore : ''}${CLIColor.FgGray}${padding}${CLIColor.Reset}` +
-        `${options.add_underscores ? CLIColor.Underscore : ''}${color_by_age(age_days_raw)}${CLIColor.Bright}${age_days}${CLIColor.Reset}` +
-        `${options.add_underscores ? CLIColor.Underscore : ''}${CLIColor.FgGray} days ago${CLIColor.Reset}` +
-        release_name +
-        badges +
-        author +
-        (options.text_end || '');
+    mod_map?: Map<string, mod_object>,
+) {
+    assert_gh_key();
+    mod_map = mod_map == undefined ? await read_saved_mods(ANNOTATED_FILE) : mod_map;
 
-    result_text += '\n';
+    const gh_release_url_pattern = /github\.com\/GTNewHorizons\/BetterAchievements\/releases\/(?:tag|download)\/[^\/]+?/
 
-    // Assets section — colored gutter, transparent content background
-    if (Array.isArray(release.assets) && release.assets.length > 0 && options.render_assets) {
-        const gutter_a = `${CLIColor.BgGray5}${CLIColor.Dim}${CLIColor.FgMagenta11}▌${CLIColor.Reset}    `;
-        const longest_asset = (release.assets as { name: string }[]).reduce((m, a) => Math.max(m, a.name.length), 0);
-        for (const asset of release.assets as { name: string; size: number; download_count: number }[]) {
-            const kb = (asset.size / 1024).toFixed(0);
-            const name_pad = ' '.repeat(longest_asset - asset.name.length + 2);
-            result_text +=
-                gutter_a +
-                `${CLIColor.FgGray} - ${CLIColor.Reset}` +
-                `${CLIColor.Dim}${CLIColor.FgMagenta11}${asset.name}${CLIColor.Reset}${name_pad}` +
-                `${CLIColor.FgGray10}(${CLIColor.Reset}` +
-                `${CLIColor.FgGray20}${asset.download_count}↓${CLIColor.FgGray11}, ` +
-                `${CLIColor.FgGray18}${kb} ${CLIColor.FgGray14}KB` +
-                `${CLIColor.FgGray10})${CLIColor.Reset}\n`;
+    for (const [mod_name, mod] of mod_map) {
+        if (!mod.update_state || !mod.source) continue;
+
+        switch (mod.update_state.source_type) {
+            case 'GH_RELEASE': {
+                const release_url_match = mod.source.match(gh_release_url_pattern);
+                if (release_url_match != null && release_url_match.groups != undefined && release_url_match.groups["tag"]) {
+                    const tag = release_url_match.groups["tag"];
+                    if (mod.update_state.version !== tag) {
+                        
+                    }
+
+                } else {
+                    console.warn("W: Encountered malformed source URL for mod ", mod_name, ", skipping")
+                    continue;
+                }
+            }
+            case 'CURSEFORGE': {
+                // TBD
+            }
+            case 'MODRINTH': {
+                // TBD
+            }
+            case 'OTHER': {
+                // IDK
+            }
+            default: {
+                console.warn(`W: Encountered unkown source type '${mod.update_state.source_type}', skipping`)
+            }
+                
         }
-         if (options.render_notes) result_text += '\n';
     }
-
-    // Body section — colored gutter, transparent content background
-    if (options.render_notes) {
-        const gutter_b = `${CLIColor.BgGray3}${CLIColor.FgGray5}▌${CLIColor.Reset}    `;
-        const rendered_body = render_md(release.body);
-        result_text += rendered_body
-        .split('\n')
-        .map((line) => gutter_b + `${CLIColor.FgGray19}${line}${CLIColor.Reset}`)
-        .join('\n');
-        result_text += '\n';
-    }
-
-    return result_text;
+    
+    await print_gh_ratelimits(GITHUB_API_KEY);
 }
