@@ -280,7 +280,7 @@ const commands: Record<string, CommandDefinition> = {
         },
     },
     version_verify_links: {
-        description: 'Verify all mods source links against their version and update it if we can the local version is newer.',
+        description: 'Verify all mods source links against their version and update it if the local version is newer.',
         usage: 'version verify_links [--dry]',
         is_subcommand: true,
         handler: async (args) => {

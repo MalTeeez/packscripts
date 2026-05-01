@@ -71,7 +71,7 @@ export const DOWNLOAD_UNDO_DIR: string = config?.DOWNLOAD_UNDO_DIR?.replace(/\/$
 export const ANNOTATED_FILE: string = config?.ANNOTATED_FILE?.replace(/\/$/m, '');
 export const RELATIVE_INSTANCE_DIRECTORY: string = (config?.RELATIVE_INSTANCE_DIRECTORY?.replace(/\/?$/m, '') ?? '.') + '/';
 export const PACKAGING = config?.PACKAGING;
-export const GITHUB_API_KEY: string | undefined = secrets?.GITHUB_API_KEY || undefined;
+export const GITHUB_API_KEY: string | undefined = secrets?.GITHUB_API_KEY || Bun.env.PACKSCRIPTS_GITHUB_API_KEY || undefined;
 
 type ConfigKey = keyof NonNullable<typeof config>;
 
