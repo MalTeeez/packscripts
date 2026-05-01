@@ -1,3 +1,4 @@
+import { parse_gh_url } from './sources';
 import type { JsonObject } from './utils';
 
 export async function query_gh_project_by_url(
@@ -6,9 +7,11 @@ export async function query_gh_project_by_url(
     sub_repo_api_path: string,
     ignore_codes: number[] = [],
 ): Promise<{ headers?: Headers; status: string; body: JsonObject | undefined }> {
-    const project = url.match(/(?:github.com\/(.+?\/.+?))(?:\/|$)/m)?.at(1);
-    if (project) {
-        const url = `/repos/${project}${sub_repo_api_path}`;
+    const url_match = parse_gh_url(url);
+    if (url_match != undefined) {
+        const { owner, project } = url_match;
+        const url = `/repos/${owner}/${project}/${sub_repo_api_path}`;
+        
         const res: Response | undefined = await gh_request(url, gh_api_key, 'GET');
         if (res == undefined || !res.ok) {
             if (res && !ignore_codes.includes(res.status)) {

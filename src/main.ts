@@ -13,10 +13,15 @@ import { annotate } from './subcommands/annotate';
 import { disable_atomic_deep, enable_atomic_deep, list_mods, list_mods_folder, list_mods_wide, toggle_mod } from './subcommands/simple';
 import { visualize_graph } from './subcommands/graph';
 import { check_all_mods_for_updates, undo_last_update } from './subcommands/update';
-import { list_all_versions_for_mod, restore_to_asset_versions, switch_version_of_mod } from './subcommands/version';
-import { initHandler } from './subcommands/init';
+import {
+    list_all_versions_for_mod,
+    restore_to_asset_versions,
+    switch_version_of_mod,
+    verify_and_refresh_source_links,
+} from './subcommands/version';
 import { build_bootstrap, build_version_for_diff, bundle_pack_into_starter, initialize_packaging } from './subcommands/package';
 import { assert_config_exists } from './utils/config';
+import { init_config } from './subcommands/init';
 
 //#region Command Framework
 interface CommandDefinition {
@@ -28,15 +33,16 @@ interface CommandDefinition {
 
 const commands: Record<string, CommandDefinition> = {
     init: {
-        description: 'Initialize packscripts by setting up your mod folder',
+        description: 'Initialize packscripts by setting up configuration',
         handler: async () => {
-            await initHandler();
+            await init_config();
         },
     },
     refresh: {
         description: 'Update annotated mod list',
-        handler: async () => {
-            await annotate();
+        usage: 'refresh [--existing_only]',
+        handler: async (args) => {
+            await annotate({ existing_only: args.includes('--existing_only') });
             console.log('Mod list refreshed successfully!');
         },
     },
@@ -182,7 +188,7 @@ const commands: Record<string, CommandDefinition> = {
     },
     version: {
         description: 'Interact with remote versions of a mod',
-        usage: 'version <list|set|restore_all> <mod_id>',
+        usage: 'version <list|set|restore_all|verify_links> <mod_id>',
         handler: async (args) => {
             const mode = args[0]?.toLowerCase();
             const cmdArgs = args.slice(1);
@@ -270,6 +276,19 @@ const commands: Record<string, CommandDefinition> = {
                 return;
             }
             await restore_to_asset_versions({ dry: args.includes('--dry') });
+            return;
+        },
+    },
+    version_verify_links: {
+        description: 'Verify all mods source links against their version and update it if we can the local version is newer.',
+        usage: 'version verify_links [--dry]',
+        is_subcommand: true,
+        handler: async (args) => {
+            if (args.includes('--help')) {
+                console.log(commands['version_verify_links']?.usage);
+                return;
+            }
+            await verify_and_refresh_source_links({ dry: args.includes('--dry') });
             return;
         },
     },

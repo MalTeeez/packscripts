@@ -4,7 +4,7 @@ import { CLIColor } from '../utils/utils';
 import { CONFIG_FILE } from '../utils/config';
 import { input } from '@inquirer/prompts';
 
-export async function initHandler(): Promise<void> {
+export async function init_config(): Promise<void> {
     const [RELATIVE_INSTANCE_DIRECTORY, MOD_BASE_DIR, ANNOTATED_FILE] = [
         await input({
             message:

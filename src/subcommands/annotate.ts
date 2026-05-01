@@ -8,11 +8,13 @@ import {
     read_saved_mods,
     type mod_object,
     type mod_object_unsafe,
+    type SourceType,
 } from '../utils/mods';
+import { parse_gh_url } from '../utils/sources';
 import { clone } from '../utils/utils';
 import { exists } from 'node:fs/promises';
 
-export async function annotate() {
+export async function annotate(options: { existing_only: boolean }) {
     if (!await exists(MOD_BASE_DIR)) {
         console.warn(`W: Mod directoy at ${MOD_BASE_DIR} does not exist. If it is located somewhere else, make sure to specify this in your config.json under "MOD_BASE_DIR".`)
         return;
@@ -22,13 +24,14 @@ export async function annotate() {
         return;
     }
 
+    console.info("Scanning mods folder...")
     const mod_files = await scan_mods_folder(MOD_BASE_DIR);
     const old_list = await read_saved_mods(ANNOTATED_FILE);
-
+    console.info("Extracting more information from mods...")
     const enriched_mods = await extract_modinfos(mod_files);
 
     if (old_list != undefined && typeof old_list === 'object') {
-        await save_map_to_file(ANNOTATED_FILE, update_list(enriched_mods, old_list));
+        await save_map_to_file(ANNOTATED_FILE, update_list(enriched_mods, old_list, options.existing_only));
     } else {
         console.error('Failed to read annotated mods from file.');
     }
@@ -37,7 +40,7 @@ export async function annotate() {
 /**
  * Update a loaded mod map with the actual state from fs
  */
-export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<string, mod_object>) {
+export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<string, mod_object>, existing_only: boolean) {
     // Create maps from parameters
     for (const [file_path, new_mod_obj] of files) {
         let old_mod_obj = mod_map.get(new_mod_obj.mod_id);
@@ -47,16 +50,24 @@ export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<
             // Update properties that we should always set programtically (update each time)
             old_mod_obj.file_path = new_mod_obj.file_path;
             old_mod_obj.enabled = new_mod_obj.enabled;
+            if (new_mod_obj.update_state.version) {
+                old_mod_obj.update_state.version = new_mod_obj.update_state.version;
+            }
+            old_mod_obj.update_state.sha256_sum = new_mod_obj.update_state.sha256_sum;
 
             // Add missing attributes, try from new obj, then from standard
             for (const key in default_mod_object) {
                 set_new_or_default_property(key, old_mod_obj, new_mod_obj, default_mod_object);
             }
-        } else if (new_mod_obj.mod_id != undefined) {
+
+            // Invalidate direct source links
+            old_mod_obj.source = invalidate_direct_source_link(old_mod_obj.source, old_mod_obj.update_state.source_type)
+        } else if (new_mod_obj.mod_id != undefined && !existing_only) {
             old_mod_obj = clone(default_mod_object) as mod_object;
             old_mod_obj.file_path = file_path;
             old_mod_obj.enabled = new_mod_obj.enabled;
-            old_mod_obj.update_state.version = new_mod_obj.update_state?.version;
+            old_mod_obj.update_state.version = new_mod_obj.update_state.version;
+            old_mod_obj.update_state.sha256_sum = new_mod_obj.update_state.sha256_sum;
             old_mod_obj.wants = new_mod_obj.wants;
             old_mod_obj.other_mod_ids = new_mod_obj.other_mod_ids || [];
 
@@ -73,6 +84,31 @@ export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<
     trace_deps(mod_map);
 
     return mod_map;
+}
+
+function invalidate_direct_source_link(link: string | undefined, source_type: SourceType): string | undefined  {
+    if (link == undefined) return link;
+
+    switch (source_type) {
+        case "GH_RELEASE":
+            const url_match = parse_gh_url(link);
+            if (url_match != undefined) {
+                const { owner, project, tag, asset } = url_match;
+                if (tag != undefined && asset != undefined) {
+                    return `https://github.com/${owner}/${project}`
+                }
+            }
+
+            break;
+        case "CURSEFORGE":
+            break
+        case "MODRINTH":
+            break;
+        default:
+            break;
+    }
+    
+    return link;
 }
 
 interface str_obj {

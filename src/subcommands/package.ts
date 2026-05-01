@@ -18,6 +18,7 @@ import { sync } from 'fast-glob';
 import { CLIColor, finish_live_zone, hash_buffer, init_live_zone, update_live_zone } from '../utils/utils';
 import { read_saved_mods } from '../utils/mods';
 import { input, confirm } from '@inquirer/prompts';
+import { parse_gh_url } from '../utils/sources';
 
 interface bootstrap_json {
     unsup_manifest: string;
@@ -31,6 +32,7 @@ interface bootstrap_json {
         hash: string;
         size: number;
         url: string;
+        mirror_url?: string;
     }>;
 }
 
@@ -59,6 +61,7 @@ interface version_json {
         to_hash: string | null;
         to_size: number;
         url?: string;
+        mirror_url?: string;
     }[];
     component_versions: {
         [key: string]: string;
@@ -219,14 +222,14 @@ async function get_blob_info(
     commit_sha: string,
     file_path: string,
     lfs_oids: Map<string, { hash: string; size: number }> | undefined,
-): Promise<{ hash: string; size: number, is_lfs: boolean }> {
+): Promise<{ hash: string; size: number; is_lfs: boolean }> {
     let blob_hash = undefined;
     let blob_size = 0;
     if (git_available && oid != undefined) {
         // If git was available, and we were able to collect lfs ids, directly check against that
         if (lfs_oids != undefined) {
             const lfs = lfs_oids.get(file_path + ':' + commit_sha);
-            if (lfs) return {...lfs, is_lfs: true};
+            if (lfs) return { ...lfs, is_lfs: true };
         }
 
         ({ hash: blob_hash, size: blob_size } = await fast_process_blob(git_directory, oid));
@@ -247,7 +250,7 @@ async function get_blob_info(
                 const lfs_oid = text.match(/^oid sha256:([a-f0-9]{64})$/m)?.[1];
                 const lfs_size = text.match(/^size (\d+)$/m)?.[1];
                 if (lfs_oid && lfs_size) {
-                    return { hash: lfs_oid, size: parseInt(lfs_size, 10), is_lfs: true }
+                    return { hash: lfs_oid, size: parseInt(lfs_size, 10), is_lfs: true };
                 }
             }
         }
@@ -349,25 +352,27 @@ async function collect_mmc_component_versions(optional_early_instance_dir: strin
 async function filter_and_plan_files<T>(
     files: Record<string, T>,
     packaging_config: PackPackagingVariant,
-): Promise<Array<[{ path: string; include_as: string }, T]>> {
+): Promise<Array<[{ path: string; include_as: string; extra_mod_info: { mod_hash: string; direct_url: string } | undefined }, T]>> {
     if (PACKAGING == undefined) throw Error('Config not yet initialized.');
 
-    const filtered_files: Array<[{ path: string; include_as: string }, T]> = [];
+    const filtered_files: Array<
+        [{ path: string; include_as: string; extra_mod_info: { mod_hash: string; direct_url: string } | undefined }, T]
+    > = [];
     const mod_map = await read_saved_mods(ANNOTATED_FILE);
     // Combine both filters into one, not relative, list of filters that includes what they should be included as
-    const combined_filters: Array<{ filter_path: string; include_as: string | undefined, dont_track: boolean }> = [
+    const combined_filters: Array<{ filter_path: string; include_as: string | undefined; dont_track: boolean }> = [
         ...packaging_config.TRACK_INCLUDE_PATHS.map((relative_path) => {
             return {
                 filter_path: relative_path.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
                 include_as: undefined,
-                dont_track: false
+                dont_track: false,
             };
         }),
         ...packaging_config.FORCE_INCLUDE_PATHS.map((include_filter) => {
             return {
                 filter_path: include_filter.relative_path.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
                 include_as: include_filter.include_as,
-                dont_track: include_filter.dont_track || false
+                dont_track: include_filter.dont_track || false,
             };
         }),
     ];
@@ -385,9 +390,12 @@ async function filter_and_plan_files<T>(
             }
         }
 
-        let include_obj: [{ path: string; include_as: string }, T] | undefined = undefined;
+        let include_obj:
+            | [{ path: string; include_as: string; extra_mod_info: { mod_hash: string; direct_url: string } | undefined }, T]
+            | undefined = undefined;
         path_filter_iter: for (const path_filter of combined_filters) {
             if (!path_filter.dont_track && file_path.startsWith(path_filter.filter_path)) {
+                let extra_mod_info: { hash: string; url: string } | undefined = undefined;
                 if (path_filter.filter_path === non_relative_mod_dir && file_path.endsWith('.jar')) {
                     // Need to relativize this here because thats how our mod jars are stored
                     let mod_file_path = file_path.startsWith(RELATIVE_INSTANCE_DIRECTORY)
@@ -396,7 +404,7 @@ async function filter_and_plan_files<T>(
                     const mod_obj = mod_map.values().find((mod_obj) => mod_obj.file_path === mod_file_path);
                     if (mod_obj == undefined) {
                         console.warn(
-                            `W: Mod jar ${file_path} is in mods folder, but does not seem to be tracked by packscripts. Including by default via tags.`,
+                            `W: Mod jar ${file_path} is in mods folder, but does not seem to be tracked by packscripts. Including by default..`,
                         );
                     } else if (mod_obj.tags != undefined && mod_obj.tags.length > 0) {
                         for (const exclude_tags of packaging_config.EXCLUDED_MOD_TAGS) {
@@ -420,6 +428,13 @@ async function filter_and_plan_files<T>(
                         // Mod does not have any of the tags we require, do not include it (on this filter)
                         if (!is_included) continue path_filter_iter;
                     }
+
+                    if (mod_obj != undefined && mod_obj.source && mod_obj.update_state.sha256_sum) {
+                        const url_match = parse_gh_url(mod_obj.source);
+                        if (url_match && url_match.tag && url_match.asset) {
+                            extra_mod_info = { hash: mod_obj.update_state.sha256_sum, url: mod_obj.source };
+                        }
+                    }
                 }
 
                 include_obj = [
@@ -429,6 +444,8 @@ async function filter_and_plan_files<T>(
                             path_filter.include_as != undefined
                                 ? file_path.replace(new RegExp(`^${path_filter.filter_path}`, 'm'), path_filter.include_as)
                                 : file_path,
+                        extra_mod_info:
+                            extra_mod_info != undefined ? { mod_hash: extra_mod_info.hash, direct_url: extra_mod_info.url } : undefined,
                     },
                     carryon_obj,
                 ];
@@ -475,7 +492,7 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
                 message:
                     'GIT_REMOTE_URL\n Enter a url to a raw git directory head from where the repo can be read. For github that would be "https://raw.githubusercontent.com/[USER]/[REPOSITORY]/[BRANCH]". This will be used to notify users of updates & provide some files:',
                 default: 'https://raw.githubusercontent.com/[USER]/[REPOSITORY]/[BRANCH]',
-                prefill: "editable",
+                prefill: 'editable',
                 validate: (input: string) => {
                     if (!input.trim()) return 'ERR: Remote manifest URL cannot be empty.';
                     return true;
@@ -484,7 +501,7 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
             await input({
                 message: 'GIT_LFS_REMOTE_URL\n Enter the git lfs url for a raw view on lfs files. For github that would be :',
                 default: 'https://github.com/[USER]/[REPOSITORY]/raw/[BRANCH]',
-                prefill: "editable"
+                prefill: 'editable',
             }),
             await input({
                 message: 'PACK_NAME\n Enter the full name of your pack (without versions):',
@@ -557,7 +574,7 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
                 message: 'Accept packaging config in its current state?',
             }))
         ) {
-            console.info("Cancelling...")
+            console.info('Cancelling...');
             return;
         }
     }
@@ -569,7 +586,9 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
 
     // download unsup jar (which will be the same for all variants), save to newly created packaging dir
     await mkdir(packaging_dir, { recursive: true });
-    console.info('\nDownloading unsup & launcher jars from https://github.com/MalTeeez/unsup-fork and https://github.com/MalTeeez/unsup-launcher...');
+    console.info(
+        '\nDownloading unsup & launcher jars from https://github.com/MalTeeez/unsup-fork and https://github.com/MalTeeez/unsup-launcher...',
+    );
     await download_file(
         'https://github.com/MalTeeez/unsup-fork/releases/download/v1.3.0/unsup-1.2-custom+371ddeb243.20260428.jar',
         'OTHER',
@@ -668,7 +687,7 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
     const git_available = await is_git_available(RELATIVE_INSTANCE_DIRECTORY);
     const lfs_oids = git_available ? await get_lfs_oids(RELATIVE_INSTANCE_DIRECTORY, [commit_sha]) : undefined;
     const target_remote_url = PACKAGING.GIT_REMOTE_URL.replace(/[^\/]+?$/m, '') + commit_sha;
-    const target_remote_lfs_url = PACKAGING.GIT_LFS_REMOTE_URL.replace(/[^\/]+?$/m, '') + commit_sha
+    const target_remote_lfs_url = PACKAGING.GIT_LFS_REMOTE_URL.replace(/[^\/]+?$/m, '') + commit_sha;
     const WORKER_COUNT = Math.min(PACKAGING.MAX_WORKER_THREADS, 10);
 
     for (const [variant_name, pack_variant] of Object.entries(PACKAGING.PACK_VARIANTS)) {
@@ -678,7 +697,7 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
         let tag = input_tag;
 
         const packaging_plan = await filter_and_plan_files(Object.fromEntries(file_oids.keys().map((path) => [path, null])), pack_variant);
-        const file_refs: { path: string; hash: string; size: number; url: string }[] = [];
+        const file_refs: { path: string; hash: string; size: number; url: string; mirror_url?: string }[] = [];
 
         console.info('Collecting git blobs...');
         const pool = create_worker_pool(packaging_plan.length, WORKER_COUNT, { live_render: true });
@@ -702,11 +721,15 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
                     lfs_oids,
                 );
 
+                // Use direct git url as mirror url and direct url as primary if available
+                const repo_url = (is_lfs ? target_remote_lfs_url : target_remote_url) + '/' + encodeURI(plan_item[0].path);
+                const has_direct_url = plan_item[0].extra_mod_info != undefined && plan_item[0].extra_mod_info.mod_hash === hash;
                 file_refs.push({
                     path: plan_item[0].include_as,
                     hash,
                     size,
-                    url: (is_lfs ? target_remote_lfs_url : target_remote_url) + '/' + encodeURI(plan_item[0].path),
+                    url: has_direct_url ? plan_item[0].extra_mod_info!.direct_url : repo_url,
+                    ...(has_direct_url && { mirror_url: repo_url }),
                 });
 
                 pool.complete(worker_id);
@@ -733,6 +756,7 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
                 to_hash: string | null;
                 to_size: number;
                 url?: string;
+                mirror_url?: string;
             }[] = [];
             for (const item of file_refs) {
                 changes.push({
@@ -742,6 +766,7 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
                     to_hash: item.hash,
                     to_size: item.size,
                     url: item.url,
+                    ...(item.mirror_url != undefined && { mirror_url: item.mirror_url }),
                 });
             }
 
@@ -934,7 +959,7 @@ export async function build_version_for_diff(
         console.info(`Building list of changes from ${filtered_diffs.length} diffs...`);
         // Remove branch / git ref from remote url and use the target ref
         const target_remote_url = PACKAGING.GIT_REMOTE_URL.replace(/[^\/]+?$/m, '') + target_commit_sha;
-        const target_remote_lfs_url = PACKAGING.GIT_LFS_REMOTE_URL.replace(/[^\/]+?$/m, '') + target_commit_sha
+        const target_remote_lfs_url = PACKAGING.GIT_LFS_REMOTE_URL.replace(/[^\/]+?$/m, '') + target_commit_sha;
 
         const changes: {
             path: string;
@@ -951,7 +976,7 @@ export async function build_version_for_diff(
         const queue = [...filtered_diffs];
         const workers = Array.from({ length: WORKER_COUNT }, async (_, worker_id) => {
             while (queue.length > 0) {
-                const [{ path: file_path, include_as: include_path }, diff_item] = queue.shift()!;
+                const [{ path: file_path, include_as: include_path, extra_mod_info }, diff_item] = queue.shift()!;
                 if (PACKAGING == undefined) throw Error('Config was initialized but is not available off-thread? Something is wrong.');
 
                 pool.set_status(worker_id, `${diff_item.status} ${file_path}`);
@@ -966,13 +991,17 @@ export async function build_version_for_diff(
                         lfs_oids,
                     );
 
+                    const repo_url = (is_lfs ? target_remote_lfs_url : target_remote_url) + '/' + encodeURI(file_path);
+                    const has_direct_url = extra_mod_info != undefined && extra_mod_info.mod_hash === hash;
+
                     changes.push({
                         path: include_path,
                         from_hash: null,
                         from_size: 0,
                         to_hash: hash,
                         to_size: size,
-                        url: (is_lfs ? target_remote_lfs_url : target_remote_url) + '/' + encodeURI(file_path),
+                        url: has_direct_url ? extra_mod_info!.direct_url : repo_url,
+                        ...(has_direct_url && { mirror_url: repo_url }),
                     });
                 } else if (diff_item.status === 'deleted') {
                     const { hash, size } = await get_blob_info(
@@ -997,13 +1026,17 @@ export async function build_version_for_diff(
                         get_blob_info(git_available, diff_item.new_oid, RELATIVE_INSTANCE_DIRECTORY, target_commit_sha, file_path, lfs_oids),
                     ]);
 
+                    const repo_url = (new_blob.is_lfs ? target_remote_lfs_url : target_remote_url) + '/' + encodeURI(file_path);
+                    const has_direct_url = extra_mod_info != undefined && extra_mod_info.mod_hash === new_blob.hash;
+
                     changes.push({
                         path: include_path,
                         from_hash: old_blob.hash,
                         from_size: old_blob.size,
                         to_hash: new_blob.hash,
                         to_size: new_blob.size,
-                        url: (new_blob.is_lfs ? target_remote_lfs_url : target_remote_url) + '/' + encodeURI(file_path),
+                        url: has_direct_url ? extra_mod_info!.direct_url : repo_url,
+                        ...(has_direct_url && { mirror_url: repo_url }),
                     });
                 } else {
                     throw Error('Encountered an unrecognized git change while building changes from diff: ' + diff_item);

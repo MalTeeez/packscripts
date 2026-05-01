@@ -1,5 +1,5 @@
 import { ANNOTATED_FILE, MOD_BASE_DIR } from './config';
-import { extract_file_from_zip, is_folder_locked, read_from_file, rename_file, save_map_to_file, scan_mods_folder, search_zip_for_string } from './fs';
+import { extract_file_from_zip, hash_file, is_folder_locked, read_from_file, rename_file, save_map_to_file, scan_mods_folder, search_zip_for_string } from './fs';
 import { dedup_array, type JsonObject } from './utils';
 
 //#region types
@@ -19,6 +19,7 @@ export interface update_state {
     last_status: string;
     last_updated_at: string | undefined;
     file_pattern: string | undefined;
+    sha256_sum: string;
     // We only need this, so that we can access the attributes via [string]
     [key: string]: string | boolean | undefined;
 }
@@ -54,12 +55,14 @@ export const default_mod_object: mod_object = {
         last_updated_at: '',
         source_type: 'OTHER',
         file_pattern: '',
+        sha256_sum: ''
     },
 };
 
 export interface update_state_unsafe {
     version?: string | undefined;
     last_updated_at?: string | undefined;
+    sha256_sum: string;
     // We only need this, so that we can access the attributes via [string]
     [key: string]: string | boolean | undefined;
 }
@@ -70,7 +73,7 @@ export interface mod_object_unsafe {
     enabled: boolean;
     wants?: string[];
     other_mod_ids?: string[];
-    update_state?: update_state_unsafe;
+    update_state: update_state_unsafe;
     // We only need this, so that we can access the attributes via [string]
     [key: string]: string | JsonObject | string[] | boolean | undefined | update_state_unsafe;
 }
@@ -132,6 +135,7 @@ export async function read_saved_mods(annotated_file: string): Promise<Map<strin
                         ? get_source_type_from_url(mod.source)
                         : default_mod_object.update_state.source_type,
                 file_pattern: mod.update_state?.file_pattern || default_mod_object.update_state.file_pattern,
+                sha256_sum: mod.update_state.sha256_sum || ''
             },
         };
         mod_map.set(mod_id, modObj);
@@ -356,22 +360,31 @@ export async function disable_all_mods(mod_map?: Map<string, mod_object>) {
  */
 export async function extract_modinfos(files: Map<string, string>): Promise<Map<string, mod_object_unsafe>> {
     const mods = new Map();
-    for (const [file_path] of files) {
-        const { id, other_mod_ids, state, version, wants } = await parse_mod_details(file_path);
-        if (id != undefined) {
-            const mod: mod_object_unsafe = {
-                mod_id: id,
-                other_mod_ids: other_mod_ids,
-                wants: wants,
-                enabled: state,
-                file_path: file_path,
-                update_state: {
-                    version: version,
-                },
-            };
-            mods.set(file_path, mod);
-        } else {
-            console.warn('W: Failed to parse mod id for file', file_path, ', ignoring.');
+    const file_paths = Array.from(files.keys());
+    const POOL_SIZE = 8;
+
+    for (let i = 0; i < file_paths.length; i += POOL_SIZE) {
+        const batch = file_paths.slice(i, i + POOL_SIZE);
+        const results = await Promise.all(
+            batch.map(async (file_path) => ({ file_path, ...(await parse_mod_details(file_path)) }))
+        );
+        for (const { file_path, id, other_mod_ids, state, version, wants, hash } of results) {
+            if (id != undefined) {
+                const mod: mod_object_unsafe = {
+                    mod_id: id,
+                    other_mod_ids: other_mod_ids,
+                    wants: wants,
+                    enabled: state,
+                    file_path: file_path,
+                    update_state: {
+                        version: version,
+                        sha256_sum: hash
+                    },
+                };
+                mods.set(file_path, mod);
+            } else {
+                console.warn('W: Failed to parse mod id for file', file_path, ', ignoring.');
+            }
         }
     }
     return mods;
@@ -388,12 +401,15 @@ export async function parse_mod_details(file_path: string): Promise<{
     wants: Array<string>;
     version: string | undefined;
     state: boolean;
+    hash: string;
 }> {
     let mod_id: undefined | string = undefined;
     let other_mod_ids: string[] | undefined = undefined;
     let wants: Array<string> = [];
     let mod_version: undefined | string;
     const mod_state: boolean = !file_path.endsWith('.disabled');
+
+    const hash = hash_file(file_path, "sha256");
 
     // oh god what have I created. (Filename to modid pattern)
     // Basically, this first matches the folder path in front of the file. Then it filters out any non word chars in front of the name or a tag group, such as [CLIENT].
@@ -576,7 +592,7 @@ export async function parse_mod_details(file_path: string): Promise<{
         wants = [];
     }
 
-    return { id: mod_id, other_mod_ids: other_mod_ids, wants: wants, version: mod_version, state: mod_state };
+    return { id: mod_id, other_mod_ids: other_mod_ids, wants: wants, version: mod_version, state: mod_state, hash: await hash };
 }
 
 /**

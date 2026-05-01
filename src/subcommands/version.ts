@@ -14,8 +14,29 @@ import {
 } from '../utils/utils';
 import { mkdir, rename } from 'node:fs/promises';
 import { toNamespacedPath } from 'node:path';
+import { parse_gh_url } from '../utils/sources';
 
 const SOURCE_API_KEYS: Map<SourceType, string> = new Map();
+
+interface ReleaseAsset {
+    url: string;
+    browser_download_url: string;
+    id: number;
+    name: string;
+    content_type: string;
+    size: number;
+    digest: string | null; // sha256:2151b604e3429bff440b9fbc03eb3617bc2603cda96c95b9bb05277f9ddba255,
+}
+interface Release {
+    url: string;
+    assets_url: string;
+    id: number;
+    tag_name: string;
+    target_commitish: string;
+    name: string;
+    body: string;
+    assets: ReleaseAsset[];
+}
 
 //#region general helpers
 function assert_gh_key() {
@@ -96,7 +117,7 @@ function render_wide_release(
                 `${CLIColor.FgGray18}${kb} ${CLIColor.FgGray14}KB` +
                 `${CLIColor.FgGray10})${CLIColor.Reset}\n`;
         }
-         if (options.render_notes) result_text += '\n';
+        if (options.render_notes) result_text += '\n';
     }
 
     // Body section — colored gutter, transparent content background
@@ -104,9 +125,9 @@ function render_wide_release(
         const gutter_b = `${CLIColor.BgGray3}${CLIColor.FgGray5}▌${CLIColor.Reset}    `;
         const rendered_body = render_md(release.body);
         result_text += rendered_body
-        .split('\n')
-        .map((line) => gutter_b + `${CLIColor.FgGray19}${line}${CLIColor.Reset}`)
-        .join('\n');
+            .split('\n')
+            .map((line) => gutter_b + `${CLIColor.FgGray19}${line}${CLIColor.Reset}`)
+            .join('\n');
         result_text += '\n';
     }
 
@@ -185,7 +206,7 @@ export async function list_all_versions_for_mod(
                                 ? `   \t${CLIColor.FgGray19}<- ${CLIColor.FgGray14}[${CLIColor.FgGray19}current version${CLIColor.FgGray14}]${CLIColor.Reset}`
                                 : undefined,
                         render_assets: !options.hide_assets,
-                        render_notes: !options.hide_notes
+                        render_notes: !options.hide_notes,
                     }),
                 );
             } else {
@@ -255,7 +276,7 @@ export async function switch_version_of_mod(
                     version_padding: 16,
                     text_start: `  ${CLIColor.BgTeal3}${CLIColor.FgWhite1}${CLIColor.Bright} ${mod.update_state.version} ${CLIColor.Reset} ${CLIColor.Bright}${CLIColor.FgGray17}-> ${CLIColor.Reset}`,
                     render_assets: !options.hide_assets,
-                    render_notes: !options.hide_notes
+                    render_notes: !options.hide_notes,
                 }),
             );
         } else {
@@ -586,40 +607,99 @@ export async function verify_and_refresh_source_links(
     assert_gh_key();
     mod_map = mod_map == undefined ? await read_saved_mods(ANNOTATED_FILE) : mod_map;
 
-    const gh_release_url_pattern = /github\.com\/GTNewHorizons\/BetterAchievements\/releases\/(?:tag|download)\/[^\/]+?/
-
     for (const [mod_name, mod] of mod_map) {
         if (!mod.update_state || !mod.source) continue;
 
+        const source_api_key = SOURCE_API_KEYS.get(mod.update_state.source_type);
+        if (!source_api_key) {
+            //console.warn('W: Missing API key for mods source ', mod.update_state.source_type, ', ignoring.');
+            continue;
+        }
+
         switch (mod.update_state.source_type) {
             case 'GH_RELEASE': {
-                const release_url_match = mod.source.match(gh_release_url_pattern);
-                if (release_url_match != null && release_url_match.groups != undefined && release_url_match.groups["tag"]) {
-                    const tag = release_url_match.groups["tag"];
+                const url_match = parse_gh_url(mod.source);
+                if (url_match != undefined) {
+                    const { owner, project, tag } = url_match;
+                    // Does the version on the file match the version in the url
                     if (mod.update_state.version !== tag) {
-                        
-                    }
+                        // Has to be updated, fetch releases from github
+                        let release: Release | undefined = undefined;
+                        let { headers, status, body } = await query_gh_project_by_url(mod.source, source_api_key, '/releases?per_page=100');
+                        if (status == '200' && body != undefined && Array.isArray(body)) {
+                            const releases = Array.from(body);
+                            // Try to find in releases by matching mod version against release tag
+                            release = releases.find((entry: Release) => entry.tag_name === mod.update_state.version);
 
+                            if (release == undefined && headers?.get('link')?.includes('rel="last"')) {
+                                let page = 2;
+                                while (release == undefined && page < 10 && headers?.get('link')?.includes('rel="last"')) {
+                                    ({ headers, status, body } = await query_gh_project_by_url(
+                                        mod.source,
+                                        source_api_key,
+                                        '/releases?per_page=100&page=' + page,
+                                    ));
+                                    if (status == '200' && body != undefined && Array.isArray(body)) {
+                                        // Find release from matched tag or matched asset digest
+                                        release = body.find(
+                                            (entry: Release) =>
+                                                entry.tag_name === mod.update_state.version ||
+                                                entry.assets.find(
+                                                    (asset_entry) =>
+                                                        asset_entry.digest != null &&
+                                                        asset_entry.digest.slice(7) === mod.update_state.sha256_sum,
+                                                ) != undefined,
+                                        );
+                                        page++;
+                                    } else {
+                                        console.warn('W: Failed to fetch further releases for page ', page, '.');
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (release != undefined) {
+                            const asset = release.assets.find(
+                                (entry) => entry.digest != null && entry.digest.slice(7) === mod.update_state.sha256_sum,
+                            );
+                            if (asset != undefined) {
+                                mod.source = asset.browser_download_url;
+                            } else {
+                                console.log(`Found matching release for mod ${mod_name}, but failed to find matching asset.`);
+                            }
+                        } else {
+                            console.log(`Failed to find release tag ${mod.update_state.version} for mod ${mod_name}.`);
+                        }
+                    }
                 } else {
-                    console.warn("W: Encountered malformed source URL for mod ", mod_name, ", skipping")
+                    console.warn('W: Encountered malformed source URL for mod ', mod_name, ', skipping.', mod.source);
                     continue;
                 }
+
+                break;
             }
             case 'CURSEFORGE': {
                 // TBD
+                break;
             }
             case 'MODRINTH': {
                 // TBD
+                break;
             }
             case 'OTHER': {
                 // IDK
+                break;
             }
             default: {
-                console.warn(`W: Encountered unkown source type '${mod.update_state.source_type}', skipping`)
+                console.warn(`W: Encountered unkown source type '${mod.update_state.source_type}', skipping`);
             }
-                
         }
     }
-    
+
+    if (!options.dry) {
+        await save_map_to_file(ANNOTATED_FILE, mod_map);
+    }
+
     await print_gh_ratelimits(GITHUB_API_KEY);
 }
