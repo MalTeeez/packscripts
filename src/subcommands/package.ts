@@ -698,7 +698,7 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
 
         const blob = await readBlob({
             fs: fs,
-            filepath: ANNOTATED_FILE.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`), ''),
+            filepath: ANNOTATED_FILE.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, "m"), ''),
             oid: commit_sha,
         }).catch(() => undefined);
         const packaging_plan = await filter_and_plan_files(
@@ -962,7 +962,7 @@ export async function build_version_for_diff(
         // Filter by filepaths
         const blob = await readBlob({
             fs: fs,
-            filepath: ANNOTATED_FILE.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`), ''),
+            filepath: ANNOTATED_FILE.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, "m"), ''),
             oid: target_commit_sha,
         }).catch(() => undefined);
         const filtered_diffs = await filter_and_plan_files(

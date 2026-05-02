@@ -10,7 +10,7 @@ export async function query_gh_project_by_url(
     const url_match = parse_gh_url(url);
     if (url_match != undefined) {
         const { owner, project } = url_match;
-        const url = `/repos/${owner}/${project}/${sub_repo_api_path}`;
+        const url = `/repos/${owner}/${project}/${sub_repo_api_path.replace(/^\//m, '')}`;
         
         const res: Response | undefined = await gh_request(url, gh_api_key, 'GET');
         if (res == undefined || !res.ok) {
