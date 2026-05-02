@@ -104,8 +104,8 @@ export function getUpdateFrequencyOrdinal(freq: update_frequency): number {
  * @param annotated_file The file path to the json file
  * @returns A map, keyed by the mod id
  */
-export async function read_saved_mods(annotated_file: string): Promise<Map<string, mod_object>> {
-    const file_contents = await read_from_file(annotated_file);
+export async function read_saved_mods(annotated_file: string, blob?: Uint8Array<ArrayBufferLike>): Promise<Map<string, mod_object>> {
+    const file_contents = blob != undefined ? JSON.parse(new TextDecoder().decode(blob)) : await read_from_file(annotated_file);
     const file_map: Map<string, mod_object> = new Map(Object.entries(file_contents)) as Map<string, mod_object>;
 
     const mod_map = new Map<string, mod_object>();

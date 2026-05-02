@@ -16,7 +16,7 @@ import { expandOid, readBlob, resolveRef, TREE, walk } from 'isomorphic-git';
 import { bundle_files_to_zip, path_is_directory } from '../utils/fs';
 import { sync } from 'fast-glob';
 import { CLIColor, finish_live_zone, hash_buffer, init_live_zone, update_live_zone } from '../utils/utils';
-import { read_saved_mods } from '../utils/mods';
+import { read_saved_mods, type mod_object } from '../utils/mods';
 import { input, confirm } from '@inquirer/prompts';
 import { parse_gh_url } from '../utils/sources';
 
@@ -352,13 +352,13 @@ async function collect_mmc_component_versions(optional_early_instance_dir: strin
 async function filter_and_plan_files<T>(
     files: Record<string, T>,
     packaging_config: PackPackagingVariant,
+    mod_map?: Map<string, mod_object>,
 ): Promise<Array<[{ path: string; include_as: string; extra_mod_info: { mod_hash: string; direct_url: string } | undefined }, T]>> {
     if (PACKAGING == undefined) throw Error('Config not yet initialized.');
 
     const filtered_files: Array<
         [{ path: string; include_as: string; extra_mod_info: { mod_hash: string; direct_url: string } | undefined }, T]
     > = [];
-    const mod_map = await read_saved_mods(ANNOTATED_FILE);
     // Combine both filters into one, not relative, list of filters that includes what they should be included as
     const combined_filters: Array<{ filter_path: string; include_as: string | undefined; dont_track: boolean }> = [
         ...packaging_config.TRACK_INCLUDE_PATHS.map((relative_path) => {
@@ -396,7 +396,7 @@ async function filter_and_plan_files<T>(
         path_filter_iter: for (const path_filter of combined_filters) {
             if (!path_filter.dont_track && file_path.startsWith(path_filter.filter_path)) {
                 let extra_mod_info: { hash: string; url: string } | undefined = undefined;
-                if (path_filter.filter_path === non_relative_mod_dir && file_path.endsWith('.jar')) {
+                if (mod_map != undefined && path_filter.filter_path === non_relative_mod_dir && file_path.endsWith('.jar')) {
                     // Need to relativize this here because thats how our mod jars are stored
                     let mod_file_path = file_path.startsWith(RELATIVE_INSTANCE_DIRECTORY)
                         ? file_path
@@ -696,7 +696,16 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
         // Don't mutate this across loops
         let tag = input_tag;
 
-        const packaging_plan = await filter_and_plan_files(Object.fromEntries(file_oids.keys().map((path) => [path, null])), pack_variant);
+        const blob = await readBlob({
+            fs: fs,
+            filepath: ANNOTATED_FILE.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`), ''),
+            oid: commit_sha,
+        }).catch(() => undefined);
+        const packaging_plan = await filter_and_plan_files(
+            Object.fromEntries(file_oids.keys().map((path) => [path, null])),
+            pack_variant,
+            blob != undefined ? await read_saved_mods(ANNOTATED_FILE, blob.blob) : undefined,
+        );
         const file_refs: { path: string; hash: string; size: number; url: string; mirror_url?: string }[] = [];
 
         console.info('Collecting git blobs...');
@@ -951,9 +960,15 @@ export async function build_version_for_diff(
         });
 
         // Filter by filepaths
+        const blob = await readBlob({
+            fs: fs,
+            filepath: ANNOTATED_FILE.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`), ''),
+            oid: target_commit_sha,
+        }).catch(() => undefined);
         const filtered_diffs = await filter_and_plan_files(
             Object.fromEntries(diffs.map((diff_item) => [diff_item.filepath, diff_item])),
             pack_variant,
+            blob != undefined ? await read_saved_mods(ANNOTATED_FILE, blob.blob) : undefined,
         );
 
         console.info(`Building list of changes from ${filtered_diffs.length} diffs...`);
