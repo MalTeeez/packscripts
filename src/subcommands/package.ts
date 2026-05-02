@@ -396,7 +396,7 @@ async function filter_and_plan_files<T>(
         path_filter_iter: for (const path_filter of combined_filters) {
             if (!path_filter.dont_track && file_path.startsWith(path_filter.filter_path)) {
                 let extra_mod_info: { hash: string; url: string } | undefined = undefined;
-                if (mod_map != undefined && path_filter.filter_path === non_relative_mod_dir && file_path.endsWith('.jar')) {
+                if (mod_map != undefined && non_relative_mod_dir.startsWith(path_filter.filter_path) && file_path.endsWith('.jar')) {
                     // Need to relativize this here because thats how our mod jars are stored
                     let mod_file_path = file_path.startsWith(RELATIVE_INSTANCE_DIRECTORY)
                         ? file_path
@@ -698,6 +698,7 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
 
         const blob = await readBlob({
             fs: fs,
+            dir: RELATIVE_INSTANCE_DIRECTORY,
             filepath: ANNOTATED_FILE.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, "m"), ''),
             oid: commit_sha,
         }).catch(() => undefined);
@@ -962,6 +963,7 @@ export async function build_version_for_diff(
         // Filter by filepaths
         const blob = await readBlob({
             fs: fs,
+            dir: RELATIVE_INSTANCE_DIRECTORY,
             filepath: ANNOTATED_FILE.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, "m"), ''),
             oid: target_commit_sha,
         }).catch(() => undefined);
