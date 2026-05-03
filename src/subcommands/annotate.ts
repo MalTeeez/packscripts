@@ -71,12 +71,11 @@ export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<
 
             // Invalidate direct source links
             old_mod_obj.source = invalidate_direct_source_link(old_mod_obj.source, old_mod_obj.update_state.source_type);
-
+            
+            // Add to tags if not present
             if (options.toggle_tag != undefined) {
                 for (const tag of options.toggle_tag) {
-                    if (old_mod_obj.tags?.includes(tag)) {
-                        old_mod_obj.tags = old_mod_obj.tags.filter((item) => item !== tag);
-                    } else {
+                    if (old_mod_obj.tags == undefined || !old_mod_obj.tags.includes(tag)) {
                         if (old_mod_obj.tags != undefined) {
                             old_mod_obj.tags.push(tag);
                         } else {
@@ -108,7 +107,13 @@ export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<
                 `W: Mod ${mod_id} is missing its linked file. ${options.remove_nonexistent ? 'Removing from list.' : 'Was it renamed / moved?'}`,
             );
             if (options.remove_nonexistent) {
+                // Remove if it doesnt exist anymore
                 to_remove.push(mod_id);
+            } else if (options.toggle_tag != undefined && mod.tags != undefined && mod.tags.length > 0) {
+                // Remove this tag from its tags if they include it
+                for (const tag of options.toggle_tag) {
+                    mod.tags = mod.tags.filter((item) => item !== tag)
+                }
             }
         }
         if (options.remove_untagged != undefined) {
