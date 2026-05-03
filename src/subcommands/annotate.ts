@@ -14,24 +14,33 @@ import { parse_gh_url } from '../utils/sources';
 import { clone } from '../utils/utils';
 import { exists } from 'node:fs/promises';
 
-export async function annotate(options: { existing_only: boolean }) {
-    if (!await exists(MOD_BASE_DIR)) {
-        console.warn(`W: Mod directoy at ${MOD_BASE_DIR} does not exist. If it is located somewhere else, make sure to specify this in your config.json under "MOD_BASE_DIR".`)
+interface refesh_options {
+    skip_new: boolean;
+    remove_nonexistent: boolean;
+    remove_untagged?: string[];
+    toggle_tag?: string[];
+}
+
+export async function annotate(options: refesh_options) {
+    if (!(await exists(MOD_BASE_DIR))) {
+        console.warn(
+            `W: Mod directoy at ${MOD_BASE_DIR} does not exist. If it is located somewhere else, make sure to specify this in your config.json under "MOD_BASE_DIR".`,
+        );
         return;
     }
-    if (!await are_all_mods_unlocked()) {
-        console.warn("W: Something is locking a file in the mods directory. Is the game still running?")
+    if (!(await are_all_mods_unlocked())) {
+        console.warn('W: Something is locking a file in the mods directory. Is the game still running?');
         return;
     }
 
-    console.info("Scanning mods folder...")
+    console.info('Scanning mods folder...');
     const mod_files = await scan_mods_folder(MOD_BASE_DIR);
     const old_list = await read_saved_mods(ANNOTATED_FILE);
-    console.info("Extracting more information from mods...")
+    console.info('Extracting more information from mods...');
     const enriched_mods = await extract_modinfos(mod_files);
 
     if (old_list != undefined && typeof old_list === 'object') {
-        await save_map_to_file(ANNOTATED_FILE, update_list(enriched_mods, old_list, options.existing_only));
+        await save_map_to_file(ANNOTATED_FILE, update_list(enriched_mods, old_list, options));
     } else {
         console.error('Failed to read annotated mods from file.');
     }
@@ -40,7 +49,7 @@ export async function annotate(options: { existing_only: boolean }) {
 /**
  * Update a loaded mod map with the actual state from fs
  */
-export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<string, mod_object>, existing_only: boolean) {
+export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<string, mod_object>, options: refesh_options) {
     // Create maps from parameters
     for (const [file_path, new_mod_obj] of files) {
         let old_mod_obj = mod_map.get(new_mod_obj.mod_id);
@@ -61,8 +70,22 @@ export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<
             }
 
             // Invalidate direct source links
-            old_mod_obj.source = invalidate_direct_source_link(old_mod_obj.source, old_mod_obj.update_state.source_type)
-        } else if (new_mod_obj.mod_id != undefined && !existing_only) {
+            old_mod_obj.source = invalidate_direct_source_link(old_mod_obj.source, old_mod_obj.update_state.source_type);
+
+            if (options.toggle_tag != undefined) {
+                for (const tag of options.toggle_tag) {
+                    if (old_mod_obj.tags?.includes(tag)) {
+                        old_mod_obj.tags = old_mod_obj.tags.filter((item) => item !== tag);
+                    } else {
+                        if (old_mod_obj.tags != undefined) {
+                            old_mod_obj.tags.push(tag);
+                        } else {
+                            old_mod_obj.tags = [tag];
+                        }
+                    }
+                }
+            }
+        } else if (new_mod_obj.mod_id != undefined && !options.skip_new) {
             old_mod_obj = clone(default_mod_object) as mod_object;
             old_mod_obj.file_path = file_path;
             old_mod_obj.enabled = new_mod_obj.enabled;
@@ -70,15 +93,40 @@ export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<
             old_mod_obj.update_state.sha256_sum = new_mod_obj.update_state.sha256_sum;
             old_mod_obj.wants = new_mod_obj.wants;
             old_mod_obj.other_mod_ids = new_mod_obj.other_mod_ids || [];
+            if (options.toggle_tag != undefined) {
+                old_mod_obj.tags = Array.from(options.toggle_tag);
+            }
 
             mod_map.set(new_mod_obj.mod_id, old_mod_obj);
         }
     }
+
+    const to_remove = [];
     for (const [mod_id, mod] of mod_map) {
         if (!files.has(mod.file_path)) {
-            console.warn('W: Mod ', mod_id, ' is missing its linked file. Was it renamed / moved?');
+            console.warn(
+                `W: Mod ${mod_id} is missing its linked file. ${options.remove_nonexistent ? 'Removing from list.' : 'Was it renamed / moved?'}`,
+            );
+            if (options.remove_nonexistent) {
+                to_remove.push(mod_id);
+            }
+        }
+        if (options.remove_untagged != undefined) {
+            for (const tag_start of options.remove_untagged) {
+                let has_tag = false;
+                for (const tag of mod.tags || []) {
+                    if (tag.startsWith(tag_start)) {
+                        has_tag = true;
+                    }
+                }
+                if (!has_tag) {
+                    console.info(`Mod ${mod_id} has no tags that start with ${tag_start}, removing from list.`)
+                    to_remove.push(mod_id);
+                }
+            }
         }
     }
+    to_remove.forEach((mod_id) => mod_map.delete(mod_id));
 
     // Update list with backtraced deps
     trace_deps(mod_map);
@@ -86,28 +134,28 @@ export function update_list(files: Map<string, mod_object_unsafe>, mod_map: Map<
     return mod_map;
 }
 
-function invalidate_direct_source_link(link: string | undefined, source_type: SourceType): string | undefined  {
+function invalidate_direct_source_link(link: string | undefined, source_type: SourceType): string | undefined {
     if (link == undefined) return link;
 
     switch (source_type) {
-        case "GH_RELEASE":
+        case 'GH_RELEASE':
             const url_match = parse_gh_url(link);
             if (url_match != undefined) {
                 const { owner, project, tag, asset } = url_match;
                 if (tag != undefined && asset != undefined) {
-                    return `https://github.com/${owner}/${project}`
+                    return `https://github.com/${owner}/${project}`;
                 }
             }
 
             break;
-        case "CURSEFORGE":
-            break
-        case "MODRINTH":
+        case 'CURSEFORGE':
+            break;
+        case 'MODRINTH':
             break;
         default:
             break;
     }
-    
+
     return link;
 }
 

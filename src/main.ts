@@ -40,9 +40,24 @@ const commands: Record<string, CommandDefinition> = {
     },
     refresh: {
         description: 'Update annotated mod list',
-        usage: 'refresh [--existing_only]',
+        usage: 'refresh [--skip_new] [--remove_nonexistent] [--remove_untagged <tag>]... [--toggle_tag <tag>]...',
         handler: async (args) => {
-            await annotate({ existing_only: args.includes('--existing_only') });
+            const remove_untagged: string[] = [];
+            const toggle_tag: string[] = [];
+            for (let i = 0; i < args.length; i++) {
+                if (args[i] === '--remove_untagged' && args[i + 1] != null) {
+                    remove_untagged.push(args[++i] as string);
+                } else if (args[i] === '--toggle_tag' && args[i + 1] != null) {
+                    toggle_tag.push(args[++i] as string);
+                }
+            }
+            
+            await annotate({
+                skip_new: args.includes('--skip_new'),
+                remove_nonexistent: args.includes('--remove_nonexistent'),
+                remove_untagged: remove_untagged.length > 0 ? remove_untagged : undefined,
+                toggle_tag: toggle_tag.length > 0 ? toggle_tag : undefined,
+            });
             console.log('Mod list refreshed successfully!');
         },
     },
