@@ -524,11 +524,7 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
                     TYPE: 'client',
                     REQUIRED_MOD_TAGS: ['SIDE.CLIENT'],
                     EXCLUDED_MOD_TAGS: [],
-                    TRACK_INCLUDE_PATHS: [
-                        { path: mc_dir + 'mods' }, 
-                        { path: mc_dir + 'config' },
-                        { path: mc_dir + 'scripts' }
-                    ],
+                    TRACK_INCLUDE_PATHS: [{ path: mc_dir + 'mods' }, { path: mc_dir + 'config' }, { path: mc_dir + 'scripts' }],
                     FORCE_INCLUDE_PATHS: [
                         { path: packaging_dir + 'unsup.jar', include_as: mc_dir + 'unsup.jar.new' },
                         { path: packaging_dir + 'unsup-launcher.jar', include_as: mc_dir + 'unsup-launcher.jar', dont_track: true },
@@ -547,9 +543,9 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
                     REQUIRED_MOD_TAGS: ['SIDE.SERVER'],
                     EXCLUDED_MOD_TAGS: [],
                     TRACK_INCLUDE_PATHS: [
-                        { path: mc_dir + 'mods', include_as: 'mods' }, 
+                        { path: mc_dir + 'mods', include_as: 'mods' },
                         { path: mc_dir + 'config', include_as: 'config' },
-                        { path: mc_dir + 'scripts', include_as: 'scripts' }
+                        { path: mc_dir + 'scripts', include_as: 'scripts' },
                     ],
                     FORCE_INCLUDE_PATHS: [
                         { path: packaging_dir + 'unsup.jar', include_as: 'unsup.jar.new' },
@@ -667,7 +663,7 @@ JvmArgs="-javaagent:unsup-launcher.jar -Dunsup.debug=true -Dunsup.downloadWorker
 }
 
 //#region bootstrapping
-export async function build_bootstrap(commit_sha: string, input_tag: string | undefined) {
+export async function build_bootstrap(commit_sha: string, input_tag: string | undefined, target_variant?: string) {
     if (PACKAGING == undefined) {
         console.error("ERR: Missing config settings for packaging. Make sure to run 'packscripts package init' first.");
         return;
@@ -698,7 +694,9 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
     const target_remote_lfs_url = PACKAGING.GIT_LFS_REMOTE_URL.replace(/[^\/]+?$/m, '') + commit_sha;
     const WORKER_COUNT = Math.min(PACKAGING.MAX_WORKER_THREADS, 10);
 
-    for (const [variant_name, pack_variant] of Object.entries(PACKAGING.PACK_VARIANTS)) {
+    for (const [variant_name, pack_variant] of target_variant != undefined
+        ? Object.entries(PACKAGING.PACK_VARIANTS).filter((variant) => variant[0].toLowerCase() === target_variant.toLowerCase())
+        : Object.entries(PACKAGING.PACK_VARIANTS)) {
         console.info(`\nRunning for pack variant '${variant_name}'`);
 
         // Don't mutate this across loops
@@ -707,7 +705,7 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
         const blob = await readBlob({
             fs: fs,
             dir: RELATIVE_INSTANCE_DIRECTORY,
-            filepath: ANNOTATED_FILE.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, "m"), ''),
+            filepath: ANNOTATED_FILE.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
             oid: commit_sha,
         }).catch(() => undefined);
         const packaging_plan = await filter_and_plan_files(
@@ -972,7 +970,7 @@ export async function build_version_for_diff(
         const blob = await readBlob({
             fs: fs,
             dir: RELATIVE_INSTANCE_DIRECTORY,
-            filepath: ANNOTATED_FILE.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, "m"), ''),
+            filepath: ANNOTATED_FILE.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
             oid: target_commit_sha,
         }).catch(() => undefined);
         const filtered_diffs = await filter_and_plan_files(

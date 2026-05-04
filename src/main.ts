@@ -345,7 +345,7 @@ const commands: Record<string, CommandDefinition> = {
     package_bootstrap: {
         description:
             'Build the bootstrap for the provided commit sha (assumes HEAD if none is provided) (Will override the old bootstrap manifest).',
-        usage: 'package bootstrap [<git ref>] [-t tag]',
+        usage: 'package bootstrap [<git ref>] [-t tag] [--variant variant]',
         is_subcommand: true,
         handler: async (args) => {
             if (args.includes('--help') || args.includes('-h')) {
@@ -354,16 +354,19 @@ const commands: Record<string, CommandDefinition> = {
             }
 
             let tag: string | undefined;
+            let variant: string | undefined;
             const positional: string[] = [];
             for (let i = 0; i < args.length; i++) {
                 if (args[i] === '-t' || args[i] === '--tag') {
                     tag = args[++i];
+                } else if (args[i] === '--variant') {
+                    variant = args[++i];
                 } else if (!args[i]?.startsWith('-')) {
                     positional.push(args[i] as string);
                 }
             }
 
-            await build_bootstrap(positional.at(-1) ?? 'HEAD', tag);
+            await build_bootstrap(positional.at(-1) ?? 'HEAD', tag, variant);
 
             return;
         },
