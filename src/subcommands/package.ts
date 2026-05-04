@@ -895,6 +895,7 @@ export async function build_version_for_diff(
     input_base_commit_sha: string | undefined,
     tag: string | undefined,
     overwrite: boolean,
+    target_variant?: string,
 ) {
     if (PACKAGING == undefined) {
         console.error("ERR: Missing config settings for packaging. Make sure to run 'packscripts package init' first.");
@@ -905,7 +906,9 @@ export async function build_version_for_diff(
     const git_available = await is_git_available(RELATIVE_INSTANCE_DIRECTORY);
     const WORKER_COUNT = Math.min(PACKAGING.MAX_WORKER_THREADS, 4);
 
-    for (const [variant_name, pack_variant] of Object.entries(PACKAGING.PACK_VARIANTS)) {
+    for (const [variant_name, pack_variant] of target_variant != undefined
+        ? Object.entries(PACKAGING.PACK_VARIANTS).filter((variant) => variant[0].toLowerCase() === target_variant.toLowerCase())
+        : Object.entries(PACKAGING.PACK_VARIANTS)) {
         console.info(`\nRunning for pack variant '${variant_name}'`);
 
         const main_manifest: manifest_json = await Bun.file(PACKAGING.PACKAGE_DIRECTORY + variant_name + '/unsup/manifest.json').json();

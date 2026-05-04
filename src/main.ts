@@ -385,9 +385,12 @@ const commands: Record<string, CommandDefinition> = {
             // Collect positional args (non-flag values, excluding -t and its value)
             const positional: string[] = [];
             let tag: string | undefined;
+            let variant: string | undefined;
             for (let i = 0; i < args.length; i++) {
                 if (args[i] === '-t') {
                     tag = args[++i];
+                } else if (args[i] === '--variant') {
+                    variant = args[++i];
                 } else if (!args[i]?.startsWith('-')) {
                     positional.push(args[i] as string);
                 }
@@ -396,7 +399,7 @@ const commands: Record<string, CommandDefinition> = {
             const base_ref = positional[1];
             const target_ref = positional[0] ?? 'HEAD';
 
-            await build_version_for_diff(target_ref, base_ref, tag, args.includes('--overwrite'));
+            await build_version_for_diff(target_ref, base_ref, tag, args.includes('--overwrite'), variant);
 
             return;
         },
