@@ -214,11 +214,11 @@ export function extract_file_from_zip(zipFilePath: string, fileName: string): Pr
  * @param files - Array of file descriptors, each specifying a `relative_path` (source on disk) and `path_inside_zip` (destination path within the archive).
  * @param output_path - The file path where the resulting zip will be written.
  */
-export async function bundle_files_to_zip(files: { relative_path: string; path_inside_zip: string }[], output_path: string): Promise<void> {
+export async function bundle_files_to_zip(files: { path: string; path_inside_zip: string }[], output_path: string): Promise<void> {
     const zip_file = new yazl.ZipFile();
 
-    for (const { relative_path, path_inside_zip } of files) {
-        zip_file.addFile(relative_path, path_inside_zip);
+    for (const { path, path_inside_zip } of files) {
+        zip_file.addFile(path, path_inside_zip);
     }
 
     zip_file.end();

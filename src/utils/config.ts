@@ -38,9 +38,12 @@ export interface PackPackagingVariant {
     TYPE: 'server' | 'client';
     REQUIRED_MOD_TAGS: Array<string>;
     EXCLUDED_MOD_TAGS: Array<string>;
-    TRACK_INCLUDE_PATHS: Array<string>;
+    TRACK_INCLUDE_PATHS: Array<{
+        path: string,
+        include_as?: string
+    }>;
     FORCE_INCLUDE_PATHS: Array<{
-        relative_path: string;
+        path: string;
         include_as: string;
         dont_track?: boolean;
     }>;

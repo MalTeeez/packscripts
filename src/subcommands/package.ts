@@ -361,16 +361,16 @@ async function filter_and_plan_files<T>(
     > = [];
     // Combine both filters into one, not relative, list of filters that includes what they should be included as
     const combined_filters: Array<{ filter_path: string; include_as: string | undefined; dont_track: boolean }> = [
-        ...packaging_config.TRACK_INCLUDE_PATHS.map((relative_path) => {
+        ...packaging_config.TRACK_INCLUDE_PATHS.map((include_filter) => {
             return {
-                filter_path: relative_path.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
-                include_as: undefined,
+                filter_path: include_filter.path.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
+                include_as: include_filter.include_as,
                 dont_track: false,
             };
         }),
         ...packaging_config.FORCE_INCLUDE_PATHS.map((include_filter) => {
             return {
-                filter_path: include_filter.relative_path.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
+                filter_path: include_filter.path.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
                 include_as: include_filter.include_as,
                 dont_track: include_filter.dont_track || false,
             };
@@ -524,16 +524,20 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
                     TYPE: 'client',
                     REQUIRED_MOD_TAGS: ['SIDE.CLIENT'],
                     EXCLUDED_MOD_TAGS: [],
-                    TRACK_INCLUDE_PATHS: [mc_dir + 'mods', mc_dir + 'config', mc_dir + 'scripts'],
+                    TRACK_INCLUDE_PATHS: [
+                        { path: mc_dir + 'mods' }, 
+                        { path: mc_dir + 'config' },
+                        { path: mc_dir + 'scripts' }
+                    ],
                     FORCE_INCLUDE_PATHS: [
-                        { relative_path: packaging_dir + 'unsup.jar', include_as: mc_dir + 'unsup.jar.new' },
-                        { relative_path: packaging_dir + 'unsup-launcher.jar', include_as: mc_dir + 'unsup-launcher.jar', dont_track: true },
-                        { relative_path: packaging_dir + 'client/unsup.ini', include_as: mc_dir + 'unsup.ini' },
-                        { relative_path: packaging_dir + 'client/instance.cfg', include_as: 'instance.cfg', dont_track: true },
-                        { relative_path: RELATIVE_INSTANCE_DIRECTORY + 'libraries', include_as: 'libraries' },
-                        { relative_path: RELATIVE_INSTANCE_DIRECTORY + 'patches', include_as: 'patches' },
-                        { relative_path: RELATIVE_INSTANCE_DIRECTORY + 'mmc-pack.json', include_as: 'mmc-pack.json' },
-                        { relative_path: RELATIVE_INSTANCE_DIRECTORY + 'icon.png', include_as: 'icon.png' },
+                        { path: packaging_dir + 'unsup.jar', include_as: mc_dir + 'unsup.jar.new' },
+                        { path: packaging_dir + 'unsup-launcher.jar', include_as: mc_dir + 'unsup-launcher.jar', dont_track: true },
+                        { path: packaging_dir + 'client/unsup.ini', include_as: mc_dir + 'unsup.ini' },
+                        { path: packaging_dir + 'client/instance.cfg', include_as: 'instance.cfg', dont_track: true },
+                        { path: RELATIVE_INSTANCE_DIRECTORY + 'libraries', include_as: 'libraries' },
+                        { path: RELATIVE_INSTANCE_DIRECTORY + 'patches', include_as: 'patches' },
+                        { path: RELATIVE_INSTANCE_DIRECTORY + 'mmc-pack.json', include_as: 'mmc-pack.json' },
+                        { path: RELATIVE_INSTANCE_DIRECTORY + 'icon.png', include_as: 'icon.png' },
                     ],
                     EXCLUDE_FROM_INCLUDE_PATHS: [mc_dir + 'mods/disabled_mods'],
                     EXCLUDE_PATTERNS: ['\\.git\\w+$'],
@@ -542,11 +546,15 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
                     TYPE: 'server',
                     REQUIRED_MOD_TAGS: ['SIDE.SERVER'],
                     EXCLUDED_MOD_TAGS: [],
-                    TRACK_INCLUDE_PATHS: [mc_dir + 'mods', mc_dir + 'config', mc_dir + 'scripts'],
+                    TRACK_INCLUDE_PATHS: [
+                        { path: mc_dir + 'mods', include_as: 'mods' }, 
+                        { path: mc_dir + 'config', include_as: 'config' },
+                        { path: mc_dir + 'scripts', include_as: 'scripts' }
+                    ],
                     FORCE_INCLUDE_PATHS: [
-                        { relative_path: packaging_dir + 'unsup.jar', include_as: 'unsup.jar.new' },
-                        { relative_path: packaging_dir + 'unsup-launcher.jar', include_as: 'unsup-launcher.jar', dont_track: true },
-                        { relative_path: packaging_dir + 'server/unsup.ini', include_as: 'unsup.ini' },
+                        { path: packaging_dir + 'unsup.jar', include_as: 'unsup.jar.new' },
+                        { path: packaging_dir + 'unsup-launcher.jar', include_as: 'unsup-launcher.jar', dont_track: true },
+                        { path: packaging_dir + 'server/unsup.ini', include_as: 'unsup.ini' },
                     ],
                     EXCLUDE_FROM_INCLUDE_PATHS: [mc_dir + 'mods/disabled_mods'],
                     EXCLUDE_PATTERNS: ['\\.git\\w+$'],
@@ -854,25 +862,25 @@ export async function bundle_pack_into_starter() {
         console.log(`Bundling files for pack variant '${variant_name}'...`);
 
         const files: {
-            relative_path: string;
+            path: string;
             path_inside_zip: string;
         }[] = [];
         for (const include_item of pack_variant.FORCE_INCLUDE_PATHS) {
-            if (await Bun.file(include_item.relative_path).exists()) {
+            if (await Bun.file(include_item.path).exists()) {
                 files.push({
-                    relative_path: include_item.relative_path,
+                    path: include_item.path,
                     path_inside_zip: include_item.include_as,
                 });
             } else {
-                if (path_is_directory(include_item.relative_path)) {
-                    for (const file of sync(include_item.relative_path + '/**/*', { onlyFiles: true, deep: 10, globstar: true })) {
+                if (path_is_directory(include_item.path)) {
+                    for (const file of sync(include_item.path + '/**/*', { onlyFiles: true, deep: 10, globstar: true })) {
                         files.push({
-                            relative_path: file,
-                            path_inside_zip: file.replace(include_item.relative_path, include_item.include_as),
+                            path: file,
+                            path_inside_zip: file.replace(include_item.path, include_item.include_as),
                         });
                     }
                 } else {
-                    console.warn('W: FORCE_INCLUDE_PATH item ', include_item.relative_path, ' does not exist on disk, not including.');
+                    console.warn('W: FORCE_INCLUDE_PATH item ', include_item.path, ' does not exist on disk, not including.');
                 }
             }
         }
