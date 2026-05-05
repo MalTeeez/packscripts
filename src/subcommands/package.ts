@@ -863,24 +863,24 @@ export async function bundle_pack_into_starter() {
             path: string;
             path_inside_zip: string;
         }[] = [];
-        for (const include_item of pack_variant.FORCE_INCLUDE_PATHS) {
+        include_iter: for (const include_item of pack_variant.FORCE_INCLUDE_PATHS) {
             if (await Bun.file(include_item.path).exists()) {
                 for (const exclude_filter of pack_variant.EXCLUDE_FROM_INCLUDE_PATHS) {
                     if (include_item.path.startsWith(exclude_filter)) {
-                        continue;
+                        continue include_iter;
                     }
                 }
-
+                
                 files.push({
                     path: include_item.path,
                     path_inside_zip: include_item.include_as,
                 });
             } else {
                 if (path_is_directory(include_item.path)) {
-                    for (const file of sync(include_item.path + '/**/*', { onlyFiles: true, deep: 10, globstar: true })) {
+                    glob_iter: for (const file of sync(include_item.path + '/**/*', { onlyFiles: true, deep: 10, globstar: true })) {
                         for (const exclude_filter of pack_variant.EXCLUDE_FROM_INCLUDE_PATHS) {
                             if (file.startsWith(exclude_filter)) {
-                                continue;
+                                continue glob_iter;
                             }
                         }
 
