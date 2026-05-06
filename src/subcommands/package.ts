@@ -1052,7 +1052,7 @@ export async function build_version_for_diff(
                     );
 
                     changes.push({
-                        path: file_path,
+                        path: include_path,
                         from_hash: hash,
                         from_size: size,
                         to_hash: null,
