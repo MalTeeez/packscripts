@@ -352,7 +352,7 @@ async function collect_mmc_component_versions(optional_early_instance_dir: strin
 async function filter_and_plan_files<T>(
     files: Record<string, T>,
     packaging_config: PackPackagingVariant,
-    mod_map?: Map<string, mod_object>,
+    mod_map?: Map<string, { mod_id: string; mod: mod_object }>,
 ): Promise<Array<[{ path: string; include_as: string; extra_mod_info: { mod_hash: string; direct_url: string } | undefined }, T]>> {
     if (PACKAGING == undefined) throw Error('Config not yet initialized.');
 
@@ -401,7 +401,7 @@ async function filter_and_plan_files<T>(
                     let mod_file_path = file_path.startsWith(RELATIVE_INSTANCE_DIRECTORY)
                         ? file_path
                         : RELATIVE_INSTANCE_DIRECTORY + file_path;
-                    const mod_obj = mod_map.values().find((mod_obj) => mod_obj.file_path === mod_file_path);
+                    const mod_obj = mod_map.get(mod_file_path)?.mod;
                     if (mod_obj == undefined) {
                         console.warn(
                             `W: Mod jar ${file_path} is in mods folder, but does not seem to be tracked by packscripts. Including by default..`,
@@ -468,6 +468,33 @@ async function filter_and_plan_files<T>(
     }
 
     return filtered_files;
+}
+
+async function update_file_modmap_from_gitrefs(
+    commit_hashes: string[],
+    to_update_map?: Map<string, { mod_id: string; mod: mod_object }>,
+): Promise<Map<string, { mod_id: string; mod: mod_object }>> {
+    if (to_update_map == undefined) {
+        to_update_map = new Map();
+    }
+
+    for (const commit_hash of commit_hashes) {
+        const blob = await readBlob({
+            fs: fs,
+            dir: RELATIVE_INSTANCE_DIRECTORY,
+            filepath: ANNOTATED_FILE.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
+            oid: commit_hash,
+        }).catch(() => undefined);
+        if (blob == undefined) continue;
+
+        const mod_map = await read_saved_mods(ANNOTATED_FILE, blob.blob);
+
+        for (const [mod_id, mod] of mod_map.entries()) {
+            to_update_map.set(mod.file_path, { mod_id, mod });
+        }
+    }
+
+    return to_update_map;
 }
 
 //#region initialization
@@ -702,16 +729,10 @@ export async function build_bootstrap(commit_sha: string, input_tag: string | un
         // Don't mutate this across loops
         let tag = input_tag;
 
-        const blob = await readBlob({
-            fs: fs,
-            dir: RELATIVE_INSTANCE_DIRECTORY,
-            filepath: ANNOTATED_FILE.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
-            oid: commit_sha,
-        }).catch(() => undefined);
         const packaging_plan = await filter_and_plan_files(
             Object.fromEntries(file_oids.keys().map((path) => [path, null])),
             pack_variant,
-            blob != undefined ? await read_saved_mods(ANNOTATED_FILE, blob.blob) : undefined,
+            await update_file_modmap_from_gitrefs([commit_sha]),
         );
         const file_refs: { path: string; hash: string; size: number; url: string; mirror_url?: string }[] = [];
 
@@ -870,7 +891,7 @@ export async function bundle_pack_into_starter() {
                         continue include_iter;
                     }
                 }
-                
+
                 files.push({
                     path: include_item.path,
                     path_inside_zip: include_item.include_as,
@@ -982,16 +1003,10 @@ export async function build_version_for_diff(
         });
 
         // Filter by filepaths
-        const blob = await readBlob({
-            fs: fs,
-            dir: RELATIVE_INSTANCE_DIRECTORY,
-            filepath: ANNOTATED_FILE.replace(new RegExp(`^${RELATIVE_INSTANCE_DIRECTORY}`, 'm'), ''),
-            oid: target_commit_sha,
-        }).catch(() => undefined);
         const filtered_diffs = await filter_and_plan_files(
             Object.fromEntries(diffs.map((diff_item) => [diff_item.filepath, diff_item])),
             pack_variant,
-            blob != undefined ? await read_saved_mods(ANNOTATED_FILE, blob.blob) : undefined,
+            await update_file_modmap_from_gitrefs([base_commit_sha, target_commit_sha]),
         );
 
         console.info(`Building list of changes from ${filtered_diffs.length} diffs...`);
