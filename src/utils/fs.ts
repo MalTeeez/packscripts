@@ -216,9 +216,10 @@ export function extract_file_from_zip(zipFilePath: string, fileName: string): Pr
  */
 export async function bundle_files_to_zip(files: { path: string; path_inside_zip: string }[], output_path: string): Promise<void> {
     const zip_file = new yazl.ZipFile();
+    const date = new Date(0);
 
     for (const { path, path_inside_zip } of files) {
-        zip_file.addFile(path, path_inside_zip);
+        zip_file.addFile(path, path_inside_zip, { mtime: date });
     }
 
     zip_file.end();
