@@ -621,7 +621,7 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
         '\nDownloading unsup & launcher jars from https://github.com/MalTeeez/unsup-fork and https://github.com/MalTeeez/unsup-launcher...',
     );
     await download_file(
-        'https://github.com/MalTeeez/unsup-fork/releases/download/v1.3.0/unsup-1.2-custom+371ddeb243.20260428.jar',
+        'https://github.com/MalTeeez/unsup-fork/releases/download/v1.4.1/unsup-1.2-custom+c07c4e067b.20260510.jar',
         'OTHER',
         packaging_dir.replace(/\/$/m, ''),
         'unsup.jar',
