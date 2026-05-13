@@ -20,10 +20,7 @@ const MARKER_END = '# === END PACKSCRIPTS IMAGE ===';
 const TEN_MiB = 10 * 1024 * 1024;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-const MARKER_RE = new RegExp(
-    `\\n?${re_escape(MARKER_START)}[\\s\\S]*?${re_escape(MARKER_END)}\\n?`,
-    'm',
-);
+const MARKER_RE = new RegExp(`\\n?${re_escape(MARKER_START)}[\\s\\S]*?${re_escape(MARKER_END)}\\n?`, 'm');
 interface ImageState {
     promoted: Record<
         string,
@@ -155,15 +152,37 @@ function re_escape(s: string): string {
     return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function build_dockerfile_block(
-    staging_rel: string,
-    bucket_order: BucketName[],
-    promoted_order: string[],
-    window_size: number,
-): string {
+function should_include_mod(tags: string[] | undefined, include_tags: string[] | undefined, exclude_tags: string[] | undefined): boolean {
+    if (tags == undefined && include_tags != undefined && include_tags.length > 0) return false;
+
+    let should_be_included = false;
+    if (tags != undefined && include_tags != undefined && include_tags.length > 0) {
+        for (const include_tag of include_tags) {
+            if (tags.includes(include_tag)) {
+                should_be_included = true;
+                break;
+            }
+        }
+    } else {
+        should_be_included = true;
+    }
+
+    if (should_be_included && tags != undefined && exclude_tags != undefined && exclude_tags.length > 0) {
+        for (const exclude_tag of exclude_tags) {
+            if (tags.includes(exclude_tag)) {
+                should_be_included = false;
+                break;
+            }
+        }
+    }
+
+    return should_be_included;
+}
+
+function build_dockerfile_block(staging_rel: string, bucket_order: BucketName[], promoted_order: string[], window_size: number, container_path: string): string {
     const copy_lines = [
-        ...bucket_order.map((b) => `COPY ${staging_rel}/mods/${b}/ /server/mods/`),
-        ...promoted_order.map((id) => `COPY ${staging_rel}/mods/${id}/ /server/mods/`),
+        ...bucket_order.map((b) => `COPY ${staging_rel}/mods/${b}/ ${container_path}`),
+        ...promoted_order.map((id) => `COPY ${staging_rel}/mods/${id}/ ${container_path}`),
     ];
 
     return [
@@ -179,6 +198,7 @@ function build_dockerfile_block(
 //#region split mods to layers
 export async function package_image(
     target_dockerfile?: string,
+    container_path?: string,
     options: { dry?: boolean; include_tags?: string[]; exclude_tags?: string[] } = {},
 ): Promise<void> {
     if (PACKAGING == undefined) {
@@ -189,7 +209,14 @@ export async function package_image(
         return;
     }
 
-    const dockerfile_path: string = target_dockerfile || 'Dockerfile';
+    if (target_dockerfile == undefined) {
+        console.error("ERR: Missing target dockerfile path (argument 1), so we know what dockerfile to modify.")
+        return;
+    } else if (container_path == undefined) {
+        console.log("ERR: Missing target directory path inside image (argument 2).")
+        return;
+    }
+
     const staging_dir = PACKAGING.IMAGE.STAGING_DIRECTORY.replace(/[/\\]+$/, '');
 
     console.info('Checking git availability...');
@@ -218,7 +245,7 @@ export async function package_image(
     // build the set of known stripped basenames from enabled mods
     const known_basenames = new Set<string>();
     for (const [, mod] of mod_map) {
-        if (!mod.enabled) continue;
+        if (!mod.enabled || !should_include_mod(mod.tags, options.include_tags, options.exclude_tags)) continue;
         known_basenames.add(strip_version(path.basename(mod.file_path)));
     }
     let change_counts: Map<string, number>;
@@ -233,7 +260,7 @@ export async function package_image(
     const buckets = new Map<BucketName, ModEntry[]>();
     const mod_entries: ModEntry[] = [];
     for (const [mod_id, mod] of mod_map) {
-        if (!mod.enabled) continue;
+        if (!mod.enabled || !should_include_mod(mod.tags, options.include_tags, options.exclude_tags)) continue;
 
         const file = Bun.file(mod.file_path);
         if (!(await file.exists())) {
@@ -368,7 +395,7 @@ export async function package_image(
         }
 
         console.info('\n--- Generated Dockerfile block ---\n');
-        const block = build_dockerfile_block(staging_dir, sorted_bucket_names, sorted_promoted_ids, PACKAGING.IMAGE.GIT_CHANGE_WINDOW);
+        const block = build_dockerfile_block(staging_dir, sorted_bucket_names, sorted_promoted_ids, PACKAGING.IMAGE.GIT_CHANGE_WINDOW, container_path);
         console.info(block);
         console.info('\n(dry run — no files written)');
         return;
@@ -416,9 +443,9 @@ export async function package_image(
     }
 
     console.info('Patching Dockerfile...');
-    const dockerfile_file = Bun.file(dockerfile_path);
+    const dockerfile_file = Bun.file(target_dockerfile);
     if (!(await dockerfile_file.exists())) {
-        console.error(`ERR: Missing dockerfile at: ${dockerfile_path}`);
+        console.error(`ERR: Missing dockerfile at: ${target_dockerfile}`);
         return;
     }
 
@@ -440,7 +467,7 @@ export async function package_image(
 
     const emit_buckets = sorted_bucket_names.filter((b) => populated_buckets.has(b));
     const emit_promoted = sorted_promoted_ids.filter((id) => populated_promoted.has(id));
-    const block = build_dockerfile_block(staging_dir, emit_buckets, emit_promoted, PACKAGING.IMAGE.GIT_CHANGE_WINDOW);
+    const block = build_dockerfile_block(staging_dir, emit_buckets, emit_promoted, PACKAGING.IMAGE.GIT_CHANGE_WINDOW, container_path);
 
     // Insert our block into existing lines
     df_lines.splice(ep_idx, 0, block, '');
@@ -448,7 +475,7 @@ export async function package_image(
     // Collapse any run of 3+ blank lines down to 2 (one blank line visually)
     dockerfile = dockerfile.replace(/\n{3,}/g, '\n\n');
 
-    await Bun.write(dockerfile_path, dockerfile);
+    await Bun.write(target_dockerfile, dockerfile);
     await Bun.write(state_path, JSON.stringify(image_state, null, 4));
 
     console.info(
@@ -457,5 +484,5 @@ export async function package_image(
             `(${newly_promoted.length} newly promoted, ${newly_demoted.length} demoted this run).`,
     );
     console.info(`Staging directory written to ${staging_dir}/.`);
-    console.info(`Dockerfile patched at ${dockerfile_path}.`);
+    console.info(`Dockerfile patched at ${target_dockerfile}.`);
 }

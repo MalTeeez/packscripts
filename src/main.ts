@@ -423,7 +423,7 @@ const commands: Record<string, CommandDefinition> = {
     },
     package_image: {
         description: 'Build a Docker layer plan from mod change frequency and populate a staging directory.',
-        usage: 'package image <target_dockerfile> [--include_tag <tag>]... [--exclude_tag <tag>]... [--dry]',
+        usage: 'package image <target_dockerfile> <mods path in image> [--include_tag <tag>]... [--exclude_tag <tag>]... [--dry]',
         is_subcommand: true,
         handler: async (args) => {
             if (args.includes('--help') || args.includes('-h')) {
@@ -445,7 +445,7 @@ const commands: Record<string, CommandDefinition> = {
                 }
             }
 
-            await package_image(positional[0], {
+            await package_image(positional[0], positional[1], {
                 dry: args.includes('--dry'),
                 exclude_tags: exclude_tags.length == 0 ? undefined : exclude_tags,
                 include_tags: include_tags.length == 0 ? undefined : include_tags,
