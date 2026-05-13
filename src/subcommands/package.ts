@@ -134,7 +134,7 @@ function create_worker_pool(total: number, worker_count: number, options: { live
 }
 
 //#region general helpers
-async function is_git_available(dir: string): Promise<boolean> {
+export async function is_git_available(dir: string): Promise<boolean> {
     try {
         const proc = Bun.spawn(['git', 'rev-parse', '--git-dir'], { cwd: dir });
         return (await proc.exited) === 0;
@@ -584,6 +584,10 @@ export async function initialize_packaging(overwrite: boolean, skip_prompts: boo
                 },
             },
             MAX_WORKER_THREADS: 10,
+            IMAGE: {
+                GIT_CHANGE_WINDOW: 30,
+                STAGING_DIRECTORY: "staging/"
+            }
         };
 
         if (path_is_directory(packaging_dir)) {

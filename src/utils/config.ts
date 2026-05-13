@@ -32,6 +32,10 @@ export interface PackagingConfig {
         [key: string]: PackPackagingVariant;
     };
     MAX_WORKER_THREADS: number;
+    IMAGE?: {
+        GIT_CHANGE_WINDOW?: number;
+        STAGING_DIRECTORY?: string;
+    }
 }
 
 export interface PackPackagingVariant {

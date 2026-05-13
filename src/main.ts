@@ -20,6 +20,7 @@ import {
     verify_and_refresh_source_links,
 } from './subcommands/version';
 import { build_bootstrap, build_version_for_diff, bundle_pack_into_starter, initialize_packaging } from './subcommands/package';
+import { package_image } from './subcommands/image';
 import { assert_config_exists } from './utils/config';
 import { init_config } from './subcommands/init';
 
@@ -51,7 +52,7 @@ const commands: Record<string, CommandDefinition> = {
                     toggle_tag.push(args[++i] as string);
                 }
             }
-            
+
             await annotate({
                 skip_new: args.includes('--skip_new'),
                 remove_nonexistent: args.includes('--remove_nonexistent'),
@@ -309,7 +310,7 @@ const commands: Record<string, CommandDefinition> = {
     },
     package: {
         description: 'Package your modpack into prism zips & provide them with updates via unsup',
-        usage: 'version <init|build|bundle|bootstrap>',
+        usage: 'package <init|build|bundle|bootstrap|image>',
         handler: async (args) => {
             const mode = args[0]?.toLowerCase();
             const cmdArgs = args.slice(1);
@@ -417,6 +418,38 @@ const commands: Record<string, CommandDefinition> = {
 
             await bundle_pack_into_starter();
 
+            return;
+        },
+    },
+    package_image: {
+        description: 'Build a Docker layer plan from mod change frequency and populate a staging directory.',
+        usage: 'package image <target_dockerfile> [--include_tag <tag>]... [--exclude_tag <tag>]... [--dry]',
+        is_subcommand: true,
+        handler: async (args) => {
+            if (args.includes('--help') || args.includes('-h')) {
+                console.log(commands['package_image']?.usage);
+                return;
+            }
+
+            const include_tags: string[] = [];
+            const exclude_tags: string[] = [];
+            const positional: string[] = [];
+            for (let i = 0; i < args.length; i++) {
+                const arg = args[i];
+                if (arg === '--include_tag' && args[i + 1] != undefined) {
+                    include_tags.push(args[++i] as string);
+                } else if (arg === '--exclude_tag' && args[i + 1] != undefined) {
+                    exclude_tags.push(args[++i] as string);
+                } else if (arg != undefined && !arg.startsWith('-')) {
+                    positional.push(arg);
+                }
+            }
+
+            await package_image(positional[0], {
+                dry: args.includes('--dry'),
+                exclude_tags: exclude_tags.length == 0 ? undefined : exclude_tags,
+                include_tags: include_tags.length == 0 ? undefined : include_tags,
+            });
             return;
         },
     },
