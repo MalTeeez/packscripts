@@ -122,6 +122,7 @@ function compute_layer_weight_of_mod(
     candidate_freq_exp: number,
     candidate_size: number,
     others: { freq_exp: number; size: number }[],
+    multipliers: { size?: number; freq?: number } = {},
 ): number {
     if (others.length === 0) return 0;
     // Never promote a mod that hasn't changed — no savings possible
@@ -141,7 +142,7 @@ function compute_layer_weight_of_mod(
     // Size of the whole bucket matters even for stable mods — they still get re-pushed when the layer rebuilds
     const bucket_remaining_size = others.reduce((s, o) => s + o.size, 0);
     const bucket_cost = clamped_mean * bucket_remaining_size;
-    const candidate_cost = candidate_freq_exp * candidate_size;
+    const candidate_cost = candidate_freq_exp * (multipliers.freq ?? 1) * (candidate_size * (multipliers.size ?? 1));
 
     // Score > 1 means this mod costs more to keep in the bucket than the rest of the bucket costs to re-push
     if (bucket_cost === 0) return 0;
@@ -179,7 +180,13 @@ function should_include_mod(tags: string[] | undefined, include_tags: string[] |
     return should_be_included;
 }
 
-function build_dockerfile_block(staging_rel: string, bucket_order: BucketName[], promoted_order: string[], window_size: number, container_path: string): string {
+function build_dockerfile_block(
+    staging_rel: string,
+    bucket_order: BucketName[],
+    promoted_order: string[],
+    window_size: number,
+    container_path: string,
+): string {
     const copy_lines = [
         ...bucket_order.map((b) => `COPY ${staging_rel}/mods/${b}/ ${container_path}`),
         ...promoted_order.map((id) => `COPY ${staging_rel}/mods/${id}/ ${container_path}`),
@@ -199,7 +206,13 @@ function build_dockerfile_block(staging_rel: string, bucket_order: BucketName[],
 export async function package_image(
     target_dockerfile?: string,
     container_path?: string,
-    options: { dry?: boolean; include_tags?: string[]; exclude_tags?: string[] } = {},
+    options: {
+        dry?: boolean;
+        include_tags?: string[];
+        exclude_tags?: string[];
+        size_multiplier?: number;
+        frequency_multiplier?: number;
+    } = {},
 ): Promise<void> {
     if (PACKAGING == undefined) {
         console.error("ERR: Missing config settings for packaging. Make sure to run 'packscripts package init' first.");
@@ -210,10 +223,10 @@ export async function package_image(
     }
 
     if (target_dockerfile == undefined) {
-        console.error("ERR: Missing target dockerfile path (argument 1), so we know what dockerfile to modify.")
+        console.error('ERR: Missing target dockerfile path (argument 1), so we know what dockerfile to modify.');
         return;
     } else if (container_path == undefined) {
-        console.log("ERR: Missing target directory path inside image (argument 2).")
+        console.log('ERR: Missing target directory path inside image (argument 2).');
         return;
     }
 
@@ -284,9 +297,9 @@ export async function package_image(
 
         mod_entries.push(mod_entry);
 
-        console.debug(
-            `[debug] ${mod_entry.mod_id}: stripped="${stripped_name}" freq_raw=${change_count ?? 0} freq=${mod_entry.freq} freq_exp=${mod_entry.freq_exp}`,
-        );
+        // console.debug(
+        //     `[debug] ${mod_entry.mod_id}: stripped="${stripped_name}" freq_raw=${change_count ?? 0} freq=${mod_entry.freq} freq_exp=${mod_entry.freq_exp}`,
+        // );
 
         if (!buckets.has(bucket)) buckets.set(bucket, []);
         buckets.get(bucket)!.push(mod_entry);
@@ -303,7 +316,10 @@ export async function package_image(
         for (const mod_entry of mod_entries) {
             const others = mod_entries.filter((m) => m.mod_id !== mod_entry.mod_id).map((m) => ({ freq_exp: m.freq_exp, size: m.size }));
 
-            const score = compute_layer_weight_of_mod(mod_entry.freq_exp, mod_entry.size, others);
+            const score = compute_layer_weight_of_mod(mod_entry.freq_exp, mod_entry.size, others, {
+                size: options.size_multiplier,
+                freq: options.frequency_multiplier,
+            });
             const already_promoted = mod_entry.mod_id in image_state.promoted;
 
             if (!already_promoted && score > 1.0 && mod_entry.size > TEN_MiB) {
@@ -395,7 +411,13 @@ export async function package_image(
         }
 
         console.info('\n--- Generated Dockerfile block ---\n');
-        const block = build_dockerfile_block(staging_dir, sorted_bucket_names, sorted_promoted_ids, PACKAGING.IMAGE.GIT_CHANGE_WINDOW, container_path);
+        const block = build_dockerfile_block(
+            staging_dir,
+            sorted_bucket_names,
+            sorted_promoted_ids,
+            PACKAGING.IMAGE.GIT_CHANGE_WINDOW,
+            container_path,
+        );
         console.info(block);
         console.info('\n(dry run — no files written)');
         return;

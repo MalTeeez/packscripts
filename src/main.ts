@@ -433,13 +433,19 @@ const commands: Record<string, CommandDefinition> = {
 
             const include_tags: string[] = [];
             const exclude_tags: string[] = [];
+            let size_multiplier: number | undefined = undefined;
+            let freq_multiplier: number | undefined = undefined;
             const positional: string[] = [];
             for (let i = 0; i < args.length; i++) {
                 const arg = args[i];
                 if (arg === '--include_tag' && args[i + 1] != undefined) {
-                    include_tags.push(args[++i] as string);
+                    include_tags.push(args[i + 1] as string);
                 } else if (arg === '--exclude_tag' && args[i + 1] != undefined) {
-                    exclude_tags.push(args[++i] as string);
+                    exclude_tags.push(args[i + 1] as string);
+                } else if (arg === '--mult_size' && args[i + 1] != undefined && !Number.isNaN(args[i + 1])) {
+                    size_multiplier = Number(args[i + 1])
+                } else if (arg === '--mult_freq' && args[i + 1] != undefined && !Number.isNaN(args[i + 1])) {
+                    freq_multiplier = Number(args[i + 1])
                 } else if (arg != undefined && !arg.startsWith('-')) {
                     positional.push(arg);
                 }
@@ -449,6 +455,8 @@ const commands: Record<string, CommandDefinition> = {
                 dry: args.includes('--dry'),
                 exclude_tags: exclude_tags.length == 0 ? undefined : exclude_tags,
                 include_tags: include_tags.length == 0 ? undefined : include_tags,
+                size_multiplier: size_multiplier,
+                frequency_multiplier: freq_multiplier
             });
             return;
         },
