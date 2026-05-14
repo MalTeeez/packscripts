@@ -40,6 +40,7 @@ interface ModEntry {
     freq: number;
     freq_exp: number;
     size: number;
+    score?: number;
 }
 
 //#region general helpers
@@ -311,8 +312,6 @@ export async function package_image(
     const newly_demoted: string[] = [];
 
     for (const [, mod_entries] of buckets) {
-        if (mod_entries.length <= 1) continue;
-
         for (const mod_entry of mod_entries) {
             const others = mod_entries.filter((m) => m.mod_id !== mod_entry.mod_id).map((m) => ({ freq_exp: m.freq_exp, size: m.size }));
 
@@ -320,6 +319,7 @@ export async function package_image(
                 size: options.size_multiplier,
                 freq: options.frequency_multiplier,
             });
+            mod_entry.score = score;
             const already_promoted = mod_entry.mod_id in image_state.promoted;
 
             if (!already_promoted && score > 1.0 && mod_entry.size > TEN_MiB) {
@@ -392,7 +392,11 @@ export async function package_image(
                     `mean freq ${mean_freq(members).toFixed(4)})`,
             );
             for (const m of members) {
-                console.info(`  ${m.mod_id.padEnd(40)} freq=${m.freq.toFixed(4)}  ` + `size=${(m.size / 1024 / 1024).toFixed(2)} MiB`);
+                console.info(
+                    `  ${m.mod_id.padEnd(40)} freq=${m.freq.toFixed(4)}  ` +
+                        `score=${m.score != undefined ? (isFinite(m.score) ? m.score.toFixed(4) : 'inf') : '?'}  ` +
+                        `size=${(m.size / 1024 / 1024).toFixed(2)} MiB`,
+                );
             }
         }
 
