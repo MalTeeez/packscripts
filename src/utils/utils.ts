@@ -1166,3 +1166,19 @@ export async function hash_buffer(buffer: Uint8Array, algorithm: SupportedCrypto
     hasher.update(buffer);
     return hasher.digest('hex');
 }
+
+/**
+ * Run tasks with a bounded concurrency pool.
+ */
+export async function run_pool<T>(tasks: (() => Promise<T>)[], concurrency: number): Promise<T[]> {
+    const results: T[] = new Array(tasks.length);
+    let next = 0;
+    async function worker() {
+        while (next < tasks.length) {
+            const i = next++;
+            results[i] = await tasks[i]!();
+        }
+    }
+    await Promise.all(Array.from({ length: Math.min(concurrency, tasks.length) }, worker));
+    return results;
+}

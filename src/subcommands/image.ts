@@ -4,6 +4,7 @@ import { ANNOTATED_FILE, MOD_BASE_DIR, PACKAGING, RELATIVE_INSTANCE_DIRECTORY } 
 import { read_saved_mods, type SourceType } from '../utils/mods';
 import { is_git_available } from './package';
 import { path_is_directory } from '../utils/fs';
+import { run_pool } from '../utils/utils';
 
 type BucketName = 'github' | 'curseforge' | 'modrinth' | 'other';
 
@@ -190,6 +191,9 @@ async function read_real_file_content(file_path: string): Promise<ArrayBuffer> {
             const [data, stderr_text] = await Promise.all([new Response(proc.stdout).arrayBuffer(), new Response(proc.stderr).text()]);
             await proc.exited;
             if (proc.exitCode !== 0) {
+                if (stderr_text.includes("git: 'lfs' is not a git command")) {
+                    console.error("ERR: This repo contains lfs files, but lfs is not installed. Make sure to install it first.")
+                }
                 throw new Error(`git lfs smudge failed for ${file_path}: ${stderr_text.trim()}`);
             }
             return data;
@@ -480,37 +484,44 @@ export async function package_image(
     const populated_buckets = new Set<BucketName>();
     const populated_promoted = new Set<string>();
 
+    console.info('Copying files...');
     // Copy non-promoted mods into their bucket subdirectory
     for (const [bucket_name, mod_entries] of occupied_buckets) {
         const bucket_dir = path.join(staging_dir, 'mods', bucket_name);
         await mkdir(bucket_dir, { recursive: true });
 
-        for (const entry of mod_entries) {
-            const file = Bun.file(entry.file_path);
-            if (!(await file.exists())) {
-                console.warn(`W: Mod file missing on disk: ${entry.file_path}, skipping.`);
-                continue;
-            }
-            const data = await read_real_file_content(entry.file_path);
-            await Bun.write(path.join(bucket_dir, path.basename(entry.file_path)), data);
-            populated_buckets.add(bucket_name);
-        }
+        await run_pool(
+            mod_entries.map((entry) => async () => {
+                const file = Bun.file(entry.file_path);
+                if (!(await file.exists())) {
+                    console.warn(`W: Mod file missing on disk: ${entry.file_path}, skipping.`);
+                    return;
+                }
+                const data = await read_real_file_content(entry.file_path);
+                await Bun.write(path.join(bucket_dir, path.basename(entry.file_path)), data);
+                populated_buckets.add(bucket_name);
+            }),
+            8,
+        );
     }
 
     // Copy each promoted mod into its own subdirectory (<staging>/mods/<mod_id>/)
-    for (const entry of promoted_entries) {
-        const mod_dir = path.join(staging_dir, 'mods', entry.mod_id);
-        await mkdir(mod_dir, { recursive: true });
+    await run_pool(
+        promoted_entries.map((entry) => async () => {
+            const mod_dir = path.join(staging_dir, 'mods', entry.mod_id);
+            await mkdir(mod_dir, { recursive: true });
 
-        const file = Bun.file(entry.file_path);
-        if (!(await file.exists())) {
-            console.warn(`W: Mod file missing on disk: ${entry.file_path}, skipping.`);
-            continue;
-        }
-        const data = await read_real_file_content(entry.file_path);
-        await Bun.write(path.join(mod_dir, path.basename(entry.file_path)), data);
-        populated_promoted.add(entry.mod_id);
-    }
+            const file = Bun.file(entry.file_path);
+            if (!(await file.exists())) {
+                console.warn(`W: Mod file missing on disk: ${entry.file_path}, skipping.`);
+                return;
+            }
+            const data = await read_real_file_content(entry.file_path);
+            await Bun.write(path.join(mod_dir, path.basename(entry.file_path)), data);
+            populated_promoted.add(entry.mod_id);
+        }),
+        8,
+    );
 
     console.info('Patching Dockerfile...');
     const dockerfile_file = Bun.file(target_dockerfile);
