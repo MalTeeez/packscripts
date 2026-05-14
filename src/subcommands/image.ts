@@ -154,6 +154,24 @@ function re_escape(s: string): string {
     return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/**
+ * Return the real byte size of a file, resolving LFS pointer files to their declared size.
+ * Bun.file().size returns the pointer file size (~130 B) for LFS-tracked files, not the real size.
+ */
+async function get_real_file_size(file_path: string): Promise<number> {
+    const file = Bun.file(file_path);
+    const raw_size = file.size;
+    // LFS pointer files are always small; skip reading large files
+    if (raw_size < 512) {
+        const text = await file.text();
+        if (text.startsWith('version https://git-lfs.github.com/spec/v1')) {
+            const lfs_size = text.match(/^size (\d+)$/m)?.[1];
+            if (lfs_size) return parseInt(lfs_size, 10);
+        }
+    }
+    return raw_size;
+}
+
 function should_include_mod(tags: string[] | undefined, include_tags: string[] | undefined, exclude_tags: string[] | undefined): boolean {
     if (tags == undefined && include_tags != undefined && include_tags.length > 0) return false;
 
@@ -293,7 +311,7 @@ export async function package_image(
             bucket: bucket,
             freq: frequency,
             freq_exp: Math.pow(frequency, 1.5),
-            size: file.size,
+            size: await get_real_file_size(mod.file_path),
         };
 
         mod_entries.push(mod_entry);
