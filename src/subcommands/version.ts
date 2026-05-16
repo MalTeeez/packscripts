@@ -2,16 +2,7 @@ import { ANNOTATED_FILE, DOWNLOAD_TEMP_DIR, DOWNLOAD_UNDO_DIR, GITHUB_API_KEY, M
 import { download_file, filter_assets, print_gh_ratelimits, query_gh_project_by_url } from '../utils/fetch';
 import { glob_files_in_dir, save_list_to_file, save_map_to_file } from '../utils/fs';
 import { are_all_mods_unlocked, read_saved_mods, type mod_object, type SourceType } from '../utils/mods';
-import {
-    CLIColor,
-    finish_live_zone,
-    init_live_zone,
-    is_finished,
-    live_log,
-    render_md,
-    rev_replace_all,
-    update_live_zone,
-} from '../utils/utils';
+import { CLIColor, finish_live_zone, init_live_zone, is_finished, live_log, render_md, rev_replace_all, update_live_zone } from '../utils/utils';
 import { mkdir, rename } from 'node:fs/promises';
 import { toNamespacedPath } from 'node:path';
 import { parse_gh_url } from '../utils/sources';
@@ -25,7 +16,7 @@ interface ReleaseAsset {
     name: string;
     content_type: string;
     size: number;
-    digest: string | null; // sha256:2151b604e3429bff440b9fbc03eb3617bc2603cda96c95b9bb05277f9ddba255,
+    digest: string | null; // sha256:2151b604e3429bff440b9fbc03eb3617bc2603cda96c95b9bb05277f9ddba255
 }
 interface Release {
     url: string;
@@ -79,9 +70,7 @@ function render_wide_release(
     const age_days = age_days_raw.toFixed(2);
     const padding = rev_replace_all(' '.repeat(options.version_padding - release.tag_name.length), '   ', ' . ');
     const release_name =
-        release.name && release.name !== release.tag_name
-            ? ` ${CLIColor.FgGray}·${CLIColor.Reset} ${CLIColor.FgWhite2}${release.name}${CLIColor.Reset}`
-            : '';
+        release.name && release.name !== release.tag_name ? ` ${CLIColor.FgGray}·${CLIColor.Reset} ${CLIColor.FgWhite2}${release.name}${CLIColor.Reset}` : '';
     const badges =
         (release.draft ? ` ${CLIColor.BgYellow0}${CLIColor.FgBlack}${CLIColor.Bright} DRAFT ${CLIColor.Reset}` : '') +
         (release.prerelease ? ` ${CLIColor.BgMagenta0}${CLIColor.FgWhite}${CLIColor.Bright} PRE ${CLIColor.Reset}` : '');
@@ -176,11 +165,7 @@ export async function list_all_versions_for_mod(
         if (options.all_pages && headers?.get('link')?.includes('rel="last"')) {
             let page = 2;
             while (page < 10 && headers?.get('link')?.includes('rel="last"')) {
-                ({ headers, status, body } = await query_gh_project_by_url(
-                    mod.source,
-                    source_api_key,
-                    '/releases?per_page=100&page=' + page,
-                ));
+                ({ headers, status, body } = await query_gh_project_by_url(mod.source, source_api_key, '/releases?per_page=100&page=' + page));
                 if (status == '200' && body != undefined && Array.isArray(body)) {
                     releases.push(...body);
                     page++;
@@ -327,9 +312,7 @@ export async function switch_version_of_mod(
                     mod.update_state.version = version;
                     mod.update_state.last_updated_at = new Date(Date.now()).toISOString();
                     if (is_base_required) {
-                        console.info(
-                            `Mod required by basegame (${mod_id}) changed in version. Don't forget to also change it externally, if required.`,
-                        );
+                        console.info(`Mod required by basegame (${mod_id}) changed in version. Don't forget to also change it externally, if required.`);
                     }
                 })
                 .catch(() => console.warn(`W: Failed to move switched jar ${file_name} for mod ${mod_id} into the mod directory.`));
@@ -378,12 +361,7 @@ export async function restore_to_asset_versions(
             continue;
         }
 
-        let { headers, status, body } = await query_gh_project_by_url(
-            mod.source,
-            source_api_key,
-            '/releases/tags/' + mod.update_state.version,
-            [404],
-        );
+        let { headers, status, body } = await query_gh_project_by_url(mod.source, source_api_key, '/releases/tags/' + mod.update_state.version, [404]);
         if (status === '200' && body != undefined && body.assets != undefined && Array.isArray(body.assets)) {
             let assets = body.assets as Array<{ browser_download_url: string; name: string; size: any }>;
             let [file_name, dl_url, size] = filter_assets(assets, mod.update_state.file_pattern);
@@ -450,10 +428,7 @@ export async function restore_to_asset_versions(
         let running_downloads = 0;
         let completed_downloads = 0;
         const full_dls = to_update_mods.length;
-        const download_map: Map<
-            string,
-            { response: Promise<string>; start_time: number; file_name: string; is_base_required: boolean; mod_obj: mod_object }
-        > = new Map();
+        const download_map: Map<string, { response: Promise<string>; start_time: number; file_name: string; is_base_required: boolean; mod_obj: mod_object }> = new Map();
         const downloaded_mods: Map<string, { file_name: string; is_base_required: boolean; mod_obj: mod_object }> = new Map();
         console.log(`\nRedownloading ${full_dls} mods...`);
 
@@ -556,13 +531,9 @@ export async function restore_to_asset_versions(
                     await rename(`${DOWNLOAD_TEMP_DIR}/${file_name}`, new_mod_path)
                         .then(async () => {
                             if (!(await Bun.file(new_mod_path).exists())) {
-                                console.warn(
-                                    `W: Failed to move newer file for ${mod_id} (${file_name}) to mod directory. Reverting to previous version.`,
-                                );
+                                console.warn(`W: Failed to move newer file for ${mod_id} (${file_name}) to mod directory. Reverting to previous version.`);
                                 await rename(`${DOWNLOAD_UNDO_DIR}/${old_mod_jar}`, mod.file_path).catch((err) => {
-                                    console.warn(
-                                        `W: Failed to move the older jar for mod ${mod_id} back from the undo dir into the mod dir.`,
-                                    );
+                                    console.warn(`W: Failed to move the older jar for mod ${mod_id} back from the undo dir into the mod dir.`);
                                 });
                             } else {
                                 if (await Bun.file(`${DOWNLOAD_UNDO_DIR}/${old_mod_jar}`).exists()) {
@@ -577,9 +548,7 @@ export async function restore_to_asset_versions(
                                 mod.file_path = new_mod_path;
                                 mod.update_state.last_updated_at = new Date(Date.now()).toISOString();
                                 if (is_base_required) {
-                                    console.info(
-                                        `Mod required by basegame (${mod_id}) was changed. Don't forget to also change it externally, if required.`,
-                                    );
+                                    console.info(`Mod required by basegame (${mod_id}) was changed. Don't forget to also change it externally, if required.`);
                                 }
                             }
                         })
@@ -598,6 +567,7 @@ export async function restore_to_asset_versions(
     await print_gh_ratelimits(GITHUB_API_KEY);
 }
 
+//#region refresh links
 export async function verify_and_refresh_source_links(
     options: {
         dry: boolean;
@@ -620,9 +590,9 @@ export async function verify_and_refresh_source_links(
             case 'GH_RELEASE': {
                 const url_match = parse_gh_url(mod.source);
                 if (url_match != undefined) {
-                    const { owner, project, tag } = url_match;
+                    const { owner, project, primary, secondary, key } = url_match;
                     // Does the version on the file match the version in the url
-                    if (mod.update_state.version !== tag) {
+                    if (primary === 'releases' && secondary === 'tag' && key != undefined && mod.update_state.version !== key) {
                         // Has to be updated, fetch releases from github
                         let release: Release | undefined = undefined;
                         let { headers, status, body } = await query_gh_project_by_url(mod.source, source_api_key, '/releases?per_page=100');
@@ -634,20 +604,14 @@ export async function verify_and_refresh_source_links(
                             if (release == undefined && headers?.get('link')?.includes('rel="last"')) {
                                 let page = 2;
                                 while (release == undefined && page < 10 && headers?.get('link')?.includes('rel="last"')) {
-                                    ({ headers, status, body } = await query_gh_project_by_url(
-                                        mod.source,
-                                        source_api_key,
-                                        '/releases?per_page=100&page=' + page,
-                                    ));
+                                    ({ headers, status, body } = await query_gh_project_by_url(mod.source, source_api_key, '/releases?per_page=100&page=' + page));
                                     if (status == '200' && body != undefined && Array.isArray(body)) {
                                         // Find release from matched tag or matched asset digest
                                         release = body.find(
                                             (entry: Release) =>
                                                 entry.tag_name === mod.update_state.version ||
                                                 entry.assets.find(
-                                                    (asset_entry) =>
-                                                        asset_entry.digest != null &&
-                                                        asset_entry.digest.slice(7) === mod.update_state.sha256_sum,
+                                                    (asset_entry) => asset_entry.digest != null && asset_entry.digest.slice(7) === mod.update_state.sha256_sum,
                                                 ) != undefined,
                                         );
                                         page++;
@@ -660,9 +624,7 @@ export async function verify_and_refresh_source_links(
                         }
 
                         if (release != undefined) {
-                            const asset = release.assets.find(
-                                (entry) => entry.digest != null && entry.digest.slice(7) === mod.update_state.sha256_sum,
-                            );
+                            const asset = release.assets.find((entry) => entry.digest != null && entry.digest.slice(7) === mod.update_state.sha256_sum);
                             if (asset != undefined) {
                                 mod.source = asset.browser_download_url;
                             } else {
@@ -702,4 +664,181 @@ export async function verify_and_refresh_source_links(
     }
 
     await print_gh_ratelimits(GITHUB_API_KEY);
+}
+
+//#region switch indev
+interface Artifact {
+    name: string;
+    archive_download_url: string;
+    size_in_bytes: number;
+    digest: string;
+    expired: boolean;
+}
+
+export async function switch_to_indev_version(
+    source_url: string | undefined,
+    options: { dry: boolean; build_job?: string; artifact_name?: string },
+    mod_map?: Map<string, mod_object>,
+) {
+    if (source_url == undefined) {
+        console.error('ERR: Missing source url.');
+        return;
+    }
+
+    assert_gh_key();
+    mod_map = mod_map ?? (await read_saved_mods(ANNOTATED_FILE));
+    const dl_url = await get_dl_url_from_github_url(source_url, options.build_job, options.artifact_name);
+
+    if (dl_url != undefined) {
+        console.log(dl_url);
+    } else {
+        console.log('failed to find download url');
+    }
+}
+
+async function get_dl_url_from_github_url(source_url: string, build_job?: string, artifact_name?: string, commit_lookback: number = 10): Promise<Artifact | undefined> {
+    const url_match = parse_gh_url(source_url);
+
+    if (url_match) {
+        let { owner, project, primary, secondary, key, asset, fifth } = url_match;
+
+        // This is something that might have workflow runs
+        let other_workflows: { name: string | undefined; id: string }[] = [];
+        if ((primary === 'tree' || primary === 'pull') && secondary != undefined) {
+            let parsed = undefined;
+            if (primary === 'pull') {
+                // For a PR, walk backwards through commits (newest first) until we find one with workflow runs
+                const { status: pr_status, body: pr_body } = await query_gh_project_by_url(source_url, GITHUB_API_KEY!, `/pulls/${secondary}`);
+                const head_sha = pr_status === '200' && pr_body != null ? ((pr_body as any).head?.sha as string | undefined) : undefined;
+
+                // Build commit list: start with HEAD, then append remaining PR commits oldest -> newest reversed
+                const commit_shas: string[] = [];
+                if (head_sha != undefined) commit_shas.push(head_sha);
+
+                const { status: commits_status, body: commits_body } = await query_gh_project_by_url(
+                    source_url,
+                    GITHUB_API_KEY!,
+                    `/pulls/${secondary}/commits?per_page=100`,
+                );
+                if (commits_status === '200' && commits_body != null && Array.isArray(commits_body)) {
+                    // GitHub returns commits oldest-first; reverse so we walk newest-first, skipping head_sha already added
+                    for (const commit of (commits_body as any[]).reverse()) {
+                        const sha = commit.sha as string;
+                        if (sha !== head_sha) commit_shas.push(sha);
+                    }
+                }
+
+                for (const sha of commit_shas) {
+                    const { status, body } = await query_gh_project_by_url(source_url, GITHUB_API_KEY!, `/actions/runs?head_sha=${sha}`);
+                    if (status === '200' && body != null && Array.isArray((body as any).workflow_runs) && (body as any).workflow_runs.length > 0) {
+                        const workflow_runs = (body as any).workflow_runs as Array<{ html_url: string; id: number; name: string }>;
+                        if (workflow_runs.length > 1) {
+                            other_workflows = workflow_runs.slice(1).map((run) => {
+                                return { name: run.name, id: String(run.id) };
+                            });
+                        }
+
+                        parsed = parse_gh_url((body as any).workflow_runs[0].html_url);
+                        break;
+                    }
+                }
+            } else {
+                // For a branch, fetch the last x (commit_lookback) commits (newest-first) and walk until we find runs
+                const { status: commits_status, body: commits_body } = await query_gh_project_by_url(
+                    source_url,
+                    GITHUB_API_KEY!,
+                    `/commits?sha=${encodeURIComponent(secondary)}&per_page=${commit_lookback}`,
+                );
+                if (commits_status === '200' && commits_body != null && Array.isArray(commits_body)) {
+                    for (const commit of commits_body as any[]) {
+                        const sha = commit.sha as string;
+                        const { status, body } = await query_gh_project_by_url(source_url, GITHUB_API_KEY!, `/actions/runs?head_sha=${sha}`);
+                        if (status === '200' && body != null && Array.isArray((body as any).workflow_runs) && (body as any).workflow_runs.length > 0) {
+                            const workflow_runs = (body as any).workflow_runs as Array<{ html_url: string; id: number; name: string }>;
+                            if (workflow_runs.length > 1) {
+                                other_workflows = workflow_runs.slice(1).map((run) => {
+                                    return { name: run.name, id: String(run.id) };
+                                });
+                            }
+
+                            parsed = parse_gh_url(workflow_runs[0]!.html_url);
+                            break;
+                        }
+                    }
+                }
+            }
+            if (parsed != undefined) {
+                primary = parsed.primary;
+                secondary = parsed.secondary;
+                key = parsed.key;
+                asset = parsed.asset;
+                fifth = parsed.fifth;
+            }
+        }
+
+        // This is a workflow run
+        if (primary === 'actions' && secondary === 'runs' && key != undefined) {
+            // We have a link to a workflow run
+            let workflow_run_name = undefined;
+            if (build_job != undefined) {
+                const { status, body } = await query_gh_project_by_url(source_url, GITHUB_API_KEY!, `/actions/runs/${key}`);
+                if (status === '200' && body != null && body['name'] != undefined) {
+                    workflow_run_name = body['name'] as string | undefined;
+                }
+            }
+
+            let collected_artifacts: Artifact[] = [];
+            const workflows = [{ name: workflow_run_name, id: key }, ...other_workflows];
+
+            for (const workflow_run of workflows) {
+                // Get artifacts of workflow by id and store all download urls
+                const { status, body } = await query_gh_project_by_url(source_url, GITHUB_API_KEY!, `/actions/runs/${workflow_run.id}/artifacts`);
+                if (status === '200' && body != null && Array.isArray((body as any).artifacts)) {
+                    const artifacts = (body as any).artifacts as Array<Artifact>;
+                    const stripped_artifacts = artifacts.filter((artifact) => !artifact.expired).map((artifact) => {
+                        return {
+                            name: artifact.name,
+                            archive_download_url: artifact.archive_download_url,
+                            size_in_bytes: artifact.size_in_bytes,
+                            digest: artifact.digest.slice(3),
+                            expired: artifact.expired,
+                        };
+                    });
+
+                    if (build_job != undefined && workflow_run.name != undefined && workflow_run.name.toLowerCase() === build_job.toLowerCase()) {
+                        // If this is the job we are filtering for, just use it and nothing else
+                        collected_artifacts = [];
+                        collected_artifacts.push(...stripped_artifacts);
+                        break;
+                    } else {
+                        collected_artifacts.push(...stripped_artifacts);
+                    }
+                }
+            }
+
+            if (collected_artifacts.length < 1) {
+                console.warn(`WARN: Found no artifacts across ${workflows.length} workflows.`);
+                return undefined;
+            }
+            // Try with a filter if we have one
+            if (artifact_name != undefined) {
+                const artifact = collected_artifacts.find((entry) => entry.name.toLowerCase().includes(artifact_name.toLowerCase()));
+
+                if (artifact == undefined) {
+                    console.warn(`WARN: Failed to find artifact for filter '${artifact_name}' across ${collected_artifacts.length} artifacts.`);
+                }
+                return artifact;
+            }
+
+            if (collected_artifacts.length > 1) {
+                console.warn(
+                    `WARN: Found more than one artifact (${collected_artifacts.length}), using first ('${collected_artifacts[0]?.name}'). You can filter artifacts by providing --artifact_name.`,
+                );
+                return collected_artifacts[0];
+            }
+        } else {
+            console.warn('WARN: Failed to trace a workflow from url ', source_url);
+        }
+    }
+    return undefined;
 }

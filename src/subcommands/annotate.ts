@@ -146,8 +146,8 @@ function invalidate_direct_source_link(link: string | undefined, source_type: So
         case 'GH_RELEASE':
             const url_match = parse_gh_url(link);
             if (url_match != undefined) {
-                const { owner, project, tag, asset } = url_match;
-                if (tag != undefined && asset != undefined) {
+                const { owner, project} = url_match;
+                if (owner && project) {
                     return `https://github.com/${owner}/${project}`;
                 }
             }

@@ -16,6 +16,7 @@ import { check_all_mods_for_updates, undo_last_update } from './subcommands/upda
 import {
     list_all_versions_for_mod,
     restore_to_asset_versions,
+    switch_to_indev_version,
     switch_version_of_mod,
     verify_and_refresh_source_links,
 } from './subcommands/version';
@@ -291,6 +292,7 @@ const commands: Record<string, CommandDefinition> = {
                 console.log(commands['version_restore_all']?.usage);
                 return;
             }
+            
             await restore_to_asset_versions({ dry: args.includes('--dry') });
             return;
         },
@@ -307,6 +309,34 @@ const commands: Record<string, CommandDefinition> = {
             await verify_and_refresh_source_links({ dry: args.includes('--dry') });
             return;
         },
+    },
+    version_switch_indev: {
+        description: '',
+        usage: 'version switch_indev <source_url> [--dry] [--build_job <job name>] [--artifact_name <part of artifact name>]',
+        is_subcommand: true,
+        handler: async (args) => {
+            if (args.includes('--help')) {
+                console.log(commands['version_switch_indev']);
+                return;
+            }
+
+            let build_job: string | undefined;
+            let artifact_name: string | undefined;
+            const positional: string[] = [];
+            for (let i = 0; i < args.length; i++) {
+                const arg = args[i];
+                if (arg === '--build_job' && args[i + 1] != undefined) {
+                    build_job = args[i + 1];
+                } else if (arg === '--artifact_name' && args[i + 1] != undefined) {
+                    artifact_name = args[i + 1];
+                } else if (arg != null && !arg.startsWith('-')) {
+                    positional.push(arg);
+                }
+            }
+
+            await switch_to_indev_version(positional[0], { dry: args.includes("--dry"), build_job, artifact_name });
+            return;
+        }
     },
     package: {
         description: 'Package your modpack into prism zips & provide them with updates via unsup',

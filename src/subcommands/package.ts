@@ -431,7 +431,7 @@ async function filter_and_plan_files<T>(
 
                     if (mod_obj != undefined && mod_obj.source && mod_obj.update_state.sha256_sum) {
                         const url_match = parse_gh_url(mod_obj.source);
-                        if (url_match && url_match.tag && url_match.asset) {
+                        if (url_match && url_match.primary === "releases" && url_match.secondary === "download" && url_match.key && url_match.asset) {
                             extra_mod_info = { hash: mod_obj.update_state.sha256_sum, url: mod_obj.source };
                         }
                     }
