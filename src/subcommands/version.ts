@@ -24,7 +24,7 @@ import {
 import { CLIColor, clone, finish_live_zone, hash_buffer, init_live_zone, is_finished, live_log, render_md, rev_replace_all, update_live_zone } from '../utils/utils';
 import { mkdir, rename, rm } from 'node:fs/promises';
 import { toNamespacedPath } from 'node:path';
-import { parse_gh_url } from '../utils/sources';
+import { extract_required_prs, parse_gh_url } from '../utils/sources';
 
 const SOURCE_API_KEYS: Map<SourceType, string> = new Map();
 
@@ -694,58 +694,164 @@ interface Artifact {
     expired: boolean;
 }
 
+export async function apply_github_pr(
+    source_url: string | undefined,
+    options: {
+        dry: boolean;
+        build_job?: string;
+        artifact_name?: string;
+        limit_to_original_owner?: boolean;
+        other_allowed_owners?: string[];
+        allow_failed_workflows?: boolean;
+    },
+    traced_prs?: string[],
+) {
+    if (source_url == undefined) {
+        console.error(`${CLIColor.FgRed10}ERR:${CLIColor.Reset} Missing source url.`);
+        return;
+    }
+    assert_gh_key();
+
+    if (traced_prs == undefined) {
+        traced_prs = [];
+    }
+
+    const url_match = parse_gh_url(source_url);
+    if (url_match) {
+        let { owner, project, primary, secondary, key, asset, fifth } = url_match;
+
+        if (primary === 'pull' && secondary != undefined) {
+            // Add to prs we visited if new, skip otherwise
+            const pr_id = `${owner}/${project}/pull/${secondary}`;
+            if (traced_prs.includes(pr_id)) {
+                console.info(
+                    `${CLIColor.FgGray}-${CLIColor.Reset} Found ref to PR we already visited ` +
+                        `${CLIColor.BgTeal3}${CLIColor.FgWhite1}${CLIColor.Bright} ${pr_id} ${CLIColor.Reset}, skipping.`,
+                );
+                return;
+            } else {
+                traced_prs.push(pr_id);
+            }
+
+            // Get description of pr and check for mentions of required mods
+            const { status, body } = await query_gh_project_by_url(source_url, GITHUB_API_KEY!, `/pulls/${secondary}`);
+            if (status === '200' && body != null && typeof body['body'] === 'string') {
+                const required_prs = extract_required_prs(body['body']);
+                for (const required_pr_match of required_prs) {
+                    for (const required_pr of required_pr_match.pr_urls) {
+                        const url_match = parse_gh_url(required_pr);
+                        if (url_match) {
+                            // We already enforce a PR 
+                            let { owner: ref_owner, project: ref_project, primary: ref_primary, secondary: ref_secondary } = url_match;
+                            if (
+                                options.limit_to_original_owner && // Are we told to limit the repo inclusion owners
+                                (ref_owner !== owner || // Does the owner of the repo in the link not match the original owner
+                                    (options.other_allowed_owners != undefined && // Or is this pr links owner in the allowlist
+                                        options.other_allowed_owners.find((allowed_owner) => allowed_owner.toLowerCase() === ref_owner) != undefined))
+                            ) {
+                                console.info(
+                                    `${CLIColor.FgGray}-${CLIColor.Reset} Found required PR in ` +
+                                        `${CLIColor.BgTeal3}${CLIColor.FgWhite1}${CLIColor.Bright} ${pr_id} ${CLIColor.Reset}, ` +
+                                        `but it ${CLIColor.FgGray}(${CLIColor.FgGray18}${ref_owner}/${ref_project}/pull/${ref_secondary}${CLIColor.FgGray})${CLIColor.Reset} ` +
+                                        `leads to another owner ${CLIColor.FgGray}(${CLIColor.FgGray18}${ref_owner}${CLIColor.FgGray})${CLIColor.Reset}, ` +
+                                        `which is not in the allowlist, skipping.`,
+                                );
+                                continue;
+                            }
+
+                            console.info(
+                                `${CLIColor.FgGray}-${CLIColor.Reset} Found required PR in ` +
+                                    `${CLIColor.BgTeal3}${CLIColor.FgWhite1}${CLIColor.Bright} ${pr_id} ${CLIColor.Reset}, following${CLIColor.FgGray}...${CLIColor.Reset}`,
+                            );
+                            await apply_github_pr(required_pr, options, traced_prs);
+                        }
+                    }
+                }
+
+                console.info(
+                    `${CLIColor.FgGray}-${CLIColor.Reset} Applying PR ${CLIColor.BgBlue0}${CLIColor.FgWhite1}${CLIColor.Bright} ${pr_id} ${CLIColor.Reset}${CLIColor.FgGray}...${CLIColor.Reset}`,
+                );
+                await switch_to_indev_version(source_url, options);
+            }
+        } else {
+            console.error(
+                `${CLIColor.FgRed10}ERR:${CLIColor.Reset} Provided link ${CLIColor.FgGray}(${CLIColor.FgGray18}${source_url}${CLIColor.FgGray})${CLIColor.Reset} ` +
+                    `does not appear to be a pull request link.`,
+            );
+            return;
+        }
+    } else {
+        console.warn(
+            `${CLIColor.FgYellow1}WARN:${CLIColor.Reset} Failed to parse source url ` +
+                `${CLIColor.FgGray}(${CLIColor.FgGray18}${source_url}${CLIColor.FgGray})${CLIColor.Reset} as a GitHub url.`,
+        );
+    }
+}
+
 export async function switch_to_indev_version(
     source_url: string | undefined,
-    options: { dry: boolean; build_job?: string; artifact_name?: string },
+    options: { dry: boolean; build_job?: string; artifact_name?: string; allow_failed_workflows?: boolean },
     mod_map?: Map<string, mod_object>,
 ) {
     if (source_url == undefined) {
-        console.error('ERR: Missing source url.');
+        console.error(`${CLIColor.FgRed10}ERR:${CLIColor.Reset} Missing source url.`);
         return;
     }
 
     assert_gh_key();
     mod_map = mod_map ?? (await read_saved_mods(ANNOTATED_FILE));
-    const artifact = await get_dl_url_from_github_url(source_url, options.build_job, options.artifact_name);
+    const artifact = await get_dl_url_from_github_url(source_url, options.build_job, options.artifact_name, 10, options.allow_failed_workflows ?? false);
 
     if (artifact == undefined) {
-        console.error(`ERR: Failed to find a download url from source url '${source_url}'.`);
+        console.error(
+            `${CLIColor.FgRed10}ERR:${CLIColor.Reset} Failed to find a download url from source url ${CLIColor.FgGray}'${CLIColor.FgGray18}${source_url}${CLIColor.FgGray}'${CLIColor.Reset}.`,
+        );
         return;
     } else {
-        console.info('Using artifact ', artifact);
+        console.info(
+            `Using artifact ${CLIColor.BgBlue0}${CLIColor.FgWhite1}${CLIColor.Bright} ${artifact.name} ${CLIColor.Reset} ` +
+                `${CLIColor.FgGray}(${CLIColor.FgGray18}${(artifact.size_in_bytes / 1024).toFixed(0)} ${CLIColor.FgGray14}KB${CLIColor.FgGray}, ` +
+                `${CLIColor.FgGray18}${artifact.digest.slice(0, 12)}…${CLIColor.FgGray})${CLIColor.Reset}`,
+        );
     }
 
-    if (options.dry) return;
+    if (options.dry) return artifact;
 
     const temp_dir = DOWNLOAD_TEMP_DIR.replace(/\/$/m, '') + '/indev';
     if (path_is_directory(temp_dir)) {
-        console.info('Old temp dir at', temp_dir, ' exists, recreating..');
+        console.info(`Old temp dir at ${CLIColor.FgGray}(${CLIColor.FgGray18}${temp_dir}${CLIColor.FgGray})${CLIColor.Reset} exists, recreating..`);
         await rm(temp_dir, { recursive: true });
     }
 
     await mkdir(temp_dir, { recursive: true });
 
     // Actually download the artifact, should always be a zip
-    console.info('Downloading artifact...');
+    console.info(`${CLIColor.FgGray}-${CLIColor.Reset} Downloading artifact${CLIColor.FgGray}...${CLIColor.Reset}`);
     await download_file(artifact.archive_download_url, 'GITHUB', temp_dir, artifact.name + '.zip', SOURCE_API_KEYS.get('GITHUB'));
     const zip_file_name = temp_dir + '/' + artifact.name + '.zip';
     const file = Bun.file(zip_file_name);
 
     // Check integrity of file
     if (!(await file.exists())) {
-        console.error('ERR: Failed to download file, is on disk missing.', file);
+        console.error(`${CLIColor.FgRed10}ERR:${CLIColor.Reset} Failed to download file, is on disk missing.`, file);
         return;
     } else if (file.size != artifact.size_in_bytes) {
-        console.error('ERR: Size of downloaded file differs, got', file.size, ' against expected ', artifact.size_in_bytes);
+        console.error(
+            `${CLIColor.FgRed10}ERR:${CLIColor.Reset} Size of downloaded file differs, got ` +
+                `${CLIColor.Bright}${file.size}${CLIColor.Reset} against expected ${CLIColor.Bright}${artifact.size_in_bytes}${CLIColor.Reset}.`,
+        );
         return;
     } else if ((await hash_buffer(await file.bytes(), 'sha256')) !== artifact.digest) {
-        console.error('ERR: Checksum of file differs, got', await hash_buffer(await file.bytes(), 'sha256'), ' against expected ', artifact.digest);
+        console.error(
+            `${CLIColor.FgRed10}ERR:${CLIColor.Reset} Checksum of file differs, got ` +
+                `${CLIColor.Bright}${await hash_buffer(await file.bytes(), 'sha256')}${CLIColor.Reset} against expected ${CLIColor.Bright}${artifact.digest}${CLIColor.Reset}.`,
+        );
         return;
     } else if (!(await is_zip_file(file))) {
-        console.error('ERR: Downloaded file matches expected but is not a zip file. We can only handle zip files for now.');
+        console.error(`${CLIColor.FgRed10}ERR:${CLIColor.Reset} Downloaded file matches expected but is not a zip file. We can only handle zip files for now.`);
         return;
     } else {
-        console.info('Downloaded file!');
+        console.info(`${CLIColor.FgGreen11}✔${CLIColor.Reset} Downloaded file!`);
     }
 
     // Find .jar file in zip we want and extract it
@@ -753,17 +859,19 @@ export async function switch_to_indev_version(
     const filtered_jar_files = jar_files.filter((file_in_zip) => !is_mod_ignored_by_name(file_in_zip.replace(/(?:.*?)([^\/]+?$)/, '$1')));
 
     if (filtered_jar_files.length > 1) {
-        console.error('ERR: Zip contains more than one file after filtering. Remaining:', filtered_jar_files);
+        console.error(`${CLIColor.FgRed10}ERR:${CLIColor.Reset} Zip contains more than one file after filtering. Remaining:`, filtered_jar_files);
         return;
     } else if (filtered_jar_files.length < 1) {
-        console.error('ERR: Zip contains no .jar files that we want / expected.');
+        console.error(`${CLIColor.FgRed10}ERR:${CLIColor.Reset} Zip contains no .jar files that we want / expected.`);
         return;
     }
 
     const jar_file = (filtered_jar_files[0] as string).replace(/(?:.*?)([^\/]+?$)/, '$1');
     const jar_file_path = temp_dir + '/' + jar_file;
     await Bun.write(jar_file_path, await extract_file_from_zip(zip_file_name, filtered_jar_files[0] as string));
-    console.info('Extracted mod jar from zip to ', jar_file_path);
+    console.info(
+        `${CLIColor.FgGray}-${CLIColor.Reset} Extracted mod jar from zip to ${CLIColor.FgGray}(${CLIColor.FgGray18}${jar_file_path}${CLIColor.FgGray})${CLIColor.Reset}`,
+    );
 
     // Check modid of jar for switching out with existing version
     const { id: mod_id, version: mod_version, wants: mod_wants, hash: mod_hash, other_mod_ids: mod_other_ids } = await parse_mod_details(jar_file_path);
@@ -771,7 +879,7 @@ export async function switch_to_indev_version(
 
     // Jar could not be recognized as a mod, add it as something unknown
     if (mod_id == undefined) {
-        console.warn('WARN: Failed get an id from mod jar, directly moving to mod folder and exiting.');
+        console.warn(`${CLIColor.FgYellow1}WARN:${CLIColor.Reset} Failed to get an id from mod jar, directly moving to mod folder and exiting.`);
         await rename_file(jar_file_path, jar_mod_path);
         return;
     }
@@ -780,32 +888,38 @@ export async function switch_to_indev_version(
 
     // Jar was recognized as a mod, update / add it via our tracked mods
     if (mod_obj != undefined) {
-        console.info(`Mod '${mod_id}' is a tracked mod, currently under '${mod_obj.file_path}' with version ${mod_obj.update_state.version}.`);
+        console.info(
+            `Mod ${CLIColor.BgBlue0}${CLIColor.FgWhite1}${CLIColor.Bright} ${mod_id} ${CLIColor.Reset} is a tracked mod, currently under ` +
+                `${CLIColor.FgGray}(${CLIColor.FgGray18}${mod_obj.file_path}${CLIColor.FgGray})${CLIColor.Reset} ` +
+                `with version ${CLIColor.BgTeal3}${CLIColor.FgWhite1}${CLIColor.Bright} ${mod_obj.update_state.version} ${CLIColor.Reset}.`,
+        );
         const old_jar = Bun.file(mod_obj.file_path);
         if (await old_jar.exists()) {
             await old_jar.delete();
         } else {
-            console.warn('WARN: Old jar is missing, skipping deletion');
+            console.warn(`${CLIColor.FgYellow1}WARN:${CLIColor.Reset} Old jar is missing, skipping deletion.`);
         }
 
         // If mod was previously disabled, also disable it here
         if (!mod_obj.enabled) {
             jar_mod_path += '.disabled';
-            console.warn('WARN: Mod was previously disabled, also disabling it now.');
+            console.warn(`${CLIColor.FgYellow1}WARN:${CLIColor.Reset} Mod was previously disabled, also disabling it now.`);
         }
 
         await rename_file(jar_file_path, jar_mod_path);
-        console.info('Moved indev jar to mods folder, updating track entry...');
+        console.info(`${CLIColor.FgGray}-${CLIColor.Reset} Moved indev jar to mods folder, updating track entry${CLIColor.FgGray}...${CLIColor.Reset}`);
 
         mod_obj.file_path = jar_mod_path;
         mod_obj.update_state.version = mod_version ?? mod_obj.version + '-dirty';
         mod_obj.source = artifact.archive_download_url;
         mod_obj.update_state.last_updated_at = new Date(Date.now()).toISOString();
     } else {
-        console.info(`Mod '${mod_id}' is not a tracked mod, but we were able to recognize it as one.`);
+        console.info(
+            `Mod ${CLIColor.BgBlue0}${CLIColor.FgWhite1}${CLIColor.Bright} ${mod_id} ${CLIColor.Reset} is not a tracked mod, but we were able to recognize it as one.`,
+        );
 
         await rename_file(jar_file_path, jar_mod_path);
-        console.info('Moved indev jar to mods folder, adding track entry...');
+        console.info(`${CLIColor.FgGray}-${CLIColor.Reset} Moved indev jar to mods folder, adding track entry${CLIColor.FgGray}...${CLIColor.Reset}`);
 
         const new_mod_obj = clone(default_mod_object) as mod_object;
         new_mod_obj.file_path = jar_mod_path;
@@ -820,20 +934,73 @@ export async function switch_to_indev_version(
 
     await save_map_to_file(ANNOTATED_FILE, mod_map);
 
-    console.info(`Finished updating mod '${mod_id}' to indev version '${mod_version ?? artifact.name + '-dirty'}'.`);
+    const final_version = mod_version ?? artifact.name + '-dirty';
+    console.info(
+        `${CLIColor.FgGreen11}✔${CLIColor.Reset} Finished updating mod ${CLIColor.BgBlue0}${CLIColor.FgWhite1}${CLIColor.Bright} ${mod_id} ${CLIColor.Reset} ` +
+            `to indev version ${CLIColor.BgBlue0}${CLIColor.FgWhite1}${CLIColor.Bright} ${final_version} ${CLIColor.Reset} ` +
+            `${CLIColor.FgGray}(${CLIColor.FgGray18}${jar_mod_path.replace(MOD_BASE_DIR + '/', '')}${CLIColor.FgGray})${CLIColor.Reset}.`,
+    );
 }
 
-async function get_dl_url_from_github_url(source_url: string, build_job?: string, artifact_name?: string, commit_lookback: number = 10): Promise<Artifact | undefined> {
+const FAILED_WORKFLOW_CONCLUSIONS: ReadonlyArray<string> = ['failure', 'cancelled', 'timed_out', 'startup_failure', 'action_required'];
+
+type WorkflowRunSummary = { html_url: string; id: number; name: string; status?: string | null; conclusion?: string | null };
+
+/**
+ * Checks the given workflow runs (those associated with a single commit) for any failed runs.
+ * Returns true if execution should abort (i.e. at least one run failed and `allow_failed_workflows` is false).
+ * Logs every failed run regardless.
+ */
+function detect_failed_workflows(workflow_runs: WorkflowRunSummary[], allow_failed_workflows: boolean): boolean {
+    const failed = workflow_runs.filter((r) => r.conclusion != null && FAILED_WORKFLOW_CONCLUSIONS.includes(r.conclusion));
+    if (failed.length === 0) return false;
+
+    for (const run of failed) {
+        console.warn(
+            `${CLIColor.FgRed10}FAIL:${CLIColor.Reset} Workflow ${CLIColor.FgRed10}${CLIColor.Bright}${run.name}${CLIColor.Reset} ` +
+                `${CLIColor.FgGray}(${CLIColor.FgGray18}#${run.id}${CLIColor.FgGray})${CLIColor.Reset} ` +
+                `concluded as ${CLIColor.FgRed10}${CLIColor.Bright}${run.conclusion}${CLIColor.Reset}.`,
+        );
+    }
+    if (allow_failed_workflows) {
+        console.warn(
+            `${CLIColor.FgYellow1}WARN:${CLIColor.Reset} ${CLIColor.Bright}${failed.length}${CLIColor.Reset} failed workflow run(s) ` +
+                `tolerated due to ${CLIColor.Bright}${CLIColor.FgWhite}--allow_failed_workflows${CLIColor.Reset}.`,
+        );
+        return false;
+    }
+    console.error(
+        `${CLIColor.FgRed10}ERR:${CLIColor.Reset} Aborting because ${CLIColor.Bright}${failed.length}${CLIColor.Reset} workflow run(s) failed. ` +
+            `Pass ${CLIColor.Bright}${CLIColor.FgWhite}--allow_failed_workflows${CLIColor.Reset} to override.`,
+    );
+    return true;
+}
+
+async function get_dl_url_from_github_url(
+    source_url: string,
+    build_job?: string,
+    artifact_name?: string,
+    commit_lookback: number = 10,
+    allow_failed_workflows: boolean = false,
+): Promise<Artifact | undefined> {
     const url_match = parse_gh_url(source_url);
 
     if (url_match) {
         let { owner, project, primary, secondary, key, asset, fifth } = url_match;
+        console.info(
+            `${CLIColor.FgGray}-${CLIColor.Reset} Resolving source url ${CLIColor.FgGray}(${CLIColor.FgGray18}${source_url}${CLIColor.FgGray})${CLIColor.Reset} ` +
+                `for project ${CLIColor.BgBlue0}${CLIColor.FgWhite1}${CLIColor.Bright} ${owner}/${project} ${CLIColor.Reset}${CLIColor.FgGray}...${CLIColor.Reset}`,
+        );
 
         // This is something that might have workflow runs
         let other_workflows: { name: string | undefined; id: string }[] = [];
         if ((primary === 'tree' || primary === 'pull') && secondary != undefined) {
             let parsed = undefined;
             if (primary === 'pull') {
+                console.info(
+                    `${CLIColor.FgGray}-${CLIColor.Reset} Walking commits of PR ${CLIColor.BgTeal3}${CLIColor.FgWhite1}${CLIColor.Bright} #${secondary} ${CLIColor.Reset} ` +
+                        `to find a workflow run${CLIColor.FgGray}...${CLIColor.Reset}`,
+                );
                 // For a PR, walk backwards through commits (newest first) until we find one with workflow runs
                 const { status: pr_status, body: pr_body } = await query_gh_project_by_url(source_url, GITHUB_API_KEY!, `/pulls/${secondary}`);
                 const head_sha = pr_status === '200' && pr_body != null ? ((pr_body as any).head?.sha as string | undefined) : undefined;
@@ -854,11 +1021,25 @@ async function get_dl_url_from_github_url(source_url: string, build_job?: string
                         if (sha !== head_sha) commit_shas.push(sha);
                     }
                 }
+                console.info(
+                    `${CLIColor.FgGray}-${CLIColor.Reset} Checking ${CLIColor.Bright}${commit_shas.length}${CLIColor.Reset} commits ` +
+                        `${CLIColor.FgGray}(head: ${CLIColor.FgGray18}${head_sha?.slice(0, 7) ?? '?'}${CLIColor.FgGray})${CLIColor.Reset} for workflow runs.`,
+                );
 
                 for (const sha of commit_shas) {
                     const { status, body } = await query_gh_project_by_url(source_url, GITHUB_API_KEY!, `/actions/runs?head_sha=${sha}`);
                     if (status === '200' && body != null && Array.isArray((body as any).workflow_runs) && (body as any).workflow_runs.length > 0) {
-                        const workflow_runs = (body as any).workflow_runs as Array<{ html_url: string; id: number; name: string }>;
+                        const workflow_runs = (body as any).workflow_runs as Array<WorkflowRunSummary>;
+                        console.info(
+                            `${CLIColor.FgGray}-${CLIColor.Reset} Found ${CLIColor.Bright}${workflow_runs.length}${CLIColor.Reset} workflow run(s) ` +
+                                `for commit ${CLIColor.FgGray}(${CLIColor.FgGray18}${sha.slice(0, 7)}${CLIColor.FgGray})${CLIColor.Reset}, ` +
+                                `using ${CLIColor.BgBlue0}${CLIColor.FgWhite1}${CLIColor.Bright} ${workflow_runs[0]!.name} ${CLIColor.Reset}.`,
+                        );
+
+                        if (detect_failed_workflows(workflow_runs, allow_failed_workflows)) {
+                            return undefined;
+                        }
+
                         if (workflow_runs.length > 1) {
                             other_workflows = workflow_runs.slice(1).map((run) => {
                                 return { name: run.name, id: String(run.id) };
@@ -870,6 +1051,10 @@ async function get_dl_url_from_github_url(source_url: string, build_job?: string
                     }
                 }
             } else {
+                console.info(
+                    `${CLIColor.FgGray}-${CLIColor.Reset} Walking last ${CLIColor.Bright}${commit_lookback}${CLIColor.Reset} commits of branch ` +
+                        `${CLIColor.BgTeal3}${CLIColor.FgWhite1}${CLIColor.Bright} ${secondary} ${CLIColor.Reset} to find a workflow run${CLIColor.FgGray}...${CLIColor.Reset}`,
+                );
                 // For a branch, fetch the last x (commit_lookback) commits (newest-first) and walk until we find runs
                 const { status: commits_status, body: commits_body } = await query_gh_project_by_url(
                     source_url,
@@ -881,7 +1066,17 @@ async function get_dl_url_from_github_url(source_url: string, build_job?: string
                         const sha = commit.sha as string;
                         const { status, body } = await query_gh_project_by_url(source_url, GITHUB_API_KEY!, `/actions/runs?head_sha=${sha}`);
                         if (status === '200' && body != null && Array.isArray((body as any).workflow_runs) && (body as any).workflow_runs.length > 0) {
-                            const workflow_runs = (body as any).workflow_runs as Array<{ html_url: string; id: number; name: string }>;
+                            const workflow_runs = (body as any).workflow_runs as Array<WorkflowRunSummary>;
+                            console.info(
+                                `${CLIColor.FgGray}-${CLIColor.Reset} Found ${CLIColor.Bright}${workflow_runs.length}${CLIColor.Reset} workflow run(s) ` +
+                                    `for commit ${CLIColor.FgGray}(${CLIColor.FgGray18}${sha.slice(0, 7)}${CLIColor.FgGray})${CLIColor.Reset}, ` +
+                                    `using ${CLIColor.BgBlue0}${CLIColor.FgWhite1}${CLIColor.Bright} ${workflow_runs[0]!.name} ${CLIColor.Reset}.`,
+                            );
+
+                            if (detect_failed_workflows(workflow_runs, allow_failed_workflows)) {
+                                return undefined;
+                            }
+
                             if (workflow_runs.length > 1) {
                                 other_workflows = workflow_runs.slice(1).map((run) => {
                                     return { name: run.name, id: String(run.id) };
@@ -900,11 +1095,23 @@ async function get_dl_url_from_github_url(source_url: string, build_job?: string
                 key = parsed.key;
                 asset = parsed.asset;
                 fifth = parsed.fifth;
+            } else {
+                console.warn(
+                    `${CLIColor.FgYellow1}WARN:${CLIColor.Reset} No workflow runs found while walking ` +
+                        `${primary === 'pull' ? 'PR' : 'branch'} ${CLIColor.Bright}${secondary}${CLIColor.Reset}.`,
+                );
             }
         }
 
         // This is a workflow run
         if (primary === 'actions' && secondary === 'runs' && key != undefined) {
+            console.info(
+                `${CLIColor.FgGray}-${CLIColor.Reset} Resolved to workflow run ${CLIColor.BgBlue0}${CLIColor.FgWhite1}${CLIColor.Bright} ${key} ${CLIColor.Reset}` +
+                    (other_workflows.length > 0
+                        ? ` ${CLIColor.FgGray}(+${CLIColor.FgGray18}${other_workflows.length}${CLIColor.FgGray} other workflow(s) for the same commit)${CLIColor.Reset}`
+                        : '') +
+                    '.',
+            );
             // We have a link to a workflow run
             let workflow_run_name = undefined;
             if (build_job != undefined) {
@@ -912,10 +1119,17 @@ async function get_dl_url_from_github_url(source_url: string, build_job?: string
                 if (status === '200' && body != null && body['name'] != undefined) {
                     workflow_run_name = body['name'] as string | undefined;
                 }
+                console.info(
+                    `${CLIColor.FgGray}-${CLIColor.Reset} Filtering by build job ${CLIColor.BgTeal3}${CLIColor.FgWhite1}${CLIColor.Bright} ${build_job} ${CLIColor.Reset} ` +
+                        `${CLIColor.FgGray}(primary run: ${CLIColor.FgGray18}${workflow_run_name ?? '?'}${CLIColor.FgGray})${CLIColor.Reset}.`,
+                );
             }
 
             let collected_artifacts: Artifact[] = [];
             const workflows = [{ name: workflow_run_name, id: key }, ...other_workflows];
+            console.info(
+                `${CLIColor.FgGray}-${CLIColor.Reset} Collecting artifacts across ${CLIColor.Bright}${workflows.length}${CLIColor.Reset} workflow run(s)${CLIColor.FgGray}...${CLIColor.Reset}`,
+            );
 
             for (const workflow_run of workflows) {
                 // Get artifacts of workflow by id and store all download urls
@@ -934,8 +1148,20 @@ async function get_dl_url_from_github_url(source_url: string, build_job?: string
                             };
                         });
 
+                    const expired_count = artifacts.length - stripped_artifacts.length;
+                    console.info(
+                        `${CLIColor.FgGray}  -${CLIColor.Reset} Workflow ${CLIColor.FgGray}(${CLIColor.FgGray18}${workflow_run.name ?? workflow_run.id}${CLIColor.FgGray})${CLIColor.Reset}: ` +
+                            `${CLIColor.Bright}${stripped_artifacts.length}${CLIColor.Reset} usable artifact(s)` +
+                            (expired_count > 0 ? ` ${CLIColor.FgGray}(${CLIColor.FgOrange5}${expired_count} expired${CLIColor.FgGray})${CLIColor.Reset}` : '') +
+                            '.',
+                    );
+
                     if (build_job != undefined && workflow_run.name != undefined && workflow_run.name.toLowerCase() === build_job.toLowerCase()) {
                         // If this is the job we are filtering for, just use it and nothing else
+                        console.info(
+                            `${CLIColor.FgGray}-${CLIColor.Reset} Workflow ${CLIColor.BgBlue0}${CLIColor.FgWhite1}${CLIColor.Bright} ${workflow_run.name} ${CLIColor.Reset} ` +
+                                `matches build job filter, using exclusively.`,
+                        );
                         collected_artifacts = [];
                         collected_artifacts.push(...stripped_artifacts);
                         break;
@@ -946,29 +1172,48 @@ async function get_dl_url_from_github_url(source_url: string, build_job?: string
             }
 
             if (collected_artifacts.length < 1) {
-                console.warn(`WARN: Found no artifacts across ${workflows.length} workflows.`);
+                console.warn(`${CLIColor.FgYellow1}WARN:${CLIColor.Reset} Found no artifacts across ${CLIColor.Bright}${workflows.length}${CLIColor.Reset} workflows.`);
                 return undefined;
             }
             // Try with a filter if we have one
             if (artifact_name != undefined) {
+                console.info(
+                    `${CLIColor.FgGray}-${CLIColor.Reset} Filtering ${CLIColor.Bright}${collected_artifacts.length}${CLIColor.Reset} artifact(s) ` +
+                        `by name ${CLIColor.BgTeal3}${CLIColor.FgWhite1}${CLIColor.Bright} ${artifact_name} ${CLIColor.Reset}.`,
+                );
                 const artifact = collected_artifacts.find((entry) => entry.name.toLowerCase().includes(artifact_name.toLowerCase()));
 
                 if (artifact == undefined) {
-                    console.warn(`WARN: Failed to find artifact for filter '${artifact_name}' across ${collected_artifacts.length} artifacts.`);
+                    console.warn(
+                        `${CLIColor.FgYellow1}WARN:${CLIColor.Reset} Failed to find artifact for filter ` +
+                            `${CLIColor.FgGray}'${CLIColor.FgGray18}${artifact_name}${CLIColor.FgGray}'${CLIColor.Reset} ` +
+                            `across ${CLIColor.Bright}${collected_artifacts.length}${CLIColor.Reset} artifacts.`,
+                    );
                 }
                 return artifact;
             }
 
             if (collected_artifacts.length > 1) {
                 console.warn(
-                    `WARN: Found more than one artifact (${collected_artifacts.length}), using first ('${collected_artifacts[0]?.name}'). You can filter artifacts by providing --artifact_name.`,
+                    `${CLIColor.FgYellow1}WARN:${CLIColor.Reset} Found more than one artifact ` +
+                        `${CLIColor.FgGray}(${CLIColor.FgGray18}${collected_artifacts.length}${CLIColor.FgGray})${CLIColor.Reset}, ` +
+                        `using first ${CLIColor.FgGray}('${CLIColor.FgGray18}${collected_artifacts[0]?.name}${CLIColor.FgGray}')${CLIColor.Reset}. ` +
+                        `You can filter artifacts by providing ${CLIColor.Bright}${CLIColor.FgWhite}--artifact_name${CLIColor.Reset}.`,
                 );
             }
 
             return collected_artifacts[0];
         } else {
-            console.warn('WARN: Failed to trace a workflow from url ', source_url);
+            console.warn(
+                `${CLIColor.FgYellow1}WARN:${CLIColor.Reset} Failed to trace a workflow from url ` +
+                    `${CLIColor.FgGray}(${CLIColor.FgGray18}${source_url}${CLIColor.FgGray})${CLIColor.Reset}.`,
+            );
         }
+    } else {
+        console.warn(
+            `${CLIColor.FgYellow1}WARN:${CLIColor.Reset} Failed to parse source url ` +
+                `${CLIColor.FgGray}(${CLIColor.FgGray18}${source_url}${CLIColor.FgGray})${CLIColor.Reset} as a GitHub url.`,
+        );
     }
     return undefined;
 }

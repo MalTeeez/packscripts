@@ -14,6 +14,7 @@ import { disable_atomic_deep, enable_atomic_deep, list_mods, list_mods_folder, l
 import { visualize_graph } from './subcommands/graph';
 import { check_all_mods_for_updates, undo_last_update } from './subcommands/update';
 import {
+    apply_github_pr,
     list_all_versions_for_mod,
     restore_to_asset_versions,
     switch_to_indev_version,
@@ -292,7 +293,7 @@ const commands: Record<string, CommandDefinition> = {
                 console.log(commands['version_restore_all']?.usage);
                 return;
             }
-            
+
             await restore_to_asset_versions({ dry: args.includes('--dry') });
             return;
         },
@@ -312,7 +313,7 @@ const commands: Record<string, CommandDefinition> = {
     },
     version_switch_indev: {
         description: '',
-        usage: 'version switch_indev <source_url> [--dry] [--apply_pr] [--build_job <job name>] [--artifact_name <part of artifact name>]',
+        usage: 'version switch_indev <source_url> [--dry] [--build_job <job name>] [--artifact_name <part of artifact name>] [--allow_failed_workflows]',
         is_subcommand: true,
         handler: async (args) => {
             if (args.includes('--help')) {
@@ -334,13 +335,51 @@ const commands: Record<string, CommandDefinition> = {
                 }
             }
 
-            if (args.includes("--apply_pr")) {
-                
-            } else {
-                await switch_to_indev_version(positional[0], { dry: args.includes("--dry"), build_job, artifact_name });
-            }
+            await switch_to_indev_version(positional[0], {
+                dry: args.includes('--dry'),
+                build_job,
+                artifact_name,
+                allow_failed_workflows: args.includes('--allow_failed_workflows'),
+            });
             return;
-        }
+        },
+    },
+    version_apply_pr: {
+        description: '',
+        usage: 'version apply_pr <source_url> [--dry] [--build_job <job name>] [--artifact_name <part of artifact name>] [--allow_failed_workflows] [--limit_to_original_owner] [--other_allowed_owner <owner>]...',
+        is_subcommand: true,
+        handler: async (args) => {
+            if (args.includes('--help')) {
+                console.log(commands['version_switch_indev']);
+                return;
+            }
+
+            let build_job: string | undefined;
+            const other_allowed_owners = []
+            let artifact_name: string | undefined;
+            const positional: string[] = [];
+            for (let i = 0; i < args.length; i++) {
+                const arg = args[i];
+                if (arg === '--build_job' && args[i + 1] != undefined) {
+                    build_job = args[i + 1];
+                } else if (arg === '--artifact_name' && args[i + 1] != undefined) {
+                    artifact_name = args[i + 1];
+                } else if (arg != null && !arg.startsWith('-')) {
+                    positional.push(arg);
+                } else if (arg === '--other_allowed_owner' && args[i + 1] != undefined) {
+                    other_allowed_owners.push(args[i + 1] as string);
+                }
+            }
+
+            await apply_github_pr(positional[0], {
+                dry: args.includes('--dry'),
+                build_job,
+                artifact_name,
+                allow_failed_workflows: args.includes('--allow_failed_workflows'),
+                other_allowed_owners: other_allowed_owners.length > 0 ? other_allowed_owners : undefined
+            });
+            return;
+        },
     },
     package: {
         description: 'Package your modpack into prism zips & provide them with updates via unsup',
@@ -378,8 +417,7 @@ const commands: Record<string, CommandDefinition> = {
         },
     },
     package_bootstrap: {
-        description:
-            'Build the bootstrap for the provided commit sha (assumes HEAD if none is provided) (Will override the old bootstrap manifest).',
+        description: 'Build the bootstrap for the provided commit sha (assumes HEAD if none is provided) (Will override the old bootstrap manifest).',
         usage: 'package bootstrap [<git ref>] [-t|--tag tag] [--variant variant]',
         is_subcommand: true,
         handler: async (args) => {
@@ -477,9 +515,9 @@ const commands: Record<string, CommandDefinition> = {
                 } else if (arg === '--exclude_tag' && args[i + 1] != undefined) {
                     exclude_tags.push(args[i + 1] as string);
                 } else if (arg === '--mult_size' && args[i + 1] != undefined && !Number.isNaN(args[i + 1])) {
-                    size_multiplier = Number(args[i + 1])
+                    size_multiplier = Number(args[i + 1]);
                 } else if (arg === '--mult_freq' && args[i + 1] != undefined && !Number.isNaN(args[i + 1])) {
-                    freq_multiplier = Number(args[i + 1])
+                    freq_multiplier = Number(args[i + 1]);
                 } else if (arg != undefined && !arg.startsWith('-')) {
                     positional.push(arg);
                 }
@@ -490,7 +528,7 @@ const commands: Record<string, CommandDefinition> = {
                 exclude_tags: exclude_tags.length == 0 ? undefined : exclude_tags,
                 include_tags: include_tags.length == 0 ? undefined : include_tags,
                 size_multiplier: size_multiplier,
-                frequency_multiplier: freq_multiplier
+                frequency_multiplier: freq_multiplier,
             });
             return;
         },
@@ -498,13 +536,14 @@ const commands: Record<string, CommandDefinition> = {
     debug: {
         description: 'Run debug operations',
         handler: async (args) => {
-            console.log(
-                filter_for_faulty_dependencies(
-                    (await get_details_from_mainclass('./.minecraft/mods/' + args[0])).main_deps,
-                    args[1] as string,
-                    [],
-                ),
-            );
+            // console.log(
+            //     filter_for_faulty_dependencies(
+            //         (await get_details_from_mainclass('./.minecraft/mods/' + args[0])).main_deps,
+            //         args[1] as string,
+            //         [],
+            //     ),
+            // );
+            // test_pr_extraction()
         },
     },
 };
