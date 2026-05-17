@@ -1,9 +1,28 @@
 import { ANNOTATED_FILE, DOWNLOAD_TEMP_DIR, DOWNLOAD_UNDO_DIR, GITHUB_API_KEY, MOD_BASE_DIR } from '../utils/config';
 import { download_file, filter_assets, print_gh_ratelimits, query_gh_project_by_url } from '../utils/fetch';
-import { glob_files_in_dir, save_list_to_file, save_map_to_file } from '../utils/fs';
-import { are_all_mods_unlocked, read_saved_mods, type mod_object, type SourceType } from '../utils/mods';
-import { CLIColor, finish_live_zone, init_live_zone, is_finished, live_log, render_md, rev_replace_all, update_live_zone } from '../utils/utils';
-import { mkdir, rename } from 'node:fs/promises';
+import {
+    collect_files_from_zip,
+    extract_file_from_zip,
+    glob_files_in_dir,
+    hash_file,
+    is_zip_file,
+    path_is_directory,
+    rename_file,
+    save_list_to_file,
+    save_map_to_file,
+} from '../utils/fs';
+import {
+    are_all_mods_unlocked,
+    default_mod_object,
+    extract_modinfos,
+    is_mod_ignored_by_name,
+    parse_mod_details,
+    read_saved_mods,
+    type mod_object,
+    type SourceType,
+} from '../utils/mods';
+import { CLIColor, clone, finish_live_zone, hash_buffer, init_live_zone, is_finished, live_log, render_md, rev_replace_all, update_live_zone } from '../utils/utils';
+import { mkdir, rename, rm } from 'node:fs/promises';
 import { toNamespacedPath } from 'node:path';
 import { parse_gh_url } from '../utils/sources';
 
@@ -35,7 +54,7 @@ function assert_gh_key() {
         // can't throw in ternary
         throw Error('Missing GITHUB_API_KEY.');
     } else {
-        SOURCE_API_KEYS.set('GH_RELEASE', GITHUB_API_KEY);
+        SOURCE_API_KEYS.set('GITHUB', GITHUB_API_KEY);
     }
 }
 
@@ -587,7 +606,7 @@ export async function verify_and_refresh_source_links(
         }
 
         switch (mod.update_state.source_type) {
-            case 'GH_RELEASE': {
+            case 'GITHUB': {
                 const url_match = parse_gh_url(mod.source);
                 if (url_match != undefined) {
                     const { owner, project, primary, secondary, key } = url_match;
@@ -687,13 +706,121 @@ export async function switch_to_indev_version(
 
     assert_gh_key();
     mod_map = mod_map ?? (await read_saved_mods(ANNOTATED_FILE));
-    const dl_url = await get_dl_url_from_github_url(source_url, options.build_job, options.artifact_name);
+    const artifact = await get_dl_url_from_github_url(source_url, options.build_job, options.artifact_name);
 
-    if (dl_url != undefined) {
-        console.log(dl_url);
+    if (artifact == undefined) {
+        console.error(`ERR: Failed to find a download url from source url '${source_url}'.`);
+        return;
     } else {
-        console.log('failed to find download url');
+        console.info('Using artifact ', artifact);
     }
+
+    if (options.dry) return;
+
+    const temp_dir = DOWNLOAD_TEMP_DIR.replace(/\/$/m, '') + '/indev';
+    if (path_is_directory(temp_dir)) {
+        console.info('Old temp dir at', temp_dir, ' exists, recreating..');
+        await rm(temp_dir, { recursive: true });
+    }
+
+    await mkdir(temp_dir, { recursive: true });
+
+    // Actually download the artifact, should always be a zip
+    console.info('Downloading artifact...');
+    await download_file(artifact.archive_download_url, 'GITHUB', temp_dir, artifact.name + '.zip', SOURCE_API_KEYS.get('GITHUB'));
+    const zip_file_name = temp_dir + '/' + artifact.name + '.zip';
+    const file = Bun.file(zip_file_name);
+
+    // Check integrity of file
+    if (!(await file.exists())) {
+        console.error('ERR: Failed to download file, is on disk missing.', file);
+        return;
+    } else if (file.size != artifact.size_in_bytes) {
+        console.error('ERR: Size of downloaded file differs, got', file.size, ' against expected ', artifact.size_in_bytes);
+        return;
+    } else if ((await hash_buffer(await file.bytes(), 'sha256')) !== artifact.digest) {
+        console.error('ERR: Checksum of file differs, got', await hash_buffer(await file.bytes(), 'sha256'), ' against expected ', artifact.digest);
+        return;
+    } else if (!(await is_zip_file(file))) {
+        console.error('ERR: Downloaded file matches expected but is not a zip file. We can only handle zip files for now.');
+        return;
+    } else {
+        console.info('Downloaded file!');
+    }
+
+    // Find .jar file in zip we want and extract it
+    const jar_files = (await collect_files_from_zip(zip_file_name, /\.jar$/m)) ?? [];
+    const filtered_jar_files = jar_files.filter((file_in_zip) => !is_mod_ignored_by_name(file_in_zip.replace(/(?:.*?)([^\/]+?$)/, '$1')));
+
+    if (filtered_jar_files.length > 1) {
+        console.error('ERR: Zip contains more than one file after filtering. Remaining:', filtered_jar_files);
+        return;
+    } else if (filtered_jar_files.length < 1) {
+        console.error('ERR: Zip contains no .jar files that we want / expected.');
+        return;
+    }
+
+    const jar_file = (filtered_jar_files[0] as string).replace(/(?:.*?)([^\/]+?$)/, '$1');
+    const jar_file_path = temp_dir + '/' + jar_file;
+    await Bun.write(jar_file_path, await extract_file_from_zip(zip_file_name, filtered_jar_files[0] as string));
+    console.info('Extracted mod jar from zip to ', jar_file_path);
+
+    // Check modid of jar for switching out with existing version
+    const { id: mod_id, version: mod_version, wants: mod_wants, hash: mod_hash, other_mod_ids: mod_other_ids } = await parse_mod_details(jar_file_path);
+    let jar_mod_path = MOD_BASE_DIR + '/' + jar_file;
+
+    // Jar could not be recognized as a mod, add it as something unknown
+    if (mod_id == undefined) {
+        console.warn('WARN: Failed get an id from mod jar, directly moving to mod folder and exiting.');
+        await rename_file(jar_file_path, jar_mod_path);
+        return;
+    }
+
+    const mod_obj = mod_map.get(mod_id);
+
+    // Jar was recognized as a mod, update / add it via our tracked mods
+    if (mod_obj != undefined) {
+        console.info(`Mod '${mod_id}' is a tracked mod, currently under '${mod_obj.file_path}' with version ${mod_obj.update_state.version}.`);
+        const old_jar = Bun.file(mod_obj.file_path);
+        if (await old_jar.exists()) {
+            await old_jar.delete();
+        } else {
+            console.warn('WARN: Old jar is missing, skipping deletion');
+        }
+
+        // If mod was previously disabled, also disable it here
+        if (!mod_obj.enabled) {
+            jar_mod_path += '.disabled';
+            console.warn('WARN: Mod was previously disabled, also disabling it now.');
+        }
+
+        await rename_file(jar_file_path, jar_mod_path);
+        console.info('Moved indev jar to mods folder, updating track entry...');
+
+        mod_obj.file_path = jar_mod_path;
+        mod_obj.update_state.version = mod_version ?? mod_obj.version + '-dirty';
+        mod_obj.source = artifact.archive_download_url;
+        mod_obj.update_state.last_updated_at = new Date(Date.now()).toISOString();
+    } else {
+        console.info(`Mod '${mod_id}' is not a tracked mod, but we were able to recognize it as one.`);
+
+        await rename_file(jar_file_path, jar_mod_path);
+        console.info('Moved indev jar to mods folder, adding track entry...');
+
+        const new_mod_obj = clone(default_mod_object) as mod_object;
+        new_mod_obj.file_path = jar_mod_path;
+        new_mod_obj.enabled = true;
+        new_mod_obj.update_state.version = mod_version ?? artifact.name + '-dirty';
+        new_mod_obj.update_state.sha256_sum = mod_hash;
+        new_mod_obj.wants = mod_wants;
+        new_mod_obj.other_mod_ids = mod_other_ids || [];
+
+        mod_map.set(mod_id, new_mod_obj);
+    }
+
+    await save_map_to_file(ANNOTATED_FILE, mod_map);
+
+    console.info(`Finished updating mod '${mod_id}' to indev version '${mod_version ?? artifact.name + '-dirty'}'.`);
 }
 
 async function get_dl_url_from_github_url(source_url: string, build_job?: string, artifact_name?: string, commit_lookback: number = 10): Promise<Artifact | undefined> {
@@ -795,15 +922,17 @@ async function get_dl_url_from_github_url(source_url: string, build_job?: string
                 const { status, body } = await query_gh_project_by_url(source_url, GITHUB_API_KEY!, `/actions/runs/${workflow_run.id}/artifacts`);
                 if (status === '200' && body != null && Array.isArray((body as any).artifacts)) {
                     const artifacts = (body as any).artifacts as Array<Artifact>;
-                    const stripped_artifacts = artifacts.filter((artifact) => !artifact.expired).map((artifact) => {
-                        return {
-                            name: artifact.name,
-                            archive_download_url: artifact.archive_download_url,
-                            size_in_bytes: artifact.size_in_bytes,
-                            digest: artifact.digest.slice(3),
-                            expired: artifact.expired,
-                        };
-                    });
+                    const stripped_artifacts = artifacts
+                        .filter((artifact) => !artifact.expired)
+                        .map((artifact) => {
+                            return {
+                                name: artifact.name,
+                                archive_download_url: artifact.archive_download_url,
+                                size_in_bytes: artifact.size_in_bytes,
+                                digest: artifact.digest.slice(7),
+                                expired: artifact.expired,
+                            };
+                        });
 
                     if (build_job != undefined && workflow_run.name != undefined && workflow_run.name.toLowerCase() === build_job.toLowerCase()) {
                         // If this is the job we are filtering for, just use it and nothing else
@@ -834,8 +963,9 @@ async function get_dl_url_from_github_url(source_url: string, build_job?: string
                 console.warn(
                     `WARN: Found more than one artifact (${collected_artifacts.length}), using first ('${collected_artifacts[0]?.name}'). You can filter artifacts by providing --artifact_name.`,
                 );
-                return collected_artifacts[0];
             }
+
+            return collected_artifacts[0];
         } else {
             console.warn('WARN: Failed to trace a workflow from url ', source_url);
         }

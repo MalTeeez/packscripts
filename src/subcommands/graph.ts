@@ -35,11 +35,11 @@ export async function visualize_graph() {
     }
 
     // Remove duplicate edges (optional)
-    const edgeSet = new Set();
-    const uniqueEdges = edges.filter((e) => {
+    const edge_set = new Set();
+    const unique_edges = edges.filter((e) => {
         const key = `${e.data.source}->${e.data.target}`;
-        if (edgeSet.has(key)) return false;
-        edgeSet.add(key);
+        if (edge_set.has(key)) return false;
+        edge_set.add(key);
         return true;
     });
 
@@ -70,7 +70,7 @@ export async function visualize_graph() {
     <script>
         const cy = cytoscape({
             container: document.getElementById('cy'),
-            elements: ${JSON.stringify([...nodes, ...uniqueEdges])},
+            elements: ${JSON.stringify([...nodes, ...unique_edges])},
             style: [
             {
                 selector: 'node',
@@ -129,6 +129,6 @@ export async function visualize_graph() {
     `;
 
     Bun.file('graph.html').write(html);
-    const filePath = `${process.cwd().replaceAll("\\", '/')}/graph.html`;
-    exec(`start "" "${path.toNamespacedPath(filePath)}"`);
+    const file_path = `${process.cwd().replaceAll("\\", '/')}/graph.html`;
+    exec(`start "" "${path.toNamespacedPath(file_path)}"`);
 }

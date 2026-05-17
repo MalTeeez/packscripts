@@ -1,5 +1,7 @@
+import type { HeadersInit } from 'bun';
 import { parse_gh_url } from './sources';
 import type { JsonObject } from './utils';
+import { is_mod_ignored_by_name } from './mods';
 
 export async function query_gh_project_by_url(
     url: string,
@@ -11,7 +13,7 @@ export async function query_gh_project_by_url(
     if (url_match != undefined) {
         const { owner, project } = url_match;
         const url = `/repos/${owner}/${project}/${sub_repo_api_path.replace(/^\//m, '')}`;
-        
+
         const res: Response | undefined = await gh_request(url, gh_api_key, 'GET');
         if (res == undefined || !res.ok) {
             if (res && !ignore_codes.includes(res.status)) {
@@ -25,14 +27,14 @@ export async function query_gh_project_by_url(
             }
         }
     } else {
-        console.warn(`W: GitHub URL ${url} is fauly, can't check..`);
+        console.warn(`W: GitHub URL ${url} is faulty, can't check..`);
     }
     return { headers: undefined, body: undefined, status: '400' };
 }
 
 export function download_file(
     source: string,
-    source_type: 'GH_RELEASE' | 'CURSEFORGE' | 'MODRINTH' | 'OTHER',
+    source_type: 'GITHUB' | 'CURSEFORGE' | 'MODRINTH' | 'OTHER',
     destination: string,
     file_name: string,
     source_api_key?: string,
@@ -40,12 +42,12 @@ export function download_file(
     return new Promise(async (resolve, reject) => {
         let res: Response;
         if (source_type !== 'OTHER' && source_api_key) {
-            if (source_type === 'GH_RELEASE') {
+            if (source_type === 'GITHUB') {
                 res = await gh_request(source, source_api_key, 'GET');
             } else {
-                throw Error("Downloads for source type " + source + " not yet implemented.")
+                throw Error('Downloads for source type ' + source + ' not yet implemented.');
             }
-        } else  {
+        } else {
             res = await fetch(source, { method: 'GET', redirect: 'follow' });
         }
         let content_length: string | number | null = res.headers.get('Content-Length');
@@ -80,13 +82,14 @@ export function download_file(
 
 export async function gh_request(path: string, api_key: string, method: string = 'GET'): Promise<Response> {
     const url = path.startsWith('http://') || path.startsWith('https://') ? path : `https://api.github.com${path}`;
+    const headers: HeadersInit = {
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'mod-updater-script',
+        Authorization: `Bearer ${api_key}`,
+    };
     const res = await fetch(url, {
         method,
-        headers: {
-            Accept: 'application/vnd.github+json',
-            'User-Agent': 'mod-updater-script',
-            Authorization: `Bearer ${api_key}`,
-        },
+        headers: headers,
         redirect: 'follow',
     });
 
@@ -103,8 +106,11 @@ export async function gh_request(path: string, api_key: string, method: string =
     return res;
 }
 
-export function filter_assets(assets: Array<{ browser_download_url: string; name: string, size: any }>, file_pattern?: string): [string | undefined, string | undefined, any | undefined] {
-    let filtered_assets: Array<{ browser_download_url: string; name: string, size: any }> = [];
+export function filter_assets(
+    assets: Array<{ browser_download_url: string; name: string; size: any }>,
+    file_pattern?: string,
+): [string | undefined, string | undefined, any | undefined] {
+    let filtered_assets: Array<{ browser_download_url: string; name: string; size: any }> = [];
 
     // Use file_pattern if available
     if (assets.length > 1 && file_pattern != undefined && file_pattern.length > 0) {
@@ -120,20 +126,8 @@ export function filter_assets(assets: Array<{ browser_download_url: string; name
     // If no file pattern was set, or we still matched multiple jars, remove common suffixes
     if (assets.length > 1) {
         for (const asset of assets) {
-            if (asset.name.endsWith('.jar')) {
-                if (
-                    !asset.name.endsWith('-sources.jar') &&
-                    !asset.name.endsWith('-dev.jar') &&
-                    !asset.name.endsWith('-api.jar') &&
-                    !asset.name.endsWith('-preshadow.jar') &&
-                    !asset.name.endsWith('-prestub.jar') &&
-                    !asset.name.endsWith('-javadoc.jar') &&
-                    !asset.name.endsWith('-reobf.jar') &&
-                    !asset.name.includes('-panama-') &&
-                    !asset.name.includes('-deploader')
-                ) {
-                    filtered_assets.push(asset);
-                }
+            if (!is_mod_ignored_by_name(asset.name)) {
+                filtered_assets.push(asset);
             }
         }
         assets = filtered_assets;
@@ -144,7 +138,7 @@ export function filter_assets(assets: Array<{ browser_download_url: string; name
     if (assets.length === 1) {
         file_name = assets[0]?.name as string;
         dl_url = assets[0]?.browser_download_url as string;
-        return [file_name, dl_url, assets[0]?.size]
+        return [file_name, dl_url, assets[0]?.size];
     } else {
         return [undefined, undefined, undefined];
     }

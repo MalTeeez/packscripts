@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { existsSync } from 'node:fs';
 
-export const IS_LIMITED_ENV = (Bun.env.PACKSCRIPTS_IS_LIMITED_ENV || "0") === "1"
+export const IS_LIMITED_ENV = (Bun.env.PACKSCRIPTS_IS_LIMITED_ENV || '0') === '1';
 export const CONFIG_FILE = 'packscripts.json';
 export const ENV_FILE = '.packscripts.env.json';
 
@@ -35,7 +35,7 @@ export interface PackagingConfig {
     IMAGE?: {
         GIT_CHANGE_WINDOW?: number;
         STAGING_DIRECTORY?: string;
-    }
+    };
 }
 
 export interface PackPackagingVariant {
@@ -43,8 +43,8 @@ export interface PackPackagingVariant {
     REQUIRED_MOD_TAGS: Array<string>;
     EXCLUDED_MOD_TAGS: Array<string>;
     TRACK_INCLUDE_PATHS: Array<{
-        path: string,
-        include_as?: string
+        path: string;
+        include_as?: string;
     }>;
     FORCE_INCLUDE_PATHS: Array<{
         path: string;
@@ -55,34 +55,36 @@ export interface PackPackagingVariant {
     EXCLUDE_PATTERNS: Array<string>;
 }
 
-interface config {
+export interface Config {
     MOD_BASE_DIR: string;
     DOWNLOAD_TEMP_DIR: string;
     DOWNLOAD_UNDO_DIR: string;
     ANNOTATED_FILE: string;
     RELATIVE_INSTANCE_DIRECTORY: string;
-    PACKAGING: PackagingConfig | undefined;
+    PACKAGING?: PackagingConfig | undefined;
 }
 
 const _config_file_exists = await Bun.file(CONFIG_FILE).exists();
-let config: config = _config_file_exists ? await Bun.file(CONFIG_FILE).json() : {} as config;
+let config: Config = _config_file_exists ? await Bun.file(CONFIG_FILE).json() : ({} as Config);
 
 export function assert_config_exists(): void {
     if (!_config_file_exists) throw Error("Missing config file. Make sure to first initialize your pack with 'packscripts init'.");
 }
 let secrets = (await Bun.file(ENV_FILE).exists()) ? await Bun.file(ENV_FILE).json() : undefined;
 
-export const MOD_BASE_DIR: string = config?.MOD_BASE_DIR?.replace(/\/$/m, '');
-export const DOWNLOAD_TEMP_DIR: string = config?.DOWNLOAD_TEMP_DIR?.replace(/\/$/m, '');
-export const DOWNLOAD_UNDO_DIR: string = config?.DOWNLOAD_UNDO_DIR?.replace(/\/$/m, '');
-export const ANNOTATED_FILE: string = config?.ANNOTATED_FILE?.replace(/\/$/m, '');
 export const RELATIVE_INSTANCE_DIRECTORY: string = (config?.RELATIVE_INSTANCE_DIRECTORY?.replace(/\/?$/m, '') ?? '.') + '/';
+export const MOD_BASE_DIR: string = config?.MOD_BASE_DIR?.replace(/\/$/m, '');
+export const DOWNLOAD_TEMP_DIR: string =
+    (config?.DOWNLOAD_TEMP_DIR?.replace(/\/$/m, '') as string | undefined) ?? RELATIVE_INSTANCE_DIRECTORY + '.packscripts_tmp/downloads/';
+export const DOWNLOAD_UNDO_DIR: string =
+    (config?.DOWNLOAD_UNDO_DIR?.replace(/\/$/m, '') as string | undefined) ?? RELATIVE_INSTANCE_DIRECTORY + '.packscripts_tmp/undos/';
+export const ANNOTATED_FILE: string = config?.ANNOTATED_FILE?.replace(/\/$/m, '');
 export const PACKAGING = config?.PACKAGING;
 export const GITHUB_API_KEY: string | undefined = secrets?.GITHUB_API_KEY || Bun.env.PACKSCRIPTS_GITHUB_API_KEY || undefined;
 
 type ConfigKey = keyof NonNullable<typeof config>;
 
-export async function read_intermediate_config(): Promise<config> {
+export async function read_intermediate_config(): Promise<Config> {
     if (!(await Bun.file(CONFIG_FILE).exists())) throw Error('Config file at ' + CONFIG_FILE + ' is missing, but we require it here.');
     return await Bun.file(CONFIG_FILE).json();
 }

@@ -7,7 +7,7 @@ import { closeSync, openSync, readdirSync, statSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { text } from 'node:stream/consumers';
-import type { SupportedCryptoAlgorithms } from 'bun';
+import type { BunFile, SupportedCryptoAlgorithms } from 'bun';
 
 /**
  * Scan a folder of mods
@@ -116,9 +116,9 @@ export async function read_from_file(file_path: string): Promise<JsonObject> {
     }
 }
 
-export async function search_zip_for_string(zipFilePath: string, target: string): Promise<Map<string, string> | undefined> {
+export async function search_zip_for_string(zip_file_path: string, target: string): Promise<Map<string, string> | undefined> {
     const results = await new Promise((resolve, reject) => {
-        yauzl.open(zipFilePath, { lazyEntries: true }, (err, zipfile) => {
+        yauzl.open(zip_file_path, { lazyEntries: true }, (err, zipfile) => {
             if (err) return reject(err);
             const results: Map<string, string> = new Map();
             zipfile.readEntry();
@@ -130,17 +130,17 @@ export async function search_zip_for_string(zipFilePath: string, target: string)
                     zipfile.readEntry();
                 } else {
                     // file entry
-                    zipfile.openReadStream(entry, (err, readStream) => {
+                    zipfile.openReadStream(entry, (err, read_stream) => {
                         let found_target = false;
                         if (err) return reject(err);
                         const fileData: string[] = [];
-                        readStream.on('data', (data) => {
+                        read_stream.on('data', (data) => {
                             if (String(data).includes(target)) {
                                 found_target = true;
                             }
                             fileData.push(data);
                         });
-                        readStream.on('end', () => {
+                        read_stream.on('end', () => {
                             if (found_target) {
                                 results.set(entry.fileName, fileData.join(''));
                             }
@@ -168,45 +168,81 @@ export async function search_zip_for_string(zipFilePath: string, target: string)
 
 /**
  * Extract the content of a file inside a zip archive
- * @param {string} zipFilePath The path to the zip file
- * @param {string} fileName The name of the file to extract
- * @returns {Promise<string>} The content of the file
+ * @param {string} zip_file_path The path to the zip file
+ * @param {string} file_name The name of the file to extract
+ * @returns {Promise<Buffer>} The content of the file
  */
-export function extract_file_from_zip(zipFilePath: string, fileName: string): Promise<string> {
+export function extract_file_from_zip(
+    zip_file_path: string,
+    file_name: string,
+): Promise<Buffer> {
     return new Promise((resolve, reject) => {
-        yauzl.open(zipFilePath, { lazyEntries: true }, function (err, zipfile) {
+        yauzl.open(zip_file_path, { lazyEntries: true }, (err, zipfile) => {
             if (err) return reject(err);
+
             zipfile.readEntry();
-            zipfile.on('entry', function (entry) {
+
+            zipfile.on('entry', (entry) => {
                 if (/\/$/.test(entry.fileName)) {
-                    // Directory file names end with '/'.
-                    // Note that entries for directories themselves are optional.
-                    // An entry's fileName implicitly requires its parent directories to exist.
                     zipfile.readEntry();
+                } else if (entry.fileName === file_name) {
+                    zipfile.openReadStream(entry, (err, stream) => {
+                        if (err) return reject(err);
+
+                        const chunks: Buffer[] = [];
+                        stream.on('data', (chunk: Buffer) => chunks.push(chunk));
+                        stream.on('error', reject);
+                        stream.on('end', () => resolve(Buffer.concat(chunks)));
+                    });
                 } else {
-                    // file entry
-                    if (fileName === entry.fileName) {
-                        zipfile.openReadStream(entry, function (err, readStream) {
-                            if (err) return reject(err);
-                            const fileData: string[] = [];
-                            readStream.on('data', (data) => {
-                                fileData.push(data);
-                            });
-                            readStream.on('end', () => {
-                                return resolve(fileData.join(''));
-                            });
-                        });
-                    } else {
-                        // Not our file, try next
-                        zipfile.readEntry();
-                    }
+                    zipfile.readEntry();
                 }
             });
-            zipfile.on('end', () => {
-                reject(new Error('File not found in zip archive for file ' + zipFilePath));
-            });
+
+            zipfile.on('error', reject);
+            zipfile.on('end', () =>
+                reject(new Error(`File "${file_name}" not found in ${zip_file_path}`)),
+            );
         });
     });
+}
+
+/**
+ * Wrapper around extract_file_from_zip for just getting a string view.
+ * @returns The buffer decoded as a string
+ */
+export async function extract_text_from_zip(
+    zip_file_path: string,
+    file_name: string,
+    encoding: BufferEncoding = 'utf8',
+): Promise<string> {
+    const buf = await extract_file_from_zip(zip_file_path, file_name);
+    return buf.toString(encoding);
+}
+
+export async function collect_files_from_zip(zip_file_path: string, file_name_pattern: RegExp): Promise<string[] | undefined> {
+    return new Promise((resolve, reject) => {
+        yauzl.open(zip_file_path, { lazyEntries: true }, (err, zipfile) => {
+            if (err) return reject(err);
+
+            const results: string[] = [];
+
+            zipfile.readEntry();
+
+            zipfile.on('entry', (entry) => {
+                if (!/\/$/.test(entry.fileName) && file_name_pattern.test(entry.fileName)) {
+                    results.push(entry.fileName);
+                }
+                zipfile.readEntry();
+            });
+
+            zipfile.on('end', () => {
+                resolve(results.length > 0 ? results : undefined);
+            });
+
+            zipfile.on('error', reject);
+        });
+    }).catch(() => undefined) as Promise<string[] | undefined>;
 }
 
 /**
@@ -244,8 +280,8 @@ export async function rename_file(old_path: string, new_path: string) {
     }
 }
 
-export async function is_folder_locked(folderPath: string): Promise<boolean> {
-    const abs_path = resolve(folderPath);
+export async function is_folder_locked(folder_path: string): Promise<boolean> {
+    const abs_path = resolve(folder_path);
 
     switch (process.platform) {
         case 'linux':
@@ -356,4 +392,14 @@ export async function hash_file(path: string, algorithm: SupportedCryptoAlgorith
     }
 
     return hasher.digest('hex');
+}
+
+export async function is_zip_file_from_path(file_path: string): Promise<boolean> {
+    return is_zip_file(Bun.file(file_path));
+}
+
+export async function is_zip_file(file: BunFile): Promise<boolean> {
+    const slice = file.slice(0, 4);
+    const bytes = new Uint8Array(await slice.arrayBuffer());
+    return bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04;
 }

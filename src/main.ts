@@ -205,10 +205,10 @@ const commands: Record<string, CommandDefinition> = {
     },
     version: {
         description: 'Interact with remote versions of a mod',
-        usage: 'version <list|set|restore_all|verify_links> <mod_id>',
+        usage: 'version <list|set|restore_all|verify_links|switch_indev> <mod_id>',
         handler: async (args) => {
             const mode = args[0]?.toLowerCase();
-            const cmdArgs = args.slice(1);
+            const cmd_args = args.slice(1);
 
             if (!mode || mode === 'help' || mode === '--help' || mode === '-h') {
                 console.log(commands['version']?.usage);
@@ -217,7 +217,7 @@ const commands: Record<string, CommandDefinition> = {
 
             const command = commands['version_' + mode];
             if (command) {
-                await command.handler(cmdArgs);
+                await command.handler(cmd_args);
             } else {
                 console.error(`Error: Unknown subcommand '${mode}'`);
                 console.log(commands['version']?.usage);
@@ -312,7 +312,7 @@ const commands: Record<string, CommandDefinition> = {
     },
     version_switch_indev: {
         description: '',
-        usage: 'version switch_indev <source_url> [--dry] [--build_job <job name>] [--artifact_name <part of artifact name>]',
+        usage: 'version switch_indev <source_url> [--dry] [--apply_pr] [--build_job <job name>] [--artifact_name <part of artifact name>]',
         is_subcommand: true,
         handler: async (args) => {
             if (args.includes('--help')) {
@@ -334,7 +334,11 @@ const commands: Record<string, CommandDefinition> = {
                 }
             }
 
-            await switch_to_indev_version(positional[0], { dry: args.includes("--dry"), build_job, artifact_name });
+            if (args.includes("--apply_pr")) {
+                
+            } else {
+                await switch_to_indev_version(positional[0], { dry: args.includes("--dry"), build_job, artifact_name });
+            }
             return;
         }
     },
@@ -343,7 +347,7 @@ const commands: Record<string, CommandDefinition> = {
         usage: 'package <init|build|bundle|bootstrap|image>',
         handler: async (args) => {
             const mode = args[0]?.toLowerCase();
-            const cmdArgs = args.slice(1);
+            const cmd_args = args.slice(1);
 
             if (!mode || mode === 'help' || mode === '--help' || mode === '-h') {
                 console.log(commands['package']?.usage);
@@ -352,7 +356,7 @@ const commands: Record<string, CommandDefinition> = {
 
             const command = commands['package_' + mode];
             if (command) {
-                await command.handler(cmdArgs);
+                await command.handler(cmd_args);
             } else {
                 console.error(`Error: Unknown subcommand '${mode}'`);
                 console.log(commands['package']?.usage);
@@ -509,15 +513,15 @@ function showHelp() {
     console.log('Usage: packscripts <command> [arguments]\n');
     console.log('Available commands:\n');
 
-    const maxCmdLength = Math.max(...Object.keys(commands).map((k) => k.length));
+    const max_cmd_length = Math.max(...Object.keys(commands).map((k) => k.length));
 
     for (const [cmd, def] of Object.entries(commands)) {
         const clean_cmd = def.is_subcommand ? cmd.replace('_', ' ') : cmd;
-        const cmdPadded = clean_cmd.padEnd(maxCmdLength + 2);
+        const cmd_padded = clean_cmd.padEnd(max_cmd_length + 2);
         const usage = def.usage || clean_cmd;
-        console.log(`  ${cmdPadded}${def.description}`);
+        console.log(`  ${cmd_padded}${def.description}`);
         if (def.usage) {
-            console.log(`  ${''.padEnd(maxCmdLength + 2)}Usage: ${usage}`);
+            console.log(`  ${''.padEnd(max_cmd_length + 2)}Usage: ${usage}`);
         }
         console.log();
     }
@@ -527,7 +531,7 @@ function showHelp() {
 async function main() {
     const args = process.argv.slice(2);
     const mode = args[0]?.toLowerCase();
-    const cmdArgs = args.slice(1);
+    const cmd_args = args.slice(1);
 
     if (!mode || mode === 'help' || mode === '--help' || mode === '-h') {
         showHelp();
@@ -540,7 +544,7 @@ async function main() {
 
     const command = commands[mode];
     if (command) {
-        await command.handler(cmdArgs);
+        await command.handler(cmd_args);
     } else {
         console.error(`Error: Unknown command '${mode}'`);
         showHelp();

@@ -183,23 +183,23 @@ async function get_lfs_oids(dir: string, target_commits: string[]): Promise<Map<
  * subprocess entirely and return the real content hash + size from the pointer metadata.
  */
 async function fast_process_blob(dir: string, oid: string): Promise<{ hash: string | undefined; size: number }> {
-    const [hashProc, sizeProc] = await Promise.all([
+    const [hash_proc, size_proc] = await Promise.all([
         Bun.spawn(['bash', '-c', `git cat-file blob ${oid} | sha256sum`], { cwd: dir, stdout: 'pipe', stderr: 'pipe' }),
         Bun.spawn(['git', 'cat-file', '-s', oid], { cwd: dir, stdout: 'pipe', stderr: 'pipe' }),
     ]);
 
     const [hashOut, sizeOut] = await Promise.all([
-        new Response(hashProc.stdout).text(),
-        new Response(sizeProc.stdout).text(),
-        new Response(hashProc.stderr).text(),
-        new Response(sizeProc.stderr).text(),
+        new Response(hash_proc.stdout).text(),
+        new Response(size_proc.stdout).text(),
+        new Response(hash_proc.stderr).text(),
+        new Response(size_proc.stderr).text(),
     ]);
 
-    await Promise.all([hashProc.exited, sizeProc.exited]);
+    await Promise.all([hash_proc.exited, size_proc.exited]);
 
     const size = parseInt(sizeOut.trim(), 10);
 
-    if (hashProc.exitCode !== 0 || sizeProc.exitCode !== 0 || isNaN(size)) {
+    if (hash_proc.exitCode !== 0 || size_proc.exitCode !== 0 || isNaN(size)) {
         return { hash: undefined, size: isNaN(size) ? 0 : size };
     }
 

@@ -26,8 +26,8 @@ function get_mods_in_group(
 ): string[] {
     const group_limit = groups[section] || 0;
     const group_start_index = groups.reduce(
-        (previousValue: number, currentValue: number, currentIndex: number) =>
-            currentIndex < section ? previousValue + currentValue : previousValue,
+        (prev: number, curr: number, idx: number) =>
+            idx < section ? prev + curr : prev,
         0,
     );
     // Slice mod_ids from mod_list

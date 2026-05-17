@@ -1,5 +1,5 @@
 import { ANNOTATED_FILE, MOD_BASE_DIR } from './config';
-import { extract_file_from_zip, hash_file, is_folder_locked, read_from_file, rename_file, save_map_to_file, scan_mods_folder, search_zip_for_string } from './fs';
+import { extract_file_from_zip, extract_text_from_zip, hash_file, is_folder_locked, read_from_file, rename_file, save_map_to_file, scan_mods_folder, search_zip_for_string } from './fs';
 import { dedup_array, type JsonObject } from './utils';
 
 //#region types
@@ -9,7 +9,7 @@ export enum UpdateFrequenciesEnum {
     EOL = 'EOL',
 }
 export type update_frequency = keyof typeof UpdateFrequenciesEnum;
-export type SourceType = 'GH_RELEASE' | 'CURSEFORGE' | 'MODRINTH' | 'OTHER';
+export type SourceType = 'GITHUB' | 'CURSEFORGE' | 'MODRINTH' | 'OTHER';
 
 export interface update_state {
     version: string | undefined;
@@ -55,7 +55,7 @@ export const default_mod_object: mod_object = {
         last_updated_at: '',
         source_type: 'OTHER',
         file_pattern: '',
-        sha256_sum: ''
+        sha256_sum: '',
     },
 };
 
@@ -130,12 +130,9 @@ export async function read_saved_mods(annotated_file: string, blob?: Uint8Array<
                           : default_mod_object.update_state.frequency,
                 last_status: mod.update_state?.last_status || default_mod_object.update_state.last_status,
                 last_updated_at: mod.update_state?.last_updated_at || default_mod_object.update_state.last_updated_at,
-                source_type:
-                    mod.update_state?.source_type || mod.source
-                        ? get_source_type_from_url(mod.source)
-                        : default_mod_object.update_state.source_type,
+                source_type: mod.update_state?.source_type || mod.source ? get_source_type_from_url(mod.source) : default_mod_object.update_state.source_type,
                 file_pattern: mod.update_state?.file_pattern || default_mod_object.update_state.file_pattern,
-                sha256_sum: mod.update_state.sha256_sum || ''
+                sha256_sum: mod.update_state.sha256_sum || '',
             },
         };
         mod_map.set(mod_id, modObj);
@@ -144,10 +141,10 @@ export async function read_saved_mods(annotated_file: string, blob?: Uint8Array<
     return mod_map;
 }
 
-function get_source_type_from_url(url: string | undefined): 'GH_RELEASE' | 'CURSEFORGE' | 'MODRINTH' | 'OTHER' {
+function get_source_type_from_url(url: string | undefined): 'GITHUB' | 'CURSEFORGE' | 'MODRINTH' | 'OTHER' {
     if (url == undefined) return 'OTHER';
-    if (url.startsWith('https://github.com')) {
-        return 'GH_RELEASE';
+    if (url.startsWith('https://github.com') || url.startsWith('https://api.github.com')) {
+        return 'GITHUB';
     } else if (url.startsWith('https://modrinth.com')) {
         return 'MODRINTH';
     } else if (url.startsWith('https://www.curseforge.com')) {
@@ -250,10 +247,7 @@ export async function disable_mod_deep(
 }
 
 export function isNotItself(base: string, mod_id: string, other_mod_ids: string[]): boolean {
-    return (
-        base.toLowerCase() != mod_id.toLowerCase() &&
-        other_mod_ids.find((other_id) => other_id.toLowerCase() === mod_id.toLowerCase()) == undefined
-    );
+    return base.toLowerCase() != mod_id.toLowerCase() && other_mod_ids.find((other_id) => other_id.toLowerCase() === mod_id.toLowerCase()) == undefined;
 }
 
 /**
@@ -308,11 +302,11 @@ export async function enable_mod_deep(
 }
 
 export async function enable_all_mods(mod_map?: Map<string, mod_object>) {
-    if (!await are_all_mods_unlocked()) {
-        console.warn("W: Something is locking a file in the mods directory. Is the game still running?")
+    if (!(await are_all_mods_unlocked())) {
+        console.warn('W: Something is locking a file in the mods directory. Is the game still running?');
         return;
     }
-    
+
     // Initialize map if not provided, since we can't use await in param
     mod_map = mod_map == undefined ? await read_saved_mods(ANNOTATED_FILE) : mod_map;
     const change_list: string[] = [];
@@ -331,11 +325,11 @@ export async function enable_all_mods(mod_map?: Map<string, mod_object>) {
 }
 
 export async function disable_all_mods(mod_map?: Map<string, mod_object>) {
-    if (!await are_all_mods_unlocked()) {
-        console.warn("W: Something is locking a file in the mods directory. Is the game still running?")
+    if (!(await are_all_mods_unlocked())) {
+        console.warn('W: Something is locking a file in the mods directory. Is the game still running?');
         return;
     }
-    
+
     // Initialize map if not provided, since we can't use await in param
     mod_map = mod_map == undefined ? await read_saved_mods(ANNOTATED_FILE) : mod_map;
     const change_list: string[] = [];
@@ -365,9 +359,7 @@ export async function extract_modinfos(files: Map<string, string>): Promise<Map<
 
     for (let i = 0; i < file_paths.length; i += POOL_SIZE) {
         const batch = file_paths.slice(i, i + POOL_SIZE);
-        const results = await Promise.all(
-            batch.map(async (file_path) => ({ file_path, ...(await parse_mod_details(file_path)) }))
-        );
+        const results = await Promise.all(batch.map(async (file_path) => ({ file_path, ...(await parse_mod_details(file_path)) })));
         for (const { file_path, id, other_mod_ids, state, version, wants, hash } of results) {
             if (id != undefined) {
                 const mod: mod_object_unsafe = {
@@ -378,7 +370,7 @@ export async function extract_modinfos(files: Map<string, string>): Promise<Map<
                     file_path: file_path,
                     update_state: {
                         version: version,
-                        sha256_sum: hash
+                        sha256_sum: hash,
                     },
                 };
                 mods.set(file_path, mod);
@@ -409,7 +401,7 @@ export async function parse_mod_details(file_path: string): Promise<{
     let mod_version: undefined | string;
     const mod_state: boolean = !file_path.endsWith('.disabled');
 
-    const hash = hash_file(file_path, "sha256");
+    const hash = hash_file(file_path, 'sha256');
 
     // oh god what have I created. (Filename to modid pattern)
     // Basically, this first matches the folder path in front of the file. Then it filters out any non word chars in front of the name or a tag group, such as [CLIENT].
@@ -420,7 +412,7 @@ export async function parse_mod_details(file_path: string): Promise<{
         /(?<path>^.*\/)(?<pre>(?:(?:\[[A-Z]+?\])|[\-\[\]\+\d\.])*)(?<middle>(?<first_char>[a-zA-Z])(?:[a-zA-Z]|\d{1}|[\+\-](?:(?!mc|MC)[a-zA-Z]{2}|[aI]))+)[+\-_\.]*(?:mc|MC)?(?<post>\d?.*?)(?:\.jar(?:\.disabled)?)/m,
     );
 
-    const info_json: JsonObject | JsonObject[] | string | undefined = await extract_file_from_zip(file_path, 'mcmod.info')
+    const info_json: JsonObject | JsonObject[] | string | undefined = await extract_text_from_zip(file_path, 'mcmod.info')
         .then((file_data: string) => {
             // Try to parse the modinfo file as json
             try {
@@ -497,17 +489,9 @@ export async function parse_mod_details(file_path: string): Promise<{
                 }
             }
             // Mod-Wants
-            if (
-                info_json.modList[0].requiredMods &&
-                Array.isArray(info_json.modList[0].requiredMods) &&
-                info_json.modList[0].requiredMods.length > 0
-            ) {
+            if (info_json.modList[0].requiredMods && Array.isArray(info_json.modList[0].requiredMods) && info_json.modList[0].requiredMods.length > 0) {
                 wants = info_json.modList[0].requiredMods as unknown as string[];
-            } else if (
-                info_json.modList[0].dependencies &&
-                Array.isArray(info_json.modList[0].dependencies) &&
-                info_json.modList[0].dependencies.length > 0
-            ) {
+            } else if (info_json.modList[0].dependencies && Array.isArray(info_json.modList[0].dependencies) && info_json.modList[0].dependencies.length > 0) {
                 wants = info_json.modList[0].dependencies as unknown as string[];
             }
             if (info_json.modList.length > 1) {
@@ -664,7 +648,7 @@ export function filter_for_faulty_dependencies(wants: string[], mod_id: string, 
         } else if (other_mod_ids.find((other_id) => other_id.toLowerCase() === dep.toLowerCase()) != undefined) {
             continue;
         } else {
-            dep = dep.replace(/^required-after:/m, "")
+            dep = dep.replace(/^required-after:/m, '');
         }
         wants.push(dep.trim());
     }
@@ -675,5 +659,24 @@ export function filter_for_faulty_dependencies(wants: string[], mod_id: string, 
 }
 
 export async function are_all_mods_unlocked(): Promise<boolean> {
-    return !await is_folder_locked(MOD_BASE_DIR);
+    return !(await is_folder_locked(MOD_BASE_DIR));
+}
+
+export function is_mod_ignored_by_name(file_name: string): boolean {
+    if (file_name.endsWith('.jar')) {
+        if (
+            !file_name.endsWith('-sources.jar') &&
+            !file_name.endsWith('-dev.jar') &&
+            !file_name.endsWith('-api.jar') &&
+            !file_name.endsWith('-preshadow.jar') &&
+            !file_name.endsWith('-prestub.jar') &&
+            !file_name.endsWith('-javadoc.jar') &&
+            !file_name.endsWith('-reobf.jar') &&
+            !file_name.includes('-panama-') &&
+            !file_name.includes('-deploader')
+        ) {
+            return false;
+        }
+    }
+    return true;
 }

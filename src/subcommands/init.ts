@@ -1,7 +1,7 @@
 import fs, { existsSync } from 'fs';
 import path from 'path';
 import { CLIColor } from '../utils/utils';
-import { CONFIG_FILE } from '../utils/config';
+import { CONFIG_FILE, type Config } from '../utils/config';
 import { input } from '@inquirer/prompts';
 
 export async function init_config(): Promise<void> {
@@ -36,10 +36,12 @@ export async function init_config(): Promise<void> {
         }),
     ];
 
-    const config = {
+    const config: Config = {
         RELATIVE_INSTANCE_DIRECTORY: RELATIVE_INSTANCE_DIRECTORY.replace(/\/?$/m, '') + '/',
         MOD_BASE_DIR: MOD_BASE_DIR.replace(/\/$/m, ''),
         ANNOTATED_FILE: ANNOTATED_FILE.replace(/\/$/m, ''),
+        DOWNLOAD_TEMP_DIR: "./.packscripts_tmp/downloads/",
+        DOWNLOAD_UNDO_DIR: "./.packscripts_tmp/undos/"
     };
 
     // Check if future workdir exists, and if yes switch to it so we can use the relative paths that were just provided

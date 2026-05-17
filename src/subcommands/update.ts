@@ -41,7 +41,7 @@ export async function check_all_mods_for_updates(
         // can't throw in ternary
         throw Error('Missing GITHUB_API_KEY.');
     } else {
-        SOURCE_API_KEYS.set('GH_RELEASE', GITHUB_API_KEY);
+        SOURCE_API_KEYS.set('GITHUB', GITHUB_API_KEY);
     }
 
     if (!(await are_all_mods_unlocked())) {
@@ -128,7 +128,7 @@ export async function check_all_mods_for_updates(
     }
     console.log(
         `\n ${CLIColor.FgWhite}${CLIColor.Bright}${to_update_mods.length}${CLIColor.Reset}${CLIColor.FgGray} of ${CLIColor.FgWhite}${CLIColor.Bright}${mod_map.size}${CLIColor.Reset}${CLIColor.FgGray} mods can be upgraded. ` +
-            `${CLIColor.FgGray}(${CLIColor.FgGreen}${to_update_mods.filter(({ mod_obj }) => mod_obj.update_state.source_type === 'GH_RELEASE').length}${CLIColor.FgGray} from ${CLIColor.FgWhite}GitHub${CLIColor.FgGray}, ` +
+            `${CLIColor.FgGray}(${CLIColor.FgGreen}${to_update_mods.filter(({ mod_obj }) => mod_obj.update_state.source_type === 'GITHUB').length}${CLIColor.FgGray} from ${CLIColor.FgWhite}GitHub${CLIColor.FgGray}, ` +
             `${CLIColor.FgGreen}${to_update_mods.filter(({ mod_obj }) => mod_obj.update_state.source_type === 'CURSEFORGE').length}${CLIColor.FgGray} from ${CLIColor.FgWhite}Curseforge${CLIColor.FgGray}, ` +
             `${CLIColor.FgGreen}${to_update_mods.filter(({ mod_obj }) => mod_obj.update_state.source_type === 'MODRINTH').length}${CLIColor.FgGray} from ${CLIColor.FgWhite}Modrinth${CLIColor.FgGray})` +
             `${CLIColor.Reset}${dry ? `${CLIColor.FgGray}  -  ${CLIColor.Reset}Upgrade with ${CLIColor.FgCyan9}--upgrade${CLIColor.Reset}` : ''}\n`,
@@ -373,7 +373,7 @@ async function check_url_for_updates(
     url: string,
     source_api_key: string,
 ): Promise<{ status: string; version: string; file_name: string; file_url: string; source_api_key: string } | undefined> {
-    if (mod_obj.update_state.source_type === 'GH_RELEASE') {
+    if (mod_obj.update_state.source_type === 'GITHUB') {
         const { status, body } = await query_gh_project_by_url(url, source_api_key, '/releases/latest');
         if (status == '200' && body != undefined) {
             const version = body.tag_name;
