@@ -1,14 +1,33 @@
 import type { HeadersInit } from 'bun';
 import { parse_gh_url } from './sources';
 import type { JsonObject } from './utils';
-import { is_mod_ignored_by_name } from './mods';
+import { is_mod_ignored_by_name, type SourceType } from './mods';
+import { GITHUB_API_KEY } from './config';
+
+export const SOURCE_API_KEYS: Map<SourceType, string> = new Map();
+
+export function assert_gh_key() {
+    if (GITHUB_API_KEY == undefined) {
+        // can't throw in ternary
+        throw Error('Missing GITHUB_API_KEY.');
+    } else {
+        SOURCE_API_KEYS.set('GITHUB', GITHUB_API_KEY);
+    }
+}
 
 export async function query_gh_project_by_url(
     url: string,
-    gh_api_key: string,
     sub_repo_api_path: string,
+    gh_api_key?: string,
     ignore_codes: number[] = [],
 ): Promise<{ headers?: Headers; status: string; body: JsonObject | undefined }> {
+    if (gh_api_key == undefined) {
+        gh_api_key = SOURCE_API_KEYS.get("GITHUB")
+        if (gh_api_key == undefined) {
+            throw Error("Missing github API key, probably called fetch without initial assertion.")
+        }
+    }
+
     const url_match = parse_gh_url(url);
     if (url_match != undefined) {
         const { owner, project } = url_match;

@@ -14,7 +14,6 @@ import { disable_atomic_deep, enable_atomic_deep, list_mods, list_mods_folder, l
 import { visualize_graph } from './subcommands/graph';
 import { check_all_mods_for_updates, undo_last_update } from './subcommands/update';
 import {
-    apply_github_pr,
     list_all_versions_for_mod,
     restore_to_asset_versions,
     switch_to_indev_version,
@@ -25,6 +24,7 @@ import { build_bootstrap, build_version_for_diff, bundle_pack_into_starter, init
 import { package_image } from './subcommands/image';
 import { assert_config_exists } from './utils/config';
 import { init_config } from './subcommands/init';
+import { apply_github_pr } from './subcommands/pr';
 
 //#region Command Framework
 interface CommandDefinition {
@@ -312,7 +312,7 @@ const commands: Record<string, CommandDefinition> = {
         },
     },
     version_switch_indev: {
-        description: '',
+        description: 'Switch a mod to an in-development build fetched from a GitHub Actions artifact',
         usage: 'version switch_indev <source_url> [--dry] [--build_job <job name>] [--artifact_name <part of artifact name>] [--allow_failed_workflows]',
         is_subcommand: true,
         handler: async (args) => {
@@ -340,43 +340,6 @@ const commands: Record<string, CommandDefinition> = {
                 build_job,
                 artifact_name,
                 allow_failed_workflows: args.includes('--allow_failed_workflows'),
-            });
-            return;
-        },
-    },
-    version_apply_pr: {
-        description: '',
-        usage: 'version apply_pr <source_url> [--dry] [--build_job <job name>] [--artifact_name <part of artifact name>] [--allow_failed_workflows] [--limit_to_original_owner] [--other_allowed_owner <owner>]...',
-        is_subcommand: true,
-        handler: async (args) => {
-            if (args.includes('--help')) {
-                console.log(commands['version_switch_indev']);
-                return;
-            }
-
-            let build_job: string | undefined;
-            const other_allowed_owners = []
-            let artifact_name: string | undefined;
-            const positional: string[] = [];
-            for (let i = 0; i < args.length; i++) {
-                const arg = args[i];
-                if (arg === '--build_job' && args[i + 1] != undefined) {
-                    build_job = args[i + 1];
-                } else if (arg === '--artifact_name' && args[i + 1] != undefined) {
-                    artifact_name = args[i + 1];
-                } else if (arg != null && !arg.startsWith('-')) {
-                    positional.push(arg);
-                } else if (arg === '--other_allowed_owner' && args[i + 1] != undefined) {
-                    other_allowed_owners.push(args[i + 1] as string);
-                }
-            }
-
-            await apply_github_pr(positional[0], {
-                dry: args.includes('--dry'),
-                build_job,
-                artifact_name,
-                allow_failed_workflows: args.includes('--allow_failed_workflows'),
-                other_allowed_owners: other_allowed_owners.length > 0 ? other_allowed_owners : undefined
             });
             return;
         },
@@ -529,6 +492,45 @@ const commands: Record<string, CommandDefinition> = {
                 include_tags: include_tags.length == 0 ? undefined : include_tags,
                 size_multiplier: size_multiplier,
                 frequency_multiplier: freq_multiplier,
+            });
+            return;
+        },
+    },
+    pr_apply: {
+        description: 'Fetch and apply a mod build artifact from a GitHub PR, recursively resolving any required PRs mentioned in the PR body',
+        usage: 'pr apply <pr_url> [--dry] [--build_job <job name>] [--artifact_name <part of artifact name>] [--allow_failed_workflows] [--limit_to_original_owner] [--other_allowed_owner <owner>]...',
+        is_subcommand: true,
+        handler: async (args) => {
+            if (args.includes('--help')) {
+                console.log(commands['pr_apply']);
+                return;
+            }
+
+            let build_job: string | undefined;
+            const other_allowed_owners = [];
+            let artifact_name: string | undefined;
+            const positional: string[] = [];
+            for (let i = 0; i < args.length; i++) {
+                const arg = args[i];
+                if (arg === '--build_job' && args[i + 1] != undefined) {
+                    build_job = args[i + 1];
+                } else if (arg === '--artifact_name' && args[i + 1] != undefined) {
+                    artifact_name = args[i + 1];
+                } else if (arg != null && !arg.startsWith('-')) {
+                    positional.push(arg);
+                } else if (arg === '--other_allowed_owner' && args[i + 1] != undefined) {
+                    other_allowed_owners.push(args[i + 1] as string);
+                }
+            }
+
+            await apply_github_pr(positional[0],
+            {
+                dry: args.includes('--dry'),
+                build_job,
+                artifact_name,
+                allow_failed_workflows: args.includes('--allow_failed_workflows'),
+                limit_to_original_owner: args.includes('--limit_to_original_owner'),
+                other_allowed_owners: other_allowed_owners.length > 0 ? other_allowed_owners : undefined,
             });
             return;
         },
