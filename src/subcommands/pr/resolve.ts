@@ -1,0 +1,310 @@
+import { query_gh_project_by_url } from '../../utils/fetch';
+import { parse_gh_url } from '../../utils/sources';
+import { delay } from '../../utils/utils';
+import { log_debug, log_step, log_warn, tag_count, tag_dim, tag_neutral, tag_primary } from '../../utils/log';
+
+// Workflow conclusions that are treated as failures by the resolver.
+// `null` conclusion = still in progress (handled separately).
+export const FAILED_WORKFLOW_CONCLUSIONS: ReadonlyArray<string> = ['failure', 'cancelled', 'timed_out', 'startup_failure', 'action_required'];
+
+export interface WorkflowRunSummary {
+    html_url: string;
+    id: number;
+    name: string;
+    status?: string | null;
+    conclusion?: string | null;
+}
+
+// Mirrors the shape returned by GH's /actions/runs/{id}/artifacts endpoint, with
+// digest already stripped of the leading "sha256:" prefix.
+export interface Artifact {
+    name: string;
+    archive_download_url: string;
+    size_in_bytes: number;
+    digest: string;
+    expired: boolean;
+}
+
+//#region Result types
+
+export type ResolveFailureReason =
+    | 'no_workflow_runs'
+    | 'workflow_failed'
+    | 'workflow_timeout'
+    | 'no_artifact'
+    | 'artifact_filter_miss'
+    | 'parse_failed'
+    | 'not_supported_url';
+
+export type ResolveResult =
+    | { ok: true; reason: 'workflow_artifact'; artifact: Artifact; run_url: string; resolved_sha: string; other_runs: WorkflowRunSummary[] }
+    | { ok: false; reason: ResolveFailureReason; detail: string; link?: string };
+
+export interface ResolveOpts {
+    build_job?: string;
+    artifact_name?: string;
+    allow_failed_workflows?: boolean;
+    wait_timeout_ms?: number;
+    poll_interval_ms?: number;
+    commit_lookback?: number;
+}
+
+//#region Dispatcher
+
+// Classify the URL and dispatch to the right SHA-list builder, then pick a run and fetch artifacts.
+// Returns a typed reason on every outcome so callers (and log_failure_block) can render exactly what happened.
+export async function resolve_artifact_for_url(source_url: string, opts?: ResolveOpts): Promise<ResolveResult> {
+    const url_match = parse_gh_url(source_url);
+    if (!url_match) return { ok: false, reason: 'parse_failed', detail: `Failed to parse '${source_url}' as a GitHub URL.` };
+
+    const merged_opts: Required<Omit<ResolveOpts, 'build_job' | 'artifact_name'>> & Pick<ResolveOpts, 'build_job' | 'artifact_name'> = {
+        build_job: opts?.build_job,
+        artifact_name: opts?.artifact_name,
+        allow_failed_workflows: opts?.allow_failed_workflows ?? false,
+        wait_timeout_ms: opts?.wait_timeout_ms ?? 0,
+        poll_interval_ms: opts?.poll_interval_ms ?? 30_000,
+        commit_lookback: opts?.commit_lookback ?? 10,
+    };
+
+    const { owner, project, primary, secondary, key } = url_match;
+    log_step(`Resolving artifact for ${tag_primary(`${owner}/${project}`)} ${tag_dim(`(${source_url})`)}`);
+
+    // Direct workflow run URL - skip commit walk entirely.
+    if (primary === 'actions' && secondary === 'runs' && key != undefined) {
+        return resolve_from_run_id(source_url, key, merged_opts);
+    }
+
+    // PR or branch - build a SHA list, then pick a run.
+    let shas: string[];
+    if (primary === 'pull' && secondary != undefined) {
+        shas = await fetch_pr_commit_shas(source_url, secondary);
+        log_step(`Found ${tag_count(shas.length)} commit(s) on PR ${tag_neutral(`#${secondary}`)}.`);
+    } else if (primary === 'tree' && secondary != undefined) {
+        shas = await fetch_branch_commit_shas(source_url, secondary, merged_opts.commit_lookback);
+        log_step(`Walking last ${tag_count(shas.length)} commit(s) of branch ${tag_neutral(secondary)}.`);
+    } else {
+        return { ok: false, reason: 'not_supported_url', detail: `URL primary '${primary ?? '<none>'}' is not handled by resolve_artifact_for_url.` };
+    }
+
+    const pick = await pick_run_from_shas(source_url, shas, merged_opts);
+    if (pick == undefined) {
+        return { ok: false, reason: 'no_workflow_runs', detail: `No workflow runs found across ${shas.length} commit(s).` };
+    }
+    if (!pick.ok) return pick;
+
+    return select_artifact_from_workflow(source_url, pick.run, pick.other_runs, pick.sha, merged_opts);
+}
+
+//#region SHA list builders
+
+async function fetch_pr_commit_shas(source_url: string, pr_number: string): Promise<string[]> {
+    const shas: string[] = [];
+    const { status: pr_status, body: pr_body } = await query_gh_project_by_url(source_url, `/pulls/${pr_number}`);
+    const head_sha = pr_status === '200' && pr_body != null ? ((pr_body as any).head?.sha as string | undefined) : undefined;
+    if (head_sha != undefined) shas.push(head_sha);
+
+    const { status, body } = await query_gh_project_by_url(source_url, `/pulls/${pr_number}/commits?per_page=100`);
+    if (status === '200' && body != null && Array.isArray(body)) {
+        // GH returns oldest-first; reverse to walk newest-first, skipping head (already first).
+        for (const commit of (body as any[]).reverse()) {
+            const sha = commit.sha as string;
+            if (sha !== head_sha) shas.push(sha);
+        }
+    }
+    return shas;
+}
+
+async function fetch_branch_commit_shas(source_url: string, branch: string, lookback: number): Promise<string[]> {
+    const shas: string[] = [];
+    const { status, body } = await query_gh_project_by_url(source_url, `/commits?sha=${encodeURIComponent(branch)}&per_page=${lookback}`);
+    if (status === '200' && body != null && Array.isArray(body)) {
+        for (const commit of body as any[]) shas.push(commit.sha as string);
+    }
+    return shas;
+}
+
+//#region Pick a workflow run from SHA list
+
+// Walk SHAs newest-first, fetching runs per SHA, picking the first non-failed completed run.
+// Honors the wait rule: in-progress runs trigger a wait only when wait_timeout_ms > 0 AND
+// (build_job set OR no other SHA has any runs).
+async function pick_run_from_shas(
+    source_url: string,
+    shas: string[],
+    opts: { allow_failed_workflows: boolean; wait_timeout_ms: number; poll_interval_ms: number; build_job?: string },
+): Promise<{ ok: true; run: WorkflowRunSummary; other_runs: WorkflowRunSummary[]; sha: string } | { ok: false; reason: ResolveFailureReason; detail: string; link?: string } | undefined> {
+    // First pass - find every SHA that has any runs at all. Used to decide if "first workflow" rule applies.
+    const shas_with_runs: Map<string, WorkflowRunSummary[]> = new Map();
+    for (const sha of shas) {
+        const runs = await fetch_runs_for_sha(source_url, sha);
+        if (runs.length > 0) shas_with_runs.set(sha, runs);
+    }
+    if (shas_with_runs.size === 0) return undefined;
+
+    // Second pass - walk SHAs newest-first. For each SHA with runs, decide what to do.
+    for (const sha of shas) {
+        const runs = shas_with_runs.get(sha);
+        if (runs == undefined) continue;
+
+        // Detect failures first - if any run failed and we don't allow that, abort the whole resolve.
+        const failed = runs.filter((r) => r.conclusion != null && FAILED_WORKFLOW_CONCLUSIONS.includes(r.conclusion));
+        if (failed.length > 0 && !opts.allow_failed_workflows) {
+            const first_failed = failed[0]!;
+            return {
+                ok: false,
+                reason: 'workflow_failed',
+                detail: `Workflow '${first_failed.name}' concluded as ${first_failed.conclusion}.`,
+                link: first_failed.html_url,
+            };
+        }
+
+        // Pick run matching build_job if provided, otherwise the first run.
+        const target = opts.build_job != undefined ? runs.find((r) => r.name.toLowerCase() === opts.build_job!.toLowerCase()) : runs[0];
+        if (target == undefined) continue; // build_job filter missed - try next SHA
+
+        // If picked run is completed, return it.
+        if (target.status === 'completed') {
+            const other_runs = runs.filter((r) => r.id !== target.id);
+            log_step(`Picked workflow ${tag_primary(target.name)} on commit ${tag_dim(sha.slice(0, 7))}.`);
+            return { ok: true, run: target, other_runs, sha };
+        }
+
+        // Picked run is in-progress. Check if we should wait.
+        const is_first_workflow = shas_with_runs.size === 1;
+        const should_wait = opts.wait_timeout_ms > 0 && (opts.build_job != undefined || is_first_workflow);
+        if (should_wait) {
+            log_step(`Workflow ${tag_primary(target.name)} is in progress, waiting up to ${tag_count(Math.floor(opts.wait_timeout_ms / 1000))}s...`);
+            const wait_res = await wait_for_workflow_run(source_url, target.id, { timeout_ms: opts.wait_timeout_ms, poll_interval_ms: opts.poll_interval_ms });
+            if (!wait_res.ok) return { ok: false, reason: wait_res.reason, detail: wait_res.detail, link: wait_res.html_url };
+            if (FAILED_WORKFLOW_CONCLUSIONS.includes(wait_res.conclusion) && !opts.allow_failed_workflows) {
+                return { ok: false, reason: 'workflow_failed', detail: `Workflow '${target.name}' concluded as ${wait_res.conclusion}.`, link: wait_res.html_url };
+            }
+            const other_runs = runs.filter((r) => r.id !== target.id);
+            return { ok: true, run: { ...target, status: 'completed', conclusion: wait_res.conclusion }, other_runs, sha };
+        }
+        // Fall through to next-older SHA.
+        log_debug(`Workflow ${target.name} in progress on ${sha.slice(0, 7)} - falling through (no wait).`);
+    }
+
+    return undefined;
+}
+
+async function fetch_runs_for_sha(source_url: string, sha: string): Promise<WorkflowRunSummary[]> {
+    const { status, body } = await query_gh_project_by_url(source_url, `/actions/runs?head_sha=${sha}`);
+    if (status === '200' && body != null && Array.isArray((body as any).workflow_runs)) {
+        return (body as any).workflow_runs as WorkflowRunSummary[];
+    }
+    return [];
+}
+
+//#region Wait
+
+// Poll a workflow run until it completes or the timeout elapses. Caller decides what to do with the conclusion.
+export async function wait_for_workflow_run(
+    source_url: string,
+    run_id: number | string,
+    opts: { timeout_ms: number; poll_interval_ms: number },
+): Promise<{ ok: true; conclusion: string; html_url: string } | { ok: false; reason: 'workflow_timeout' | 'workflow_failed'; detail: string; html_url: string }> {
+    const deadline = Date.now() + opts.timeout_ms;
+    let html_url = '';
+    while (Date.now() < deadline) {
+        const { status, body } = await query_gh_project_by_url(source_url, `/actions/runs/${run_id}`);
+        if (status === '200' && body != null) {
+            html_url = (body as any).html_url ?? html_url;
+            const run_status = (body as any).status as string | null | undefined;
+            const conclusion = (body as any).conclusion as string | null | undefined;
+            if (run_status === 'completed' && conclusion != null) {
+                return { ok: true, conclusion, html_url };
+            }
+        } else if (status !== '200') {
+            // Non-200 on poll - warn but keep polling (transient API issue).
+            log_warn(`Polling workflow run ${run_id} returned status ${status}; retrying.`);
+        }
+        await delay(opts.poll_interval_ms);
+    }
+    return { ok: false, reason: 'workflow_timeout', detail: `Workflow run ${run_id} did not complete within ${Math.floor(opts.timeout_ms / 1000)}s.`, html_url };
+}
+
+//#region Artifact selection from a workflow run
+
+async function resolve_from_run_id(
+    source_url: string,
+    run_id: string,
+    opts: { build_job?: string; artifact_name?: string; allow_failed_workflows: boolean; wait_timeout_ms: number; poll_interval_ms: number },
+): Promise<ResolveResult> {
+    // Fetch run metadata to know its name and current conclusion.
+    const { status, body } = await query_gh_project_by_url(source_url, `/actions/runs/${run_id}`);
+    if (status !== '200' || body == null) {
+        return { ok: false, reason: 'no_workflow_runs', detail: `Workflow run ${run_id} not found.` };
+    }
+    const run: WorkflowRunSummary = {
+        id: Number(run_id),
+        name: ((body as any).name as string) ?? '',
+        html_url: ((body as any).html_url as string) ?? '',
+        status: (body as any).status,
+        conclusion: (body as any).conclusion,
+    };
+    const resolved_sha = ((body as any).head_sha as string) ?? '';
+    return select_artifact_from_workflow(source_url, run, [], resolved_sha, opts);
+}
+
+async function select_artifact_from_workflow(
+    source_url: string,
+    run: WorkflowRunSummary,
+    other_runs: WorkflowRunSummary[],
+    resolved_sha: string,
+    opts: { build_job?: string; artifact_name?: string; allow_failed_workflows: boolean },
+): Promise<ResolveResult> {
+    // If picked run failed and we don't tolerate that, return.
+    if (run.conclusion != null && FAILED_WORKFLOW_CONCLUSIONS.includes(run.conclusion) && !opts.allow_failed_workflows) {
+        return { ok: false, reason: 'workflow_failed', detail: `Workflow '${run.name}' concluded as ${run.conclusion}.`, link: run.html_url };
+    }
+
+    // Build candidate workflow list - the chosen run first, plus any siblings (for the case where
+    // multiple workflows ran on the same commit and the artifact lives on a sibling, not this run).
+    const workflows = [run, ...other_runs];
+    let collected: Artifact[] = [];
+    for (const wf of workflows) {
+        const artifacts = await fetch_artifacts_for_run(source_url, wf.id);
+        const usable = artifacts.filter((a) => !a.expired);
+
+        // If build_job filter matches this workflow, use it exclusively (skip the other workflows).
+        if (opts.build_job != undefined && wf.name.toLowerCase() === opts.build_job.toLowerCase()) {
+            collected = usable;
+            break;
+        }
+        collected.push(...usable);
+    }
+
+    if (collected.length === 0) {
+        return { ok: false, reason: 'no_artifact', detail: `No usable (non-expired) artifacts across ${workflows.length} workflow run(s).`, link: run.html_url };
+    }
+
+    // Filter by name if requested.
+    if (opts.artifact_name != undefined) {
+        const filter = opts.artifact_name.toLowerCase();
+        const matched = collected.find((a) => a.name.toLowerCase().includes(filter));
+        if (matched == undefined) {
+            return { ok: false, reason: 'artifact_filter_miss', detail: `No artifact matched filter '${opts.artifact_name}' among ${collected.length} candidates.`, link: run.html_url };
+        }
+        return { ok: true, reason: 'workflow_artifact', artifact: matched, run_url: run.html_url, resolved_sha, other_runs };
+    }
+
+    if (collected.length > 1) {
+        log_warn(`Found ${collected.length} artifacts; using first ('${collected[0]?.name}'). Use --artifact_name to filter.`);
+    }
+    return { ok: true, reason: 'workflow_artifact', artifact: collected[0]!, run_url: run.html_url, resolved_sha, other_runs };
+}
+
+// Returns artifacts with their digest stripped of the leading "sha256:" prefix.
+export async function fetch_artifacts_for_run(source_url: string, run_id: number | string): Promise<Artifact[]> {
+    const { status, body } = await query_gh_project_by_url(source_url, `/actions/runs/${run_id}/artifacts`);
+    if (status !== '200' || body == null || !Array.isArray((body as any).artifacts)) return [];
+    return ((body as any).artifacts as Artifact[]).map((a) => ({
+        name: a.name,
+        archive_download_url: a.archive_download_url,
+        size_in_bytes: a.size_in_bytes,
+        digest: typeof a.digest === 'string' && a.digest.startsWith('sha256:') ? a.digest.slice(7) : a.digest,
+        expired: a.expired,
+    }));
+}

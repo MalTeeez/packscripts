@@ -22,9 +22,10 @@ import {
 } from './subcommands/version';
 import { build_bootstrap, build_version_for_diff, bundle_pack_into_starter, initialize_packaging } from './subcommands/package';
 import { package_image } from './subcommands/image';
-import { assert_config_exists } from './utils/config';
+import { assert_config_exists, CI_INTEGRATION } from './utils/config';
 import { init_config } from './subcommands/init';
-import { apply_github_pr } from './subcommands/pr';
+import { apply_github_pr, pr_gate } from './subcommands/pr';
+import { set_debug_enabled } from './utils/log';
 
 //#region Command Framework
 interface CommandDefinition {
@@ -496,40 +497,106 @@ const commands: Record<string, CommandDefinition> = {
             return;
         },
     },
-    pr_apply: {
-        description: 'Fetch and apply a mod build artifact from a GitHub PR, recursively resolving any required PRs mentioned in the PR body',
-        usage: 'pr apply <pr_url> [--dry] [--build_job <job name>] [--artifact_name <part of artifact name>] [--allow_failed_workflows] [--limit_to_original_owner] [--other_allowed_owner <owner>]...',
-        is_subcommand: true,
+    pr: {
+        description: 'Apply or validate PR dependency chains',
+        usage: 'pr <apply|gate>',
         handler: async (args) => {
-            if (args.includes('--help')) {
-                console.log(commands['pr_apply']);
+            const mode = args[0]?.toLowerCase();
+            const cmd_args = args.slice(1);
+
+            if (!mode || mode === 'help' || mode === '--help' || mode === '-h') {
+                console.log(commands['pr']?.usage);
                 return;
             }
 
+            const command = commands['pr_' + mode];
+            if (command) {
+                await command.handler(cmd_args);
+            } else {
+                console.error(`Error: Unknown subcommand '${mode}'`);
+                console.log(commands['pr']?.usage);
+                process.exit(1);
+            }
+        },
+    },
+    pr_apply: {
+        description: 'Fetch and apply a mod build artifact from a GitHub PR, recursively resolving cross-repo deps and merged-since-daily PRs',
+        usage: 'pr apply <pr_url> [--dry] [--build_job <name>] [--artifact_name <part>] [--allow_failed_workflows] [--allow_external_owners] [--other_allowed_owner <owner>]... [--wait_timeout <seconds>] [--poll_interval <seconds>] [--debug]',
+        is_subcommand: true,
+        handler: async (args) => {
+            if (args.includes('--help') || args.includes('-h')) {
+                console.log(commands['pr_apply']?.usage);
+                return;
+            }
+
+            // Parse value-flags first, then collect positionals.
             let build_job: string | undefined;
-            const other_allowed_owners = [];
             let artifact_name: string | undefined;
+            let wait_timeout_seconds: number | undefined;
+            let poll_interval_seconds: number | undefined;
+            const other_allowed_owners: string[] = [];
             const positional: string[] = [];
             for (let i = 0; i < args.length; i++) {
                 const arg = args[i];
                 if (arg === '--build_job' && args[i + 1] != undefined) {
-                    build_job = args[i + 1];
+                    build_job = args[++i];
                 } else if (arg === '--artifact_name' && args[i + 1] != undefined) {
-                    artifact_name = args[i + 1];
+                    artifact_name = args[++i];
+                } else if (arg === '--other_allowed_owner' && args[i + 1] != undefined) {
+                    other_allowed_owners.push(args[++i] as string);
+                } else if (arg === '--wait_timeout' && args[i + 1] != undefined) {
+                    wait_timeout_seconds = Number(args[++i]);
+                } else if (arg === '--poll_interval' && args[i + 1] != undefined) {
+                    poll_interval_seconds = Number(args[++i]);
                 } else if (arg != null && !arg.startsWith('-')) {
                     positional.push(arg);
-                } else if (arg === '--other_allowed_owner' && args[i + 1] != undefined) {
-                    other_allowed_owners.push(args[i + 1] as string);
                 }
             }
 
-            await apply_github_pr(positional[0],
-            {
+            // Wait + poll intervals fall back to CI_INTEGRATION config when no flag was passed.
+            const wait_timeout_ms = (wait_timeout_seconds ?? CI_INTEGRATION?.WAIT_TIMEOUT_SECONDS ?? 0) * 1000;
+            const poll_interval_ms = (poll_interval_seconds ?? CI_INTEGRATION?.POLL_INTERVAL_SECONDS ?? 30) * 1000;
+
+            await apply_github_pr(positional[0], {
                 dry: args.includes('--dry'),
                 build_job,
                 artifact_name,
                 allow_failed_workflows: args.includes('--allow_failed_workflows'),
-                limit_to_original_owner: args.includes('--limit_to_original_owner'),
+                allow_external_owners: args.includes('--allow_external_owners'),
+                other_allowed_owners: other_allowed_owners.length > 0 ? other_allowed_owners : undefined,
+                wait_timeout_ms,
+                poll_interval_ms,
+            });
+            return;
+        },
+    },
+    pr_gate: {
+        description: 'Validate every cross-repo dep of the given PR is merged with a published release; exit 0 = mergeable',
+        usage: 'pr gate <pr_url> [--allow_external_owners] [--other_allowed_owner <owner>]... [--build_job <name>] [--debug]',
+        is_subcommand: true,
+        handler: async (args) => {
+            if (args.includes('--help') || args.includes('-h')) {
+                console.log(commands['pr_gate']?.usage);
+                return;
+            }
+
+            let build_job: string | undefined;
+            const other_allowed_owners: string[] = [];
+            const positional: string[] = [];
+            for (let i = 0; i < args.length; i++) {
+                const arg = args[i];
+                if (arg === '--build_job' && args[i + 1] != undefined) {
+                    build_job = args[++i];
+                } else if (arg === '--other_allowed_owner' && args[i + 1] != undefined) {
+                    other_allowed_owners.push(args[++i] as string);
+                } else if (arg != null && !arg.startsWith('-')) {
+                    positional.push(arg);
+                }
+            }
+
+            await pr_gate(positional[0], {
+                build_job,
+                allow_external_owners: args.includes('--allow_external_owners'),
                 other_allowed_owners: other_allowed_owners.length > 0 ? other_allowed_owners : undefined,
             });
             return;
@@ -573,6 +640,9 @@ async function main() {
     const args = process.argv.slice(2);
     const mode = args[0]?.toLowerCase();
     const cmd_args = args.slice(1);
+
+    // Global --debug flag - flips the debug gate in utils/log so log_debug calls become visible.
+    if (args.includes('--debug')) set_debug_enabled(true);
 
     if (!mode || mode === 'help' || mode === '--help' || mode === '-h') {
         showHelp();

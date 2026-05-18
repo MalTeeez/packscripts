@@ -3,6 +3,7 @@ import { parse_gh_url } from './sources';
 import type { JsonObject } from './utils';
 import { is_mod_ignored_by_name, type SourceType } from './mods';
 import { GITHUB_API_KEY } from './config';
+import { log_debug } from './log';
 
 export const SOURCE_API_KEYS: Map<SourceType, string> = new Map();
 
@@ -22,9 +23,9 @@ export async function query_gh_project_by_url(
     ignore_codes: number[] = [],
 ): Promise<{ headers?: Headers; status: string; body: JsonObject | undefined }> {
     if (gh_api_key == undefined) {
-        gh_api_key = SOURCE_API_KEYS.get("GITHUB")
+        gh_api_key = SOURCE_API_KEYS.get('GITHUB');
         if (gh_api_key == undefined) {
-            throw Error("Missing github API key, probably called fetch without initial assertion.")
+            throw Error('Missing github API key, probably called fetch without initial assertion.');
         }
     }
 
@@ -37,6 +38,7 @@ export async function query_gh_project_by_url(
         if (res == undefined || !res.ok) {
             if (res && !ignore_codes.includes(res.status)) {
                 console.warn(`W: Failed to get releases with ${res.status} | ${res.statusText} for ${project} (${url})`);
+                throw new Error();
             }
             return { headers: res.headers, body: undefined, status: String(res.status) };
         } else {
@@ -120,6 +122,10 @@ export async function gh_request(path: string, api_key: string, method: string =
         const reset = res.headers.get('x-ratelimit-reset');
         const secs = reset ? Math.max(0, parseInt(reset) * 1000 - Date.now()) / 1000 : undefined;
         console.warn(`W: GitHub rate limit exceeded. Resets in ~${secs?.toFixed(0)}s`);
+    }
+
+    if (!res.ok) {
+        log_debug(`GitHub request failed with ${res.status}`, url);
     }
 
     return res;

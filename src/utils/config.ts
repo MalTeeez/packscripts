@@ -55,6 +55,17 @@ export interface PackPackagingVariant {
     EXCLUDE_PATTERNS: Array<string>;
 }
 
+export interface SourceOverride {
+    default_branch?: string;
+    daily_version_override?: string;
+}
+
+export interface CIIntegrationConfig {
+    WAIT_TIMEOUT_SECONDS?: number;
+    POLL_INTERVAL_SECONDS?: number;
+    SOURCE_OVERRIDES?: Record<string, SourceOverride>;
+}
+
 export interface Config {
     MOD_BASE_DIR: string;
     DOWNLOAD_TEMP_DIR: string;
@@ -62,6 +73,7 @@ export interface Config {
     ANNOTATED_FILE: string;
     RELATIVE_INSTANCE_DIRECTORY: string;
     PACKAGING?: PackagingConfig | undefined;
+    CI_INTEGRATION?: CIIntegrationConfig | undefined;
 }
 
 const _config_file_exists = await Bun.file(CONFIG_FILE).exists();
@@ -80,6 +92,7 @@ export const DOWNLOAD_UNDO_DIR: string =
     (config?.DOWNLOAD_UNDO_DIR?.replace(/\/$/m, '') as string | undefined) ?? RELATIVE_INSTANCE_DIRECTORY + '.packscripts_tmp/undos/';
 export const ANNOTATED_FILE: string = config?.ANNOTATED_FILE?.replace(/\/$/m, '');
 export const PACKAGING = config?.PACKAGING;
+export const CI_INTEGRATION = config?.CI_INTEGRATION;
 export const GITHUB_API_KEY: string | undefined = secrets?.GITHUB_API_KEY || Bun.env.PACKSCRIPTS_GITHUB_API_KEY || undefined;
 
 type ConfigKey = keyof NonNullable<typeof config>;
